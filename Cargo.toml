@@ -9,3 +9,16 @@ exclude = [
   "proto-compiler"
 ]
 
+[workspace.dependencies]
+# Kona
+kona-mpt = { version = "0.0.5", default-features = false }
+kona-client = { version = "0.1.0", default-features = false }
+kona-common = { version = "0.0.4", default-features = false }
+kona-derive = { version = "0.0.5", default-features = false }
+kona-preimage = { version = "0.0.4", default-features = false }
+kona-executor = { version = "0.0.4", default-features = false }
+kona-common-proc = { version = "0.0.4", default-features = false }
+kona-derive-alloy = { version = "0.0.2", default-features = false }
+
+# Ethereum
+revm = { version = "16.0.0", default-features = false }

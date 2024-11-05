@@ -1,0 +1,48 @@
+syntax = "proto3";
+package ibc.lightclients.optimism.v1;
+option (gogoproto.goproto_getters_all) = false;
+
+import "gogoproto/gogo.proto";
+import "ibc/core/client/v1/client.proto";
+import "google/protobuf/duration.proto";
+
+message ClientState {
+  uint64 chain_id = 1;
+
+  bytes ibc_store_address = 2;
+  bytes ibc_commitments_slot = 3;
+
+  ibc.core.client.v1.Height latest_height = 4;
+
+  google.protobuf.Duration trusting_period = 5;
+  google.protobuf.Duration max_clock_drift = 6;
+
+  bool frozen = 7;
+}
+
+message Derivation {
+  bytes l1_header = 1;
+  bytes agreed_l2_header = 2;
+  bytes claimed_l2_header = 3;
+}
+
+message Header {
+  ibc.core.client.v1.Height trusted_height = 1;
+  bytes account_proof = 2;
+
+  repeated Derivation derivations = 3;
+  bytes preimage = 4;
+}
+
+message ConsensusState {
+  bytes state_root = 1;
+  uint64 timestamp = 2;
+  bytes output_root = 3;
+  bytes hash = 4;
+}
+
+message Misbehaviour {
+  string client_id = 1;
+  Header header_1 = 2;
+  Header header_2 = 3;
+}
