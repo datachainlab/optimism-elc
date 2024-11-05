@@ -1,0 +1,11 @@
+[workspace]
+resolver = "2"
+members = [
+  "light-client",
+  "proto",
+  "derivation"
+]
+exclude = [
+  "proto-compiler"
+]
+
