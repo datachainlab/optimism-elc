@@ -5,4 +5,4 @@ edition = "2021"
 
 [dependencies]
 light-client = { git = "https://github.com/datachainlab/lcp", rev = "v0.2.11", default-features = false, features = ["ibc"] }
-ethereum-ibc = { git = "https://github.com/datachainlab/ethereum-ibc-rs", rev = "v0.0.12", default-features = false }
+ethereum-light-client-verifier = { git = "https://github.com/datachainlab/ethereum-light-client-rs", rev = "v0.1.4", default-features = false }

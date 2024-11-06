@@ -21,9 +21,9 @@ message ClientState {
 }
 
 message Derivation {
-  bytes l1_header = 1;
-  bytes agreed_l2_header = 2;
-  bytes claimed_l2_header = 3;
+  bytes l1_head = 1;
+  bytes agreed_l2_head = 2;
+  bytes l2_head = 3;
 }
 
 message Header {

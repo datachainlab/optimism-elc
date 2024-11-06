@@ -10,15 +10,39 @@ exclude = [
 ]
 
 [workspace.dependencies]
+anyhow = "1.0"
+
 # Kona
 kona-mpt = { version = "0.0.5", default-features = false }
-kona-client = { version = "0.1.0", default-features = false }
+kona-client = { git="https://github.com/anton-rs/kona", rev= "kona-mpt-v0.0.5", default-features = false }
 kona-common = { version = "0.0.4", default-features = false }
 kona-derive = { version = "0.0.5", default-features = false }
 kona-preimage = { version = "0.0.4", default-features = false }
 kona-executor = { version = "0.0.4", default-features = false }
 kona-common-proc = { version = "0.0.4", default-features = false }
 kona-derive-alloy = { version = "0.0.2", default-features = false }
+
+# Alloy
+alloy-rlp = { version = "0.3.9", default-features = false }
+alloy-trie = { version = "0.7.2", default-features = false }
+alloy-eips = { version = "0.5.4", default-features = false }
+alloy-serde = { version = "0.5.4", default-features = false }
+alloy-provider = { version = "0.5.4", default-features = false }
+alloy-primitives = { version = "0.8", default-features = false }
+alloy-consensus = { version = "0.5.4", default-features = false }
+alloy-transport = { version = "0.5.4", default-features = false }
+alloy-rpc-types = { version = "0.5.4", default-features = false }
+alloy-rpc-client = { version = "0.5.4", default-features = false }
+alloy-node-bindings = { version = "0.5.4", default-features = false }
+alloy-transport-http = { version = "0.5.4", default-features = false }
+alloy-rpc-types-engine = { version = "0.5.4", default-features = false }
+alloy-rpc-types-beacon = { version = "0.5.4", default-features = false }
+
+# OP Alloy
+op-alloy-genesis = { version = "0.5.2", default-features = false }
+op-alloy-protocol = { version = "0.5.2", default-features = false }
+op-alloy-consensus = { version = "0.5.2", default-features = false }
+op-alloy-rpc-types-engine = { version = "0.5.2", default-features = false }
 
 # Ethereum
 revm = { version = "16.0.0", default-features = false }
