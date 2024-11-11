@@ -17,4 +17,4 @@ kona-executor = { workspace = true}
 # Revm + Alloy
 revm.workspace = true
 alloy-primitives.workspace = true
-op-alloy-genesis = { workspace = true, features = ["std", "serde"] }
+op-alloy-genesis = { workspace = true }

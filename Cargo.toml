@@ -11,8 +11,12 @@ exclude = [
 
 [workspace.dependencies]
 anyhow = "1.0"
-thiserror = "1.0"
+thiserror = "2.0"
 hashbrown = "0.15.1"
+serde = { version = "1.0.210", default-features = false, features = ["derive"] }
+serde_json = { version = "1.0.128", default-features = false }
+rlp = { version = "0.5.2", default-features = false }
+prost = { version = "0.11", default-features = false }
 
 # Kona
 kona-mpt = { version = "0.0.5", default-features = false }
@@ -41,7 +45,7 @@ alloy-rpc-types-engine = { version = "0.5.4", default-features = false }
 alloy-rpc-types-beacon = { version = "0.5.4", default-features = false }
 
 # OP Alloy
-op-alloy-genesis = { version = "0.5.2", default-features = false }
+op-alloy-genesis = { version = "0.5.2", default-features = false, features = ["serde"] }
 op-alloy-protocol = { version = "0.5.2", default-features = false }
 op-alloy-consensus = { version = "0.5.2", default-features = false }
 op-alloy-rpc-types-engine = { version = "0.5.2", default-features = false }

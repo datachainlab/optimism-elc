@@ -12,8 +12,8 @@ doctest = false
 all-features = true
 
 [dependencies]
-prost       = { version = "0.11", default-features = false }
-serde       = { version = "1.0", default-features = false }
+prost       = { workspace = true }
+serde       = { workspace = true }
 schemars    = { version = "0.8", optional = true }
 
 [features]

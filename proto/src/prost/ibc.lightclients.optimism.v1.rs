@@ -21,6 +21,8 @@ pub struct ClientState {
     >,
     #[prost(bool, tag = "7")]
     pub frozen: bool,
+    #[prost(bytes = "vec", tag = "8")]
+    pub rollup_config_json: ::prost::alloc::vec::Vec<u8>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

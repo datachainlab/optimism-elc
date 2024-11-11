@@ -40,7 +40,7 @@ pub mod ibc {
         }
     }
     pub mod lightclients {
-        pub mod ethereum {
+        pub mod optimism {
             pub mod v1 {
                 include_proto!("ibc.lightclients.optimism.v1.rs");
             }

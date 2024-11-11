@@ -18,6 +18,8 @@ message ClientState {
   google.protobuf.Duration max_clock_drift = 6;
 
   bool frozen = 7;
+
+  bytes rollup_config_json = 8;
 }
 
 message Derivation {

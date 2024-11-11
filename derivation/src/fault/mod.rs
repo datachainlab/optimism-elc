@@ -3,8 +3,8 @@
 use kona_common::FileDescriptor;
 use kona_preimage::{HintWriter, OracleReader, PipeHandle};
 
-mod handler;
 mod errors;
+mod handler;
 
 pub(crate) use handler::fpvm_handle_register;
 
