@@ -26,11 +26,25 @@ pub struct ClientState {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Derivation {
     #[prost(bytes = "vec", tag = "1")]
-    pub l1_header: ::prost::alloc::vec::Vec<u8>,
+    pub l1_head_hash: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes = "vec", tag = "2")]
-    pub agreed_l2_header: ::prost::alloc::vec::Vec<u8>,
+    pub agreed_l2_head_hash: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes = "vec", tag = "3")]
-    pub claimed_l2_header: ::prost::alloc::vec::Vec<u8>,
+    pub agreed_l2_output_root: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "4")]
+    pub l2_head_hash: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "5")]
+    pub l2_output_root: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "6")]
+    pub l2_block_number: ::prost::alloc::vec::Vec<u8>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Preimage {
+    #[prost(bytes = "vec", tag = "1")]
+    pub key: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "2")]
+    pub value: ::prost::alloc::vec::Vec<u8>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -43,8 +57,8 @@ pub struct Header {
     pub account_proof: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, repeated, tag = "3")]
     pub derivations: ::prost::alloc::vec::Vec<Derivation>,
-    #[prost(bytes = "vec", tag = "4")]
-    pub preimage: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, repeated, tag = "4")]
+    pub preimages: ::prost::alloc::vec::Vec<Preimage>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

@@ -4,6 +4,8 @@ use kona_common::FileDescriptor;
 use kona_preimage::{HintWriter, OracleReader, PipeHandle};
 
 mod handler;
+mod errors;
+
 pub(crate) use handler::fpvm_handle_register;
 
 /// The global preimage oracle reader pipe.

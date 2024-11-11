@@ -21,9 +21,17 @@ message ClientState {
 }
 
 message Derivation {
-  bytes l1_head = 1;
-  bytes agreed_l2_head = 2;
-  bytes l2_head = 3;
+  bytes l1_head_hash = 1;
+  bytes agreed_l2_head_hash = 2;
+  bytes agreed_l2_output_root = 3;
+  bytes l2_head_hash = 4;
+  bytes l2_output_root = 5;
+  bytes l2_block_number = 6;
+}
+
+message Preimage {
+    bytes key = 1;
+    bytes value = 2;
 }
 
 message Header {
@@ -31,7 +39,7 @@ message Header {
   bytes account_proof = 2;
 
   repeated Derivation derivations = 3;
-  bytes preimage = 4;
+  repeated Preimage preimages = 4;
 }
 
 message ConsensusState {

@@ -5,6 +5,9 @@ use alloc::vec::Vec;
 use hashbrown::HashMap;
 use kona_preimage::{HintWriterClient, PreimageKey, PreimageOracleClient};
 use kona_preimage::errors::{PreimageOracleError, PreimageOracleResult};
+use optimism_ibc_proto::ibc::lightclients::ethereum::v1::Preimage;
+use crate::errors::Error;
+use crate::errors::Error::InvalidPreimageKeySize;
 
 #[derive(Clone)]
 pub struct MemoryOracleClient {
@@ -43,5 +46,21 @@ impl PreimageOracleClient for MemoryOracleClient {
 impl HintWriterClient for MemoryOracleClient {
     async fn write(&self, hint: &str) -> PreimageOracleResult<()> {
         Err(PreimageOracleError::Other("unsupported operation".to_string()))
+    }
+}
+
+impl TryFrom<Vec<Preimage>> for MemoryOracleClient {
+    type Error = Error;
+
+    fn try_from(value: Vec<Preimage>) -> Result<Self, Self::Error> {
+        let mut inner = HashMap::with_capacity(value.len());
+        for preimage in value {
+            let key : [u8; 32]= preimage.key.try_into().map_err(|v: Vec<u8>| InvalidPreimageKeySize(v.len()))?;
+            //TODO verify the key is derived from the value
+            inner.insert(PreimageKey::try_from(key)?, preimage.value);
+        }
+        Ok(Self {
+            preimages: Arc::new(inner),
+        })
     }
 }
