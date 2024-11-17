@@ -1,0 +1,48 @@
+syntax = "proto3";
+package ibc.lightclients.optimism.l1.v1;
+option (gogoproto.goproto_getters_all) = false;
+
+import "gogoproto/gogo.proto";
+
+message L1Header {
+  LightClientUpdate consensus_update = 1;
+  ExecutionUpdate execution_update = 2;
+}
+
+message LightClientUpdate {
+  BeaconBlockHeader attested_header = 1;
+  SyncCommittee next_sync_committee = 2;
+  repeated bytes next_sync_committee_branch = 3;
+  BeaconBlockHeader finalized_header = 4;
+  repeated bytes finalized_header_branch = 5;
+  bytes finalized_execution_root = 6;
+  repeated bytes finalized_execution_branch = 7;
+  SyncAggregate sync_aggregate = 8;
+  uint64 signature_slot = 9;
+}
+
+message SyncCommittee {
+  repeated bytes pubkeys = 1;
+  bytes aggregate_pubkey = 2;
+}
+
+message SyncAggregate {
+  bytes sync_committee_bits = 1;
+  bytes sync_committee_signature = 2;
+}
+
+message ExecutionUpdate {
+  bytes state_root = 1;
+  repeated bytes state_root_branch = 2;
+  uint64 block_number = 3;
+  repeated bytes block_number_branch = 4;
+}
+
+
+message BeaconBlockHeader {
+  uint64 slot = 1;
+  uint64 proposer_index = 2;
+  bytes parent_root = 3;
+  bytes state_root = 4;
+  bytes body_root = 5;
+}
