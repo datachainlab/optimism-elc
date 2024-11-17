@@ -31,6 +31,7 @@ pub struct ClientState {
 
     /// RollupConfig
     pub rollup_config: RollupConfig,
+    //TODO L1 param
 }
 
 impl ClientState {

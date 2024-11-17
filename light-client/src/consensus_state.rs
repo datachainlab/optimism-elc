@@ -4,10 +4,10 @@ use alloy_primitives::B256;
 use light_client::types::{Any, Time};
 use prost::Message as _;
 
+use super::errors::Error;
+use crate::misc::new_timestamp;
 use optimism_ibc_proto::google::protobuf::Any as IBCAny;
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::ConsensusState as RawConsensusState;
-use crate::misc::new_timestamp;
-use super::errors::Error;
 
 pub const OPTIMISM_CONSENSUS_STATE_TYPE_URL: &str = "/ibc.lightclients.optimism.v1.ConsensusState";
 
@@ -38,10 +38,10 @@ impl TryFrom<RawConsensusState> for ConsensusState {
         let state_root: B256 = B256::try_from(&value.state_root)
             .map_err(|e| Error::UnexpectedConsensusStateRoot(value.state_root))?;
         let timestamp = new_timestamp(value.timestamp)?;
-        let output_root: B256= B256::try_from(&value.output_root)
+        let output_root: B256 = B256::try_from(&value.output_root)
             .map_err(|e| Error::UnexpectedOutputRoot(value.output_root))?;
-        let hash: B256 = B256::try_from(&value.hash)
-            .map_err(|e| Error::UnexpectedHeaderHash(value.hash))?;
+        let hash: B256 =
+            B256::try_from(&value.hash).map_err(|e| Error::UnexpectedHeaderHash(value.hash))?;
         Ok(Self {
             state_root,
             timestamp,

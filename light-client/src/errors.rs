@@ -1,5 +1,6 @@
 use alloc::string::String;
 use alloc::vec::Vec;
+use ethereum_ibc::light_client_verifier::errors::Error as L1Error;
 use kona_preimage::errors::InvalidPreimageKeyType;
 use light_client::commitments::{CommitmentPrefix, Error as CommitmentError};
 use light_client::types::{ClientId, Height, TimeError};
@@ -42,4 +43,7 @@ pub enum Error {
     UnexpectedConsensusStateRoot(Vec<u8>),
     UnexpectedHeaderHash(Vec<u8>),
     UnexpectedOutputRoot(Vec<u8>),
+
+    // Update
+    L1Error(#[from] L1Error),
 }

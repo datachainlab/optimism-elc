@@ -1,5 +1,5 @@
-use light_client::types::Time;
 use crate::errors::Error;
+use light_client::types::Time;
 
 pub fn new_timestamp(second: u64) -> Result<Time, Error> {
     let second = second as u128;
