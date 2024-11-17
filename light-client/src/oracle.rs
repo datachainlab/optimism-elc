@@ -7,7 +7,7 @@ use alloc::vec::Vec;
 use hashbrown::HashMap;
 use kona_preimage::errors::{PreimageOracleError, PreimageOracleResult};
 use kona_preimage::{HintWriterClient, PreimageKey, PreimageOracleClient};
-use optimism_ibc_proto::ibc::lightclients::ethereum::v1::Preimage;
+use optimism_ibc_proto::ibc::lightclients::optimism::v1::Preimage;
 
 #[derive(Clone)]
 pub struct MemoryOracleClient {

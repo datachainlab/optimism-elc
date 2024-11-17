@@ -37,4 +37,9 @@ pub enum Error {
     MissingTrustingPeriod,
     NegativeMaxClockDrift,
     UnexpectedRollupConfig(#[from] serde_json::Error),
+
+    // ConsState error
+    UnexpectedConsensusStateRoot(Vec<u8>),
+    UnexpectedHeaderHash(Vec<u8>),
+    UnexpectedOutputRoot(Vec<u8>),
 }
