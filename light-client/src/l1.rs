@@ -11,7 +11,6 @@ use ethereum_ibc::light_client_verifier::context::{
     ConsensusVerificationContext, Fraction, LightClientContext,
 };
 use ethereum_ibc::light_client_verifier::state::SyncCommitteeView;
-use ethereum_ibc::types::{AccountUpdateInfo, TrustedSyncCommittee};
 use ethereum_ibc::update::{ConsensusUpdateInfo, ExecutionUpdateInfo};
 
 #[derive(Clone, Debug)]
@@ -53,17 +52,14 @@ impl L1Config {
 
 #[derive(Clone, Debug)]
 pub struct L1Header<const SYNC_COMMITTEE_SIZE: usize> {
-    pub trusted_sync_committee: TrustedSyncCommittee<SYNC_COMMITTEE_SIZE>,
+    pub sync_committee: L1SyncCommittee<SYNC_COMMITTEE_SIZE>,
     pub consensus_update: ConsensusUpdateInfo<SYNC_COMMITTEE_SIZE>,
     pub execution_update: ExecutionUpdateInfo,
-    pub account_update: AccountUpdateInfo,
 }
 
 #[derive(Clone, Debug)]
 pub struct L1SyncCommittee<const SYNC_COMMITTEE_SIZE: usize> {
     pub slot: Slot,
-    pub current_sync_committee: Option<SyncCommittee<SYNC_COMMITTEE_SIZE>>,
-    pub next_sync_committee: Option<SyncCommittee<SYNC_COMMITTEE_SIZE>>,
 }
 
 impl<const SYNC_COMMITTEE_SIZE: usize> SyncCommitteeView<SYNC_COMMITTEE_SIZE>
@@ -74,11 +70,11 @@ impl<const SYNC_COMMITTEE_SIZE: usize> SyncCommitteeView<SYNC_COMMITTEE_SIZE>
     }
 
     fn current_sync_committee(&self) -> &SyncCommittee<SYNC_COMMITTEE_SIZE> {
-        self.current_sync_committee.as_ref().unwrap()
+        unreachable!("current_sync_committee is not implemented for L1SyncCommittee")
     }
 
     fn next_sync_committee(&self) -> Option<&SyncCommittee<SYNC_COMMITTEE_SIZE>> {
-        self.next_sync_committee.as_ref()
+        unreachable!("next_sync_committee is not implemented for L1SyncCommittee")
     }
 }
 
@@ -97,10 +93,10 @@ impl<const SYNC_COMMITTEE_SIZE: usize, const EXECUTION_PAYLOAD_TREE_DEPTH: usize
         &self,
         host_unix_timestamp: u64,
         l1_config: &L1Config,
-        sync_committee: &L1SyncCommittee<SYNC_COMMITTEE_SIZE>,
         header: &L1Header<SYNC_COMMITTEE_SIZE>,
     ) -> Result<(), Error> {
         let ctx = l1_config.build_context(host_unix_timestamp);
+        let sync_committee = &header.sync_committee;
         let consensus_update = &header.consensus_update;
         let execution_update = &header.execution_update;
         self.consensus_verifier
