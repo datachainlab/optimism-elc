@@ -45,5 +45,11 @@ pub mod ibc {
                 include_proto!("ibc.lightclients.optimism.v1.rs");
             }
         }
+
+        pub mod ethereum {
+            pub mod v1 {
+                include_proto!("ibc.lightclients.ethereum.v1.rs");
+            }
+        }
     }
 }

@@ -1,3 +1,4 @@
+use alloy_primitives::ruint::aliases::B256;
 use crate::errors::Error;
 use ethereum_ibc::consensus::beacon::{Epoch, Root, Slot};
 use ethereum_ibc::consensus::context::ChainContext;
@@ -52,18 +53,16 @@ impl L1Config {
 
 #[derive(Clone, Debug)]
 pub struct L1Header<const SYNC_COMMITTEE_SIZE: usize> {
-    pub sync_committee: L1SyncCommittee<SYNC_COMMITTEE_SIZE>,
     pub consensus_update: ConsensusUpdateInfo<SYNC_COMMITTEE_SIZE>,
     pub execution_update: ExecutionUpdateInfo,
 }
 
 #[derive(Clone, Debug)]
-pub struct L1SyncCommittee<const SYNC_COMMITTEE_SIZE: usize> {
+pub struct L1SyncCommittee {
     pub slot: Slot,
 }
 
-impl<const SYNC_COMMITTEE_SIZE: usize> SyncCommitteeView<SYNC_COMMITTEE_SIZE>
-    for L1SyncCommittee<SYNC_COMMITTEE_SIZE>
+impl<const SYNC_COMMITTEE_SIZE: usize> SyncCommitteeView<SYNC_COMMITTEE_SIZE> for L1SyncCommittee
 {
     fn current_slot(&self) -> Slot {
         self.slot.clone()
@@ -82,7 +81,7 @@ pub struct L1Verifier<const SYNC_COMMITTEE_SIZE: usize, const EXECUTION_PAYLOAD_
     consensus_verifier: CurrentNextSyncProtocolVerifier<
         SYNC_COMMITTEE_SIZE,
         EXECUTION_PAYLOAD_TREE_DEPTH,
-        L1SyncCommittee<SYNC_COMMITTEE_SIZE>,
+        L1SyncCommittee,
     >,
 }
 
@@ -96,11 +95,12 @@ impl<const SYNC_COMMITTEE_SIZE: usize, const EXECUTION_PAYLOAD_TREE_DEPTH: usize
         header: &L1Header<SYNC_COMMITTEE_SIZE>,
     ) -> Result<(), Error> {
         let ctx = l1_config.build_context(host_unix_timestamp);
-        let sync_committee = &header.sync_committee;
+        let slot = header.consensus_update.light_client_update.finalized_header.0.slot.clone();
+        let l1_sync_committee = &L1SyncCommittee { slot };
         let consensus_update = &header.consensus_update;
         let execution_update = &header.execution_update;
         self.consensus_verifier
-            .validate_updates(ctx, sync_committee, consensus_update, execution_update)
+            .validate_updates(ctx,&l1_sync_committee, consensus_update, execution_update)
             .map_err(Error::L1Error)
     }
 }

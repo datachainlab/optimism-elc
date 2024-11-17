@@ -6,6 +6,8 @@ import "gogoproto/gogo.proto";
 import "ibc/core/client/v1/client.proto";
 import "google/protobuf/duration.proto";
 
+import "ibc/lightclients/ethereum/v1/ethereum.proto";
+
 message ClientState {
   uint64 chain_id = 1;
 
@@ -22,8 +24,13 @@ message ClientState {
   bytes rollup_config_json = 8;
 }
 
+message L1Header {
+  ibc.lightclients.ethereum.v1.LightClientUpdate consensus_update = 1;
+  ibc.lightclients.ethereum.v1.ExecutionUpdate execution_update = 2;
+}
+
 message Derivation {
-  bytes l1_head_hash = 1;
+  L1Header l1_head = 1;
   bytes agreed_l2_head_hash = 2;
   bytes agreed_l2_output_root = 3;
   bytes l2_head_hash = 4;

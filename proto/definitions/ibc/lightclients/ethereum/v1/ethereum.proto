@@ -1,12 +1,68 @@
 syntax = "proto3";
-package ibc.lightclients.optimism.l1.v1;
-option (gogoproto.goproto_getters_all) = false;
+package ibc.lightclients.ethereum.v1;
 
-import "gogoproto/gogo.proto";
+option go_package = "github.com/datachainlab/ethereum-lcp/go/light-clients/ethereum/types";
+import "ibc/core/client/v1/client.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
 
-message L1Header {
-  LightClientUpdate consensus_update = 1;
-  ExecutionUpdate execution_update = 2;
+message ClientState {
+  bytes genesis_validators_root = 1;
+  uint64 min_sync_committee_participants = 2;
+  uint64 genesis_time = 3;
+  ForkParameters fork_parameters = 4;
+  uint64 seconds_per_slot = 5;
+  uint64 slots_per_epoch = 6;
+  uint64 epochs_per_sync_committee_period = 7;
+
+  bytes ibc_address = 8;
+  bytes ibc_commitments_slot = 9;
+
+  Fraction trust_level = 10;
+  google.protobuf.Duration trusting_period = 11;
+  google.protobuf.Duration max_clock_drift = 12;
+
+  uint64 latest_slot = 13;
+  uint64 latest_execution_block_number = 14;
+  ibc.core.client.v1.Height frozen_height = 15;
+}
+
+message ConsensusState {
+  uint64 slot = 1;
+  bytes storage_root = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  bytes current_sync_committee = 4;
+  bytes next_sync_committee = 5;
+}
+
+message Header {
+  TrustedSyncCommittee trusted_sync_committee = 1;
+  LightClientUpdate consensus_update = 2;
+  ExecutionUpdate execution_update = 3;
+  AccountUpdate account_update = 4;
+  // seconds from unix epoch
+  uint64 timestamp = 5;
+}
+
+message TrustedSyncCommittee {
+  ibc.core.client.v1.Height trusted_height = 1;
+  SyncCommittee sync_committee = 2;
+  bool is_next = 3;
+}
+
+message ForkParameters {
+  bytes genesis_fork_version = 1;
+  repeated Fork forks = 2;
+}
+
+message Fraction {
+  uint64 numerator = 1;
+  uint64 denominator = 2;
+}
+
+message Fork {
+  bytes version = 1;
+  uint64 epoch = 2;
 }
 
 message LightClientUpdate {
@@ -38,6 +94,10 @@ message ExecutionUpdate {
   repeated bytes block_number_branch = 4;
 }
 
+message AccountUpdate {
+  bytes account_proof = 1;
+  bytes account_storage_root = 2;
+}
 
 message BeaconBlockHeader {
   uint64 slot = 1;
@@ -45,4 +105,18 @@ message BeaconBlockHeader {
   bytes parent_root = 3;
   bytes state_root = 4;
   bytes body_root = 5;
+}
+
+message FinalizedHeaderMisbehaviour {
+  string client_id = 1;
+  TrustedSyncCommittee trusted_sync_committee = 2;
+  LightClientUpdate consensus_update_1 = 3;
+  LightClientUpdate consensus_update_2 = 4;
+}
+
+message NextSyncCommitteeMisbehaviour {
+  string client_id = 1;
+  TrustedSyncCommittee trusted_sync_committee = 2;
+  LightClientUpdate consensus_update_1 = 3;
+  LightClientUpdate consensus_update_2 = 4;
 }

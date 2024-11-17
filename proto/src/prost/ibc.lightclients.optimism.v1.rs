@@ -26,9 +26,21 @@ pub struct ClientState {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct L1Header {
+    #[prost(message, optional, tag = "1")]
+    pub consensus_update: ::core::option::Option<
+        super::super::ethereum::v1::LightClientUpdate,
+    >,
+    #[prost(message, optional, tag = "2")]
+    pub execution_update: ::core::option::Option<
+        super::super::ethereum::v1::ExecutionUpdate,
+    >,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Derivation {
-    #[prost(bytes = "vec", tag = "1")]
-    pub l1_head_hash: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "1")]
+    pub l1_head: ::core::option::Option<L1Header>,
     #[prost(bytes = "vec", tag = "2")]
     pub agreed_l2_head_hash: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes = "vec", tag = "3")]
