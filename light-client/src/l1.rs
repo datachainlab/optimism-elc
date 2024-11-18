@@ -1,5 +1,5 @@
-use alloy_primitives::ruint::aliases::B256;
 use crate::errors::Error;
+use alloy_primitives::ruint::aliases::B256;
 use ethereum_ibc::consensus::beacon::{Epoch, Root, Slot};
 use ethereum_ibc::consensus::context::ChainContext;
 use ethereum_ibc::consensus::fork::ForkParameters;
@@ -62,8 +62,7 @@ pub struct L1SyncCommittee {
     pub slot: Slot,
 }
 
-impl<const SYNC_COMMITTEE_SIZE: usize> SyncCommitteeView<SYNC_COMMITTEE_SIZE> for L1SyncCommittee
-{
+impl<const SYNC_COMMITTEE_SIZE: usize> SyncCommitteeView<SYNC_COMMITTEE_SIZE> for L1SyncCommittee {
     fn current_slot(&self) -> Slot {
         self.slot.clone()
     }
@@ -95,12 +94,18 @@ impl<const SYNC_COMMITTEE_SIZE: usize, const EXECUTION_PAYLOAD_TREE_DEPTH: usize
         header: &L1Header<SYNC_COMMITTEE_SIZE>,
     ) -> Result<(), Error> {
         let ctx = l1_config.build_context(host_unix_timestamp);
-        let slot = header.consensus_update.light_client_update.finalized_header.0.slot.clone();
+        let slot = header
+            .consensus_update
+            .light_client_update
+            .finalized_header
+            .0
+            .slot
+            .clone();
         let l1_sync_committee = &L1SyncCommittee { slot };
         let consensus_update = &header.consensus_update;
         let execution_update = &header.execution_update;
         self.consensus_verifier
-            .validate_updates(ctx,&l1_sync_committee, consensus_update, execution_update)
+            .validate_updates(ctx, &l1_sync_committee, consensus_update, execution_update)
             .map_err(Error::L1Error)
     }
 }

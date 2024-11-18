@@ -11,6 +11,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 rlp = { workspace = true }
 prost = { workspace = true }
+sha2 = { workspace = true}
 
 # LC
 light-client = { git = "https://github.com/datachainlab/lcp", rev = "v0.2.11", default-features = false, features = ["ibc"] }

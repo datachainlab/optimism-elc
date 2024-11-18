@@ -2,6 +2,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use ethereum_ibc::light_client_verifier::errors::Error as L1Error;
 use kona_preimage::errors::InvalidPreimageKeyType;
+use kona_preimage::PreimageKey;
 use light_client::commitments::{CommitmentPrefix, Error as CommitmentError};
 use light_client::types::{ClientId, Height, TimeError};
 
@@ -14,6 +15,11 @@ pub enum Error {
         source: InvalidPreimageKeyType,
         key: [u8; 32],
     },
+    InvalidPreimageValue {
+        value: Vec<u8>,
+        key: PreimageKey,
+    },
+    UnexpectedGlobalGlobalGeneric(PreimageKey),
 
     // data conversion error
     TimestampOverflowError(u128),
