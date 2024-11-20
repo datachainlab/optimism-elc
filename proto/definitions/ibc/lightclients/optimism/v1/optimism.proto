@@ -8,6 +8,18 @@ import "google/protobuf/duration.proto";
 
 import "ibc/lightclients/ethereum/v1/ethereum.proto";
 
+message L1Config {
+  bytes genesis_validators_root = 1;
+  uint64 min_sync_committee_participants = 2;
+  uint64 genesis_time = 3;
+  ibc.lightclients.ethereum.v1.ForkParameters fork_parameters = 4;
+  uint64 seconds_per_slot = 5;
+  uint64 slots_per_epoch = 6;
+  uint64 epochs_per_sync_committee_period = 7;
+
+  ibc.lightclients.ethereum.v1.Fraction trust_level = 8;
+}
+
 message ClientState {
   uint64 chain_id = 1;
 
@@ -22,6 +34,8 @@ message ClientState {
   bool frozen = 7;
 
   bytes rollup_config_json = 8;
+
+  L1Config l1_config = 9;
 }
 
 message L1Header {

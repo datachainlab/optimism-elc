@@ -1,15 +1,26 @@
 use crate::errors::Error;
+use crate::l1::L1Config;
 use crate::types::ChainId;
 use alloc::borrow::ToOwned;
 use alloc::vec::Vec;
 use alloy_primitives::ruint::aliases::B160;
 use alloy_primitives::B256;
 use core::time::Duration;
-use light_client::types::{Any, Height, Time};
+use ethereum_ibc::consensus::beacon::Version;
+use ethereum_ibc::consensus::fork::{ForkParameter, ForkParameters};
+use ethereum_ibc::consensus::types::H256;
+use ethereum_ibc::light_client_verifier::context::Fraction;
+use ethereum_ibc::light_client_verifier::execution::ExecutionVerifier;
+use light_client::types::{Any, Height};
 use op_alloy_genesis::RollupConfig;
 use optimism_ibc_proto::google::protobuf::Any as IBCAny;
+use optimism_ibc_proto::ibc::lightclients::ethereum::v1::{
+    Fork as RawFork, ForkParameters as RawForkParameters, Fraction as RawFraction,
+};
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::ClientState as RawClientState;
+use optimism_ibc_proto::ibc::lightclients::optimism::v1::L1Config as RawL1Config;
 use prost::Message;
+
 pub const OPTIMISM_CLIENT_STATE_TYPE_URL: &str = "/ibc.lightclients.optimism.v1.ClientState";
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -31,7 +42,9 @@ pub struct ClientState {
 
     /// RollupConfig
     pub rollup_config: RollupConfig,
-    //TODO L1 param
+
+    /// L1 Config
+    pub l1_config: L1Config,
 }
 
 impl ClientState {
@@ -46,6 +59,103 @@ impl ClientState {
     pub fn freeze(mut self) -> Self {
         self.frozen = true;
         self
+    }
+
+    pub fn verify_membership(
+        &self,
+        root: H256,
+        key: H256,
+        value: &[u8],
+        proof: Vec<Vec<u8>>,
+    ) -> Result<(), Error> {
+        let execution_verifier = ExecutionVerifier::default();
+        execution_verifier
+            .verify_membership(
+                root,
+                key.as_bytes(),
+                rlp::encode(&trim_left_zero(value)).as_ref(),
+                proof,
+            )
+            .map_err(Error::L1Error)
+    }
+
+    pub fn verify_non_membership(
+        &self,
+        root: H256,
+        key: H256,
+        proof: Vec<Vec<u8>>,
+    ) -> Result<(), Error> {
+        let execution_verifier = ExecutionVerifier::default();
+        execution_verifier
+            .verify_non_membership(root, key.as_bytes(), proof)
+            .map_err(Error::L1Error)
+    }
+}
+
+impl From<L1Config> for RawL1Config {
+    fn from(value: L1Config) -> Self {
+        fn version_to_bytes(version: Version) -> Vec<u8> {
+            version.0.to_vec()
+        }
+
+        Self {
+            genesis_validators_root: value.genesis_validators_root.as_bytes().to_vec(),
+            min_sync_committee_participants: value.min_sync_committee_participants.into(),
+            genesis_time: value.genesis_time.into(),
+            fork_parameters: Some(RawForkParameters {
+                genesis_fork_version: version_to_bytes(value.fork_parameters.genesis_version),
+                forks: value
+                    .fork_parameters
+                    .forks
+                    .into_iter()
+                    .map(|f| RawFork {
+                        version: version_to_bytes(f.version),
+                        epoch: f.epoch.into(),
+                    })
+                    .collect(),
+            }),
+            seconds_per_slot: value.seconds_per_slot.into(),
+            slots_per_epoch: value.slots_per_epoch.into(),
+            epochs_per_sync_committee_period: value.epochs_per_sync_committee_period.into(),
+            trust_level: Some(RawFraction {
+                numerator: value.trust_level.numerator,
+                denominator: value.trust_level.denominator,
+            }),
+        }
+    }
+}
+
+impl TryFrom<RawL1Config> for L1Config {
+    type Error = Error;
+
+    fn try_from(value: RawL1Config) -> Result<Self, Self::Error> {
+        fn bytes_to_version(bz: Vec<u8>) -> Version {
+            assert_eq!(bz.len(), 4);
+            let mut version = Version::default();
+            version.0.copy_from_slice(&bz);
+            version
+        }
+        let raw_fork_parameters = value.fork_parameters.ok_or(Error::MissingForkParameters)?;
+        let fork_parameters = ForkParameters::new(
+            bytes_to_version(raw_fork_parameters.genesis_fork_version),
+            raw_fork_parameters
+                .forks
+                .into_iter()
+                .map(|f| ForkParameter::new(bytes_to_version(f.version), f.epoch.into()))
+                .collect(),
+        );
+        let trust_level = value.trust_level.ok_or(Error::MissingTrustLevel)?;
+
+        Ok(Self {
+            genesis_validators_root: H256::from_slice(&value.genesis_validators_root),
+            min_sync_committee_participants: value.min_sync_committee_participants.into(),
+            genesis_time: value.genesis_time.into(),
+            fork_parameters,
+            seconds_per_slot: value.seconds_per_slot.into(),
+            slots_per_epoch: value.slots_per_epoch.into(),
+            epochs_per_sync_committee_period: value.epochs_per_sync_committee_period.into(),
+            trust_level: Fraction::new(trust_level.numerator, trust_level.denominator),
+        })
     }
 }
 
@@ -92,6 +202,8 @@ impl TryFrom<RawClientState> for ClientState {
 
         let frozen = value.frozen;
 
+        let l1_config = value.l1_config.try_into()?;
+
         Ok(Self {
             chain_id,
             ibc_store_address,
@@ -101,6 +213,7 @@ impl TryFrom<RawClientState> for ClientState {
             max_clock_drift,
             frozen,
             rollup_config,
+            l1_config,
         })
     }
 }
@@ -122,6 +235,7 @@ impl TryFrom<ClientState> for RawClientState {
             frozen: value.frozen.to_owned(),
             rollup_config_json: serde_json::to_vec(&value.rollup_config)
                 .map_err(Error::UnexpectedRollupConfig)?,
+            l1_config: Some(value.l1_config.into()),
         })
     }
 }
@@ -166,4 +280,15 @@ impl TryFrom<Any> for ClientState {
     fn try_from(any: Any) -> Result<Self, Self::Error> {
         IBCAny::try_from(any).try_into()
     }
+}
+
+fn trim_left_zero(value: &[u8]) -> &[u8] {
+    let mut pos = 0;
+    for v in value {
+        if *v != 0 {
+            break;
+        }
+        pos += 1;
+    }
+    &value[pos..]
 }

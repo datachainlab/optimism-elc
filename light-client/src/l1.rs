@@ -13,8 +13,9 @@ use ethereum_ibc::light_client_verifier::context::{
 };
 use ethereum_ibc::light_client_verifier::state::SyncCommitteeView;
 use ethereum_ibc::update::{ConsensusUpdateInfo, ExecutionUpdateInfo};
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct L1Config {
     /// Chain Param
     pub genesis_validators_root: Root,

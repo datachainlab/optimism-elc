@@ -1,13 +1,12 @@
 use crate::client_state::ClientState;
 use crate::consensus_state::ConsensusState;
-use crate::errors::{ClientError, Error};
+use crate::errors::Error;
 use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 use alloy_primitives::keccak256;
 use ethereum_ibc::commitment::{calculate_ibc_commitment_storage_key, decode_eip1184_rlp_proof};
 use ethereum_ibc::consensus::types::H256;
-use ethereum_ibc::eth_client_type;
 use ethereum_ibc::light_client_verifier::execution::ExecutionVerifier;
 use light_client::commitments::{
     gen_state_id_from_any, CommitmentPrefix, EmittedState, StateID, UpdateStateProxyMessage,
@@ -39,123 +38,10 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize, const L1_EXECUTION_PAYLOAD_TREE_DEPTH:
         client_id: &ClientId,
     ) -> Result<Height, LightClientError> {
         let any_client_state = ctx.client_state(client_id)?;
-        let client_state =
-            ClientState::try_from(any_client_state).map_err(|e| ClientError::LatestHeight {
-                cause: e,
-                client_id: client_id.clone(),
-            })?;
+        let client_state = ClientState::try_from(any_client_state)?;
         Ok(client_state.latest_height)
     }
 
-    fn create_client(
-        &self,
-        ctx: &dyn HostClientReader,
-        any_client_state: Any,
-        any_consensus_state: Any,
-    ) -> Result<CreateClientResult, Error> {
-        InnerLightClient
-            .create_client(ctx, any_client_state.clone(), any_consensus_state.clone())
-            .map_err(|e| {
-                ClientError::CreateClient {
-                    cause: e,
-                    client_state: any_client_state,
-                    consensus_sate: any_consensus_state,
-                }
-                .into()
-            })
-    }
-
-    fn update_client(
-        &self,
-        ctx: &dyn HostClientReader,
-        client_id: ClientId,
-        client_message: Any,
-    ) -> Result<UpdateClientResult, Error> {
-        InnerLightClient
-            .update_client(ctx, client_id.clone(), client_message.clone())
-            .map_err(|e| {
-                ClientError::UpdateClient {
-                    cause: e,
-                    client_id,
-                }
-                .into()
-            })
-    }
-
-    fn verify_membership(
-        &self,
-        ctx: &dyn HostClientReader,
-        client_id: ClientId,
-        prefix: CommitmentPrefix,
-        path: String,
-        value: Vec<u8>,
-        proof_height: Height,
-        proof: Vec<u8>,
-    ) -> Result<VerifyMembershipResult, Error> {
-        InnerLightClient
-            .verify_membership(
-                ctx,
-                client_id.clone(),
-                prefix.clone(),
-                path.clone(),
-                value.clone(),
-                proof_height,
-                proof.clone(),
-            )
-            .map_err(|e| {
-                ClientError::VerifyMembership {
-                    cause: e,
-                    client_id,
-                    prefix,
-                    path,
-                    value,
-                    proof_height,
-                    proof,
-                }
-                .into()
-            })
-    }
-
-    fn verify_non_membership(
-        &self,
-        ctx: &dyn HostClientReader,
-        client_id: ClientId,
-        prefix: CommitmentPrefix,
-        path: String,
-        proof_height: Height,
-        proof: Vec<u8>,
-    ) -> Result<VerifyNonMembershipResult, Error> {
-        InnerLightClient
-            .verify_non_membership(
-                ctx,
-                client_id.clone(),
-                prefix.clone(),
-                path.clone(),
-                proof_height,
-                proof.clone(),
-            )
-            .map_err(|e| {
-                ClientError::VerifyNonMembership {
-                    cause: e,
-                    client_id,
-                    prefix,
-                    path,
-                    proof_height,
-                    proof,
-                }
-                .into()
-            })
-    }
-}
-
-struct InnerLightClient<
-    const L1_SYNC_COMMITTEE_SIZE: usize,
-    const L1_EXECUTION_PAYLOAD_TREE_DEPTH: usize,
->;
-
-impl<const L1_SYNC_COMMITTEE_SIZE: usize, const L1_EXECUTION_PAYLOAD_TREE_DEPTH: usize>
-    InnerLightClient<L1_SYNC_COMMITTEE_SIZE, L1_EXECUTION_PAYLOAD_TREE_DEPTH>
-{
     fn create_client(
         &self,
         _: &dyn HostClientReader,
@@ -192,7 +78,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize, const L1_EXECUTION_PAYLOAD_TREE_DEPTH:
         client_id: ClientId,
         client_message: Any,
     ) -> Result<UpdateClientResult, Error> {
-        todo!()
+        todo!("update_client")
     }
 
     fn verify_membership(
@@ -206,19 +92,11 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize, const L1_EXECUTION_PAYLOAD_TREE_DEPTH:
         proof: Vec<u8>,
     ) -> Result<VerifyMembershipResult, Error> {
         let (client_state, cons_state, proof, key, root) =
-            Self::validate_args(ctx, &client_id, &path, &proof_height, proof)?;
+            Self::validate_membership_args(ctx, &client_id, &path, &proof_height, proof)?;
 
         let value = keccak256(&value).0;
 
-        let execution_verifier = ExecutionVerifier::default();
-        execution_verifier
-            .verify_membership(
-                root,
-                key.as_bytes(),
-                rlp::encode(&trim_left_zero(&value)).as_ref(),
-                proof,
-            )
-            .map_err(Error::L1Error)?;
+        client_state.verify_membership(root, key, &value, proof)?;
 
         Ok(VerifyMembershipResult {
             message: VerifyMembershipProxyMessage::new(
@@ -241,12 +119,9 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize, const L1_EXECUTION_PAYLOAD_TREE_DEPTH:
         proof: Vec<u8>,
     ) -> Result<VerifyNonMembershipResult, Error> {
         let (client_state, cons_state, proof, key, root) =
-            Self::validate_args(ctx, &client_id, &path, &proof_height, proof)?;
+            Self::validate_membership_args(ctx, &client_id, &path, &proof_height, proof)?;
 
-        let execution_verifier = ExecutionVerifier::default();
-        execution_verifier
-            .verify_non_membership(root, key.as_bytes(), proof)
-            .map_err(Error::L1Error)?;
+        client_state.verify_non_membership(root, key, proof)?;
 
         Ok(VerifyNonMembershipResult {
             message: VerifyMembershipProxyMessage::new(
@@ -258,8 +133,12 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize, const L1_EXECUTION_PAYLOAD_TREE_DEPTH:
             ),
         })
     }
+}
 
-    fn validate_args(
+impl<const L1_SYNC_COMMITTEE_SIZE: usize, const L1_EXECUTION_PAYLOAD_TREE_DEPTH: usize>
+    OptimismLightClient<L1_SYNC_COMMITTEE_SIZE, L1_EXECUTION_PAYLOAD_TREE_DEPTH>
+{
+    fn validate_membership_args(
         ctx: &dyn HostClientReader,
         client_id: &ClientId,
         path: &str,
@@ -311,15 +190,4 @@ fn gen_state_id(
     gen_state_id_from_any(&client_state, &consensus_state)
         .map_err(LightClientError::commitment)
         .map_err(Error::LCPError)
-}
-
-fn trim_left_zero(value: &[u8]) -> &[u8] {
-    let mut pos = 0;
-    for v in value {
-        if *v != 0 {
-            break;
-        }
-        pos += 1;
-    }
-    &value[pos..]
 }

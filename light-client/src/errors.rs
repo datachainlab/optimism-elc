@@ -51,6 +51,8 @@ pub enum Error {
     UnexpectedConsensusStateRoot(Vec<u8>),
     UnexpectedHeaderHash(Vec<u8>),
     UnexpectedOutputRoot(Vec<u8>),
+    MissingTrustLevel,
+    MissingForkParameters,
 
     // Update
     L1Error(#[from] L1Error),
@@ -59,43 +61,4 @@ pub enum Error {
     LCPError(light_client::Error),
 }
 
-#[derive(thiserror::Error, Debug)]
-pub enum ClientError {
-    LatestHeight {
-        #[from]
-        cause: Error,
-        client_id: ClientId,
-    },
-    CreateClient {
-        #[from]
-        cause: Error,
-        client_state: Any,
-        consensus_sate: Any,
-    },
-    UpdateClient {
-        #[from]
-        cause: Error,
-        client_id: ClientId,
-    },
-    VerifyMembership {
-        #[from]
-        cause: Error,
-        client_id: ClientId,
-        prefix: CommitmentPrefix,
-        path: String,
-        value: Vec<u8>,
-        proof_height: Height,
-        proof: Vec<u8>,
-    },
-    VerifyNonMembership {
-        #[from]
-        cause: Error,
-        client_id: ClientId,
-        prefix: CommitmentPrefix,
-        path: String,
-        proof_height: Height,
-        proof: Vec<u8>,
-    },
-}
-
-impl light_client::LightClientSpecificError for ClientError {}
+impl light_client::LightClientSpecificError for Error {}
