@@ -27,12 +27,12 @@ pub struct Header<const L1_SYNC_COMMITTEE_SIZE: usize> {
 impl <const L1_SYNC_COMMITTEE_SIZE: usize> Header<L1_SYNC_COMMITTEE_SIZE> {
     pub fn verify(
         &self,
-        chain_id: &ChainId,
+        chain_id: u64,
         rollup_config: &RollupConfig,
     ) -> Result<VerifyResult, Self::Error> {
         let headers = self
             .derivations
-            .verify(chain_id.id(), rollup_config, &self.oracle)?;
+            .verify(chain_id, rollup_config, &self.oracle)?;
         let (header, output_root) = headers.last().ok_or(Error::UnexpectedEmptyDerivations)?;
         Ok(VerifyResult {
             l2_header: header.clone(),
