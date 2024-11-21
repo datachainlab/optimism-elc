@@ -27,9 +27,14 @@ impl Header {
         chain_id: &ChainId,
         rollup_config: &RollupConfig,
     ) -> Result<VerifyResult, Self::Error> {
-        self.derivations
-            .verify(chain_id.id(), rollup_config, &self.oracle);
-        todo!("")
+        let headers = self
+            .derivations
+            .verify(chain_id.id(), rollup_config, &self.oracle)?;
+        let (header, output_root) = headers.last().ok_or(Error::UnexpectedEmptyDerivations)?;
+        Ok(VerifyResult {
+            l2_header: header.clone(),
+            l2_output_root: output_root.clone(),
+        })
     }
 
     pub fn trusted_height(&self) -> Height {

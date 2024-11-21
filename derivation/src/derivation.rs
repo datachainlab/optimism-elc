@@ -1,10 +1,12 @@
+use crate::driver::DerivationDriver;
 use crate::fault::fpvm_handle_register;
 use alloc::format;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
+use alloy_consensus::Header;
 use alloy_primitives::B256;
 use anyhow::{Error, Result};
-use kona_client::l1::{DerivationDriver, OracleBlobProvider, OracleL1ChainProvider};
+use kona_client::l1::{OracleBlobProvider, OracleL1ChainProvider};
 use kona_client::l2::OracleL2ChainProvider;
 use kona_client::BootInfo;
 use kona_preimage::CommsClient;
@@ -42,7 +44,7 @@ impl Derivation {
         chain_id: u64,
         rollup_config: &RollupConfig,
         oracle: impl CommsClient,
-    ) -> Result<()> {
+    ) -> Result<Header> {
         let boot = Arc::new(BootInfo {
             l1_head: self.l1_head_hash,
             agreed_l2_output_root: self.agreed_l2_output_root,
@@ -65,7 +67,7 @@ impl Derivation {
         )
         .await?;
 
-        let (number, output_root) = driver
+        let (header, output_root) = driver
             .produce_output(
                 &boot.rollup_config,
                 &l2_provider,
@@ -74,10 +76,10 @@ impl Derivation {
             )
             .await?;
 
-        if number != boot.claimed_l2_block_number {
+        if header.number != boot.claimed_l2_block_number {
             return Err(Error::msg(format!(
                 "Derivation failed by number expected={}, actual={}",
-                boot.claimed_l2_block_number, number
+                boot.claimed_l2_block_number, header.number
             )));
         }
         if output_root != boot.claimed_l2_output_root {
@@ -87,7 +89,7 @@ impl Derivation {
             )));
         }
 
-        Ok(())
+        Ok(header)
     }
 }
 
@@ -99,16 +101,21 @@ impl Derivations {
     pub fn new(inner: Vec<Derivation>) -> Self {
         Derivations { inner }
     }
-    pub async fn verify(
+    pub fn verify(
         &self,
         chain_id: u64,
         rollup_config: &RollupConfig,
         oracle: impl CommsClient,
-    ) -> Result<()> {
-        for d in &self.inner {
-            d.verify(chain_id, rollup_config, oracle).await?;
-        }
-        Ok(())
+    ) -> Result<Vec<(Header, B256)>> {
+        let headers = kona_common::block_on(async move {
+            let mut headers = Vec::with_capacity(self.inner.len());
+            for d in &self.inner {
+                let header = d.verify(chain_id, rollup_config, oracle.clone()).await?;
+                headers.push((header, d.l2_output_root));
+            }
+            Ok(headers)
+        })?;
+        Ok(headers)
     }
 
     pub fn last(&self) -> Option<&Derivation> {
