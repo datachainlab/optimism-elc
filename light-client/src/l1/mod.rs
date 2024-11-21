@@ -69,8 +69,8 @@ impl <const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL1Header> for L1Header<SYNC_C
         let execution_update = value.execution_update.ok_or(Error::MissingL1ExecutionUpdate)?;
 
         Ok(Self {
-            consensus_update: ethereum::types::convert_proto_to_consensus_update(consensus_update)?,
-            execution_update: ethereum::types::convert_proto_to_execution_update(execution_update),
+            consensus_update: converter::convert_proto_to_consensus_update(consensus_update)?,
+            execution_update: converter::convert_proto_to_execution_update(execution_update),
         })
     }
 
