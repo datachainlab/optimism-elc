@@ -73,8 +73,8 @@ pub struct Derivation {
     pub l2_head_hash: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes = "vec", tag = "5")]
     pub l2_output_root: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "6")]
-    pub l2_block_number: ::prost::alloc::vec::Vec<u8>,
+    #[prost(uint64, tag = "6")]
+    pub l2_block_number: u64,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -91,8 +91,10 @@ pub struct Header {
     pub trusted_height: ::core::option::Option<
         super::super::super::core::client::v1::Height,
     >,
-    #[prost(bytes = "vec", tag = "2")]
-    pub account_proof: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "2")]
+    pub account_update: ::core::option::Option<
+        super::super::ethereum::v1::AccountUpdate,
+    >,
     #[prost(message, repeated, tag = "3")]
     pub derivations: ::prost::alloc::vec::Vec<Derivation>,
     #[prost(message, repeated, tag = "4")]
@@ -102,7 +104,7 @@ pub struct Header {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ConsensusState {
     #[prost(bytes = "vec", tag = "1")]
-    pub state_root: ::prost::alloc::vec::Vec<u8>,
+    pub storage_root: ::prost::alloc::vec::Vec<u8>,
     #[prost(uint64, tag = "2")]
     pub timestamp: u64,
     #[prost(bytes = "vec", tag = "3")]

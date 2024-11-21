@@ -162,20 +162,17 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize, const L1_EXECUTION_PAYLOAD_TREE_DEPTH:
             ctx.consensus_state(&client_id, &proof_height)
                 .map_err(Error::LCPError)?,
         )?;
-        let storage_root = consensus_state.state_root;
+        let root = consensus_state.storage_root;
         let proof = decode_eip1184_rlp_proof(proof.into())?;
         let path = path.into();
-        let root = H256::from_slice(storage_root.as_slice());
         if root.is_zero() {
             return Err(Error::UnexpectedStorageRoot(
                 proof_height,
                 client_state.latest_height,
             ));
         }
-        let key = calculate_ibc_commitment_storage_key(
-            &H256::from_slice(client_state.ibc_commitments_slot.as_slice()),
-            path.clone(),
-        );
+        let key =
+            calculate_ibc_commitment_storage_key(&client_state.ibc_commitments_slot, path.clone());
 
         Ok((client_state, consensus_state, proof, key, root))
     }

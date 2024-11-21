@@ -40,7 +40,7 @@ impl Derivation {
     pub async fn verify(
         &self,
         chain_id: u64,
-        rollup_config: RollupConfig,
+        rollup_config: &RollupConfig,
         oracle: impl CommsClient,
     ) -> Result<()> {
         let boot = Arc::new(BootInfo {
@@ -96,18 +96,22 @@ pub struct Derivations {
 }
 
 impl Derivations {
-    pub fn new() -> Self {
-        Derivations { inner: Vec::new() }
+    pub fn new(inner: Vec<Derivation>) -> Self {
+        Derivations { inner }
     }
     pub async fn verify(
         &self,
         chain_id: u64,
-        rollup_config: RollupConfig,
+        rollup_config: &RollupConfig,
         oracle: impl CommsClient,
     ) -> Result<()> {
         for d in &self.inner {
             d.verify(chain_id, rollup_config, oracle).await?;
         }
         Ok(())
+    }
+
+    pub fn last(&self) -> Option<&Derivation> {
+        self.inner.last()
     }
 }

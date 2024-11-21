@@ -49,7 +49,7 @@ message Derivation {
   bytes agreed_l2_output_root = 3;
   bytes l2_head_hash = 4;
   bytes l2_output_root = 5;
-  bytes l2_block_number = 6;
+  uint64 l2_block_number = 6;
 }
 
 message Preimage {
@@ -59,14 +59,14 @@ message Preimage {
 
 message Header {
   ibc.core.client.v1.Height trusted_height = 1;
-  bytes account_proof = 2;
+   ibc.lightclients.ethereum.v1.AccountUpdate account_update = 2;
 
   repeated Derivation derivations = 3;
   repeated Preimage preimages = 4;
 }
 
 message ConsensusState {
-  bytes state_root = 1;
+  bytes storage_root = 1;
   uint64 timestamp = 2;
   bytes output_root = 3;
   bytes hash = 4;

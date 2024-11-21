@@ -1,5 +1,6 @@
 use alloc::string::String;
 use alloc::vec::Vec;
+use ethereum_ibc::consensus::types::H256;
 use ethereum_ibc::light_client_verifier::errors::Error as L1Error;
 use kona_preimage::errors::InvalidPreimageKeyType;
 use kona_preimage::PreimageKey;
@@ -48,13 +49,21 @@ pub enum Error {
     // ConsState error
     #[error("UnexpectedStorageRoot: proof_height={0} latest_height={1}")]
     UnexpectedStorageRoot(Height, Height),
-    UnexpectedConsensusStateRoot(Vec<u8>),
+    UnexpectedConsensusStorageRoot(Vec<u8>),
     UnexpectedHeaderHash(Vec<u8>),
     UnexpectedOutputRoot(Vec<u8>),
     MissingTrustLevel,
     MissingForkParameters,
 
     // Update
+    UnexpectedEmptyDerivations,
+    AccountStorageRootMismatch(H256, H256, H256, String, Vec<String>),
+    MPTVerificationError(
+        ethereum_ibc::light_client_verifier::errors::Error,
+        H256,
+        String,
+        Vec<String>,
+    ),
     L1Error(#[from] L1Error),
 
     // Framework

@@ -1,6 +1,7 @@
 use alloc::borrow::ToOwned as _;
 use alloc::vec::Vec;
 use alloy_primitives::B256;
+use ethereum_ibc::consensus::types::H256;
 use light_client::types::{Any, Time};
 use prost::Message as _;
 
@@ -14,7 +15,7 @@ pub const OPTIMISM_CONSENSUS_STATE_TYPE_URL: &str = "/ibc.lightclients.optimism.
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ConsensusState {
     /// the storage root of the IBC contract
-    pub state_root: B256,
+    pub storage_root: H256,
     /// timestamp from execution payload
     pub timestamp: Time,
     /// The agreed l2 output root
@@ -35,15 +36,15 @@ impl TryFrom<RawConsensusState> for ConsensusState {
     type Error = Error;
 
     fn try_from(value: RawConsensusState) -> Result<Self, Self::Error> {
-        let state_root: B256 = B256::try_from(&value.state_root)
-            .map_err(|e| Error::UnexpectedConsensusStateRoot(value.state_root))?;
+        let storage_root: H256 = H256::try_from(&value.storage_root)
+            .map_err(|e| Error::UnexpectedConsensusStorageRoot(value.storage_root))?;
         let timestamp = new_timestamp(value.timestamp)?;
         let output_root: B256 = B256::try_from(&value.output_root)
             .map_err(|e| Error::UnexpectedOutputRoot(value.output_root))?;
         let hash: B256 =
             B256::try_from(&value.hash).map_err(|e| Error::UnexpectedHeaderHash(value.hash))?;
         Ok(Self {
-            state_root,
+            storage_root,
             timestamp,
             output_root,
             hash,
@@ -54,7 +55,7 @@ impl TryFrom<RawConsensusState> for ConsensusState {
 impl From<ConsensusState> for RawConsensusState {
     fn from(value: ConsensusState) -> Self {
         Self {
-            state_root: value.state_root.to_vec(),
+            storage_root: value.storage_root.to_vec(),
             timestamp: value.timestamp.as_unix_timestamp_secs(),
             output_root: value.output_root.into(),
             hash: value.hash.into(),

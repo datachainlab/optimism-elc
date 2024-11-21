@@ -1,17 +1,20 @@
+use crate::consensus_state::ConsensusState;
 use crate::errors::Error;
+use crate::header::{Header, VerifyResult};
 use crate::l1::L1Config;
+use crate::misc::new_timestamp;
 use crate::types::ChainId;
 use alloc::borrow::ToOwned;
 use alloc::vec::Vec;
-use alloy_primitives::ruint::aliases::B160;
-use alloy_primitives::B256;
+use alloy_primitives::hex;
 use core::time::Duration;
 use ethereum_ibc::consensus::beacon::Version;
 use ethereum_ibc::consensus::fork::{ForkParameter, ForkParameters};
-use ethereum_ibc::consensus::types::H256;
+use ethereum_ibc::consensus::types::{Address, H256};
 use ethereum_ibc::light_client_verifier::context::Fraction;
 use ethereum_ibc::light_client_verifier::execution::ExecutionVerifier;
-use light_client::types::{Any, Height};
+use ethereum_ibc::types::AccountUpdateInfo;
+use light_client::types::{Any, Height, Time};
 use op_alloy_genesis::RollupConfig;
 use optimism_ibc_proto::google::protobuf::Any as IBCAny;
 use optimism_ibc_proto::ibc::lightclients::ethereum::v1::{
@@ -29,8 +32,8 @@ pub struct ClientState {
     pub chain_id: ChainId,
 
     /// IBC Solidity parameters
-    pub ibc_store_address: B160,
-    pub ibc_commitments_slot: B256,
+    pub ibc_store_address: Address,
+    pub ibc_commitments_slot: H256,
 
     ///Light Client parameters
     pub trusting_period: Duration,
@@ -59,6 +62,105 @@ impl ClientState {
     pub fn freeze(mut self) -> Self {
         self.frozen = true;
         self
+    }
+
+    fn check_header_and_update_state(
+        &self,
+        now: Time,
+        trusted_consensus_state: &ConsensusState,
+        header: Header,
+    ) -> Result<(ClientState, ConsensusState), Error> {
+        // Ensure header is valid
+        let VerifyResult {
+            l2_header,
+            l2_output_root,
+        } = header.verify(&self.chain_id, &self.rollup_config)?;
+
+        let mut new_client_state = self.clone();
+        let header_height = Height::new(
+            header.trusted_height().revision_number(),
+            l2_header.number as u64,
+        );
+        if new_client_state.latest_height < header_height {
+            new_client_state.latest_height = header_height;
+        }
+
+        // TODO verify L1 finality
+
+        // Ensure world state is valid
+        let account_update = header.account_update_ref();
+        self.verify_account_storage(
+            H256::from_slice(l2_header.state_root.0.as_slice()),
+            account_update,
+        )?;
+
+        let new_consensus_state = ConsensusState {
+            storage_root: account_update.account_storage_root,
+            timestamp: new_timestamp(l2_header.timestamp)?,
+            output_root: l2_output_root,
+            hash: l2_header.hash_slow(),
+        };
+
+        Ok((new_client_state, new_consensus_state))
+    }
+
+    /// https://github.com/datachainlab/ethereum-ibc-rs/blob/06864ca06431906fdad149839cda52ba43da48d2/crates/ibc/src/client_state.rs#L123
+    pub fn verify_account_storage(
+        &self,
+        state_root: H256,
+        account_update: &AccountUpdateInfo,
+    ) -> Result<(), Error> {
+        let address = &self.ibc_store_address;
+        let execution_verifier = ExecutionVerifier::default();
+        match execution_verifier
+            .verify_account(state_root, address, account_update.account_proof.clone())
+            .map_err(|e| {
+                Error::MPTVerificationError(
+                    e,
+                    state_root,
+                    hex::encode(address.0),
+                    account_update
+                        .account_proof
+                        .iter()
+                        .map(hex::encode)
+                        .collect(),
+                )
+            })? {
+            Some(account) => {
+                if account_update.account_storage_root == account.storage_root {
+                    Ok(())
+                } else {
+                    Err(Error::AccountStorageRootMismatch(
+                        account_update.account_storage_root,
+                        account.storage_root,
+                        state_root,
+                        hex::encode(address.0),
+                        account_update
+                            .account_proof
+                            .iter()
+                            .map(hex::encode)
+                            .collect(),
+                    ))
+                }
+            }
+            None => {
+                if account_update.account_storage_root.is_zero() {
+                    Ok(())
+                } else {
+                    Err(Error::AccountStorageRootMismatch(
+                        account_update.account_storage_root,
+                        H256::default(),
+                        state_root,
+                        hex::encode(address.0),
+                        account_update
+                            .account_proof
+                            .iter()
+                            .map(hex::encode)
+                            .collect(),
+                    ))
+                }
+            }
+        }
     }
 
     pub fn verify_membership(
@@ -224,8 +326,8 @@ impl TryFrom<ClientState> for RawClientState {
     fn try_from(value: ClientState) -> Result<Self, Self::Error> {
         Ok(Self {
             chain_id: value.chain_id.id(),
-            ibc_store_address: value.ibc_store_address.to_be_bytes_vec(),
-            ibc_commitments_slot: value.ibc_commitments_slot.to_vec(),
+            ibc_store_address: value.ibc_store_address.0.to_vec(),
+            ibc_commitments_slot: value.ibc_commitments_slot.0.to_vec(),
             latest_height: Some(optimism_ibc_proto::ibc::core::client::v1::Height {
                 revision_number: value.latest_height.revision_number(),
                 revision_height: value.latest_height.revision_height(),
