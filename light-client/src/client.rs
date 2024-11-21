@@ -7,6 +7,7 @@ use alloc::vec::Vec;
 use alloy_primitives::keccak256;
 use ethereum_ibc::commitment::{calculate_ibc_commitment_storage_key, decode_eip1184_rlp_proof};
 use ethereum_ibc::consensus::types::H256;
+use ethereum_ibc::light_client_verifier::consensus::CurrentNextSyncProtocolVerifier;
 use ethereum_ibc::light_client_verifier::execution::ExecutionVerifier;
 use light_client::commitments::{
     gen_state_id_from_any, CommitmentPrefix, EmittedState, StateID, UpdateStateProxyMessage,
@@ -17,6 +18,7 @@ use light_client::{
     CreateClientResult, Error as LightClientError, HostClientReader, LightClient,
     UpdateClientResult, VerifyMembershipResult, VerifyNonMembershipResult,
 };
+use crate::l1::L1Verifier;
 
 pub struct OptimismLightClient<
     const L1_SYNC_COMMITTEE_SIZE: usize,

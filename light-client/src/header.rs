@@ -4,24 +4,27 @@ use crate::types::ChainId;
 use alloc::vec::Vec;
 use alloy_primitives::B256;
 use ethereum_ibc::types::AccountUpdateInfo;
-use light_client::types::Height;
+use hashbrown::HashSet;
+use light_client::types::{Height, Time};
 use op_alloy_genesis::RollupConfig;
 use optimism_derivation::derivation::{Derivation, Derivations};
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::Header as RawHeader;
+use crate::l1::{L1Config, L1Header, L1Verifier};
 
 pub struct VerifyResult {
     pub l2_header: alloy_consensus::Header,
     pub l2_output_root: B256,
 }
 
-pub struct Header {
+pub struct Header<const L1_SYNC_COMMITTEE_SIZE: usize> {
     trusted_height: Height,
     derivations: Derivations,
     oracle: MemoryOracleClient,
     account_update: AccountUpdateInfo,
+    l1_headers: Vec<L1Header<L1_SYNC_COMMITTEE_SIZE>>,
 }
 
-impl Header {
+impl <const L1_SYNC_COMMITTEE_SIZE: usize> Header<L1_SYNC_COMMITTEE_SIZE> {
     pub fn verify(
         &self,
         chain_id: &ChainId,
@@ -37,6 +40,15 @@ impl Header {
         })
     }
 
+    pub fn verify_l1<const L1_EXECUTION_PAYLOAD_TREE_DEPTH: usize>(&self, now: Time, l1_config: &L1Config) -> Result<(), Error> {
+        let now = now.as_unix_timestamp_secs();
+        let l1_verifier = L1Verifier::<L1_SYNC_COMMITTEE_SIZE, L1_EXECUTION_PAYLOAD_TREE_DEPTH>::new();
+        for l1_header in self.l1_headers.iter() {
+            l1_verifier.verify(now, &l1_config, l1_header)?;
+        }
+        Ok(())
+    }
+
     pub fn trusted_height(&self) -> Height {
         self.trusted_height
     }
@@ -44,9 +56,10 @@ impl Header {
     pub fn account_update_ref(&self) -> &AccountUpdateInfo {
         &self.account_update
     }
+
 }
 
-impl TryFrom<RawHeader> for Header {
+impl <const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_COMMITTEE_SIZE> {
     type Error = Error;
 
     fn try_from(header: RawHeader) -> Result<Self, Self::Error> {
@@ -54,17 +67,22 @@ impl TryFrom<RawHeader> for Header {
             return Err(Error::UnexpectedEmptyDerivations);
         }
 
+        let mut l1_headers = Vec::with_capacity(header.derivations.len());
+        let mut l1_header_nums = HashSet::new();
+
         //TODO Test if sorted
         let mut derivations = Vec::with_capacity(header.derivations.len());
         for derivation in header.derivations {
-            let l1_head = derivation
-                .l1_head
-                .unwrap()
-                .consensus_update
-                .unwrap()
-                .finalized_execution_root;
+            let l1_head = derivation.l1_head.ok_or(Error::MissingL1Head)?;
+            let l1_consensus_update = l1_head.consensus_update.as_ref()
+                .ok_or(Error::MissingL1ConsensusUpdate)?;
+            let l1_head_hash : B256 = l1_consensus_update.finalized_execution_root.clone().try_into()?;
+
+            if l1_header_nums.insert(l1_head_hash) {
+                l1_headers.push(l1_head.try_into()?);
+            }
             derivations.push(Derivation::new(
-                B256::try_from(l1_head),
+                l1_head_hash,
                 B256::try_from(derivation.agreed_l2_head_hash),
                 B256::try_from(derivation.agreed_l2_output_root),
                 B256::try_from(derivation.l1_head),
@@ -76,6 +94,7 @@ impl TryFrom<RawHeader> for Header {
         let oracle: MemoryOracleClient = header.preimages.try_into()?;
         let account_update = header.account_update.unwrap().try_into()?;
         Ok(Self {
+            l1_headers,
             trusted_height,
             account_update,
             derivations,

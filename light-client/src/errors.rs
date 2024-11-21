@@ -56,6 +56,9 @@ pub enum Error {
     MissingForkParameters,
 
     // Update
+    MissingL1Head,
+    MissingL1ConsensusUpdate,
+    MissingL1ExecutionUpdate,
     UnexpectedEmptyDerivations,
     AccountStorageRootMismatch(H256, H256, H256, String, Vec<String>),
     MPTVerificationError(

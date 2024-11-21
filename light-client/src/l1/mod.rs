@@ -1,10 +1,11 @@
+pub mod converter;
+
 use crate::errors::Error;
-use alloy_primitives::ruint::aliases::B256;
 use ethereum_ibc::consensus::beacon::{Epoch, Root, Slot};
 use ethereum_ibc::consensus::context::ChainContext;
 use ethereum_ibc::consensus::fork::ForkParameters;
 use ethereum_ibc::consensus::sync_protocol::SyncCommittee;
-use ethereum_ibc::consensus::types::U64;
+use ethereum_ibc::consensus::types::{U64};
 use ethereum_ibc::light_client_verifier::consensus::{
     CurrentNextSyncProtocolVerifier, SyncProtocolVerifier,
 };
@@ -14,6 +15,8 @@ use ethereum_ibc::light_client_verifier::context::{
 use ethereum_ibc::light_client_verifier::state::SyncCommitteeView;
 use ethereum_ibc::update::{ConsensusUpdateInfo, ExecutionUpdateInfo};
 use serde::{Deserialize, Serialize};
+use optimism_ibc_proto::ibc::lightclients::optimism::v1::L1Header as RawL1Header;
+use crate::ethereum;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct L1Config {
@@ -58,6 +61,21 @@ pub struct L1Header<const SYNC_COMMITTEE_SIZE: usize> {
     pub execution_update: ExecutionUpdateInfo,
 }
 
+impl <const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL1Header> for L1Header<SYNC_COMMITTEE_SIZE> {
+    type Error = ();
+
+    fn try_from(value: RawL1Header) -> Result<Self, Self::Error> {
+        let consensus_update = value.consensus_update.ok_or(Error::MissingL1ConsensusUpdate)?;
+        let execution_update = value.execution_update.ok_or(Error::MissingL1ExecutionUpdate)?;
+
+        Ok(Self {
+            consensus_update: ethereum::types::convert_proto_to_consensus_update(consensus_update)?,
+            execution_update: ethereum::types::convert_proto_to_execution_update(execution_update),
+        })
+    }
+
+}
+
 #[derive(Clone, Debug)]
 pub struct L1SyncCommittee {
     pub slot: Slot,
@@ -85,9 +103,15 @@ pub struct L1Verifier<const SYNC_COMMITTEE_SIZE: usize, const EXECUTION_PAYLOAD_
     >,
 }
 
+
 impl<const SYNC_COMMITTEE_SIZE: usize, const EXECUTION_PAYLOAD_TREE_DEPTH: usize>
-    L1Verifier<SYNC_COMMITTEE_SIZE, EXECUTION_PAYLOAD_TREE_DEPTH>
+L1Verifier<SYNC_COMMITTEE_SIZE, EXECUTION_PAYLOAD_TREE_DEPTH>
 {
+    pub fn new() -> Self {
+        Self {
+            consensus_verifier: Default::default(),
+        }
+    }
     pub fn verify(
         &self,
         host_unix_timestamp: u64,

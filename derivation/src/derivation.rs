@@ -101,6 +101,7 @@ impl Derivations {
     pub fn new(inner: Vec<Derivation>) -> Self {
         Derivations { inner }
     }
+
     pub fn verify(
         &self,
         chain_id: u64,
