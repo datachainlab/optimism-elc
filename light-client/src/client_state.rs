@@ -3,7 +3,6 @@ use crate::errors::Error;
 use crate::header::{Header, VerifyResult};
 use crate::l1::{L1Config, L1Header, L1Verifier};
 use crate::misc::new_timestamp;
-use crate::types::ChainId;
 use alloc::borrow::ToOwned;
 use alloc::vec::Vec;
 use alloy_primitives::hex;
@@ -28,8 +27,7 @@ pub const OPTIMISM_CLIENT_STATE_TYPE_URL: &str = "/ibc.lightclients.optimism.v1.
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ClientState {
-    /// Chain parameters
-    pub chain_id: ChainId,
+    pub chain_id: u64,
 
     /// IBC Solidity parameters
     pub ibc_store_address: Address,
@@ -54,7 +52,7 @@ impl ClientState {
     /// canonicalize canonicalizes some fields of specified client state
     /// target fields: latest_height, frozen
     pub fn canonicalize(mut self) -> Self {
-        self.latest_height = Height::new(self.chain_id.version(), 0);
+        self.latest_height = Height::new(0, 0);
         self.frozen = false;
         self
     }
@@ -275,8 +273,6 @@ impl TryFrom<RawClientState> for ClientState {
             .as_ref()
             .ok_or(Error::MissingLatestHeight)?;
 
-        let chain_id = ChainId::new(value.chain_id);
-
         let latest_height = Height::new(
             raw_latest_height.revision_number,
             raw_latest_height.revision_height,
@@ -330,7 +326,7 @@ impl TryFrom<ClientState> for RawClientState {
 
     fn try_from(value: ClientState) -> Result<Self, Self::Error> {
         Ok(Self {
-            chain_id: value.chain_id.id(),
+            chain_id: value.chain_id,
             ibc_store_address: value.ibc_store_address.0.to_vec(),
             ibc_commitments_slot: value.ibc_commitments_slot.0.to_vec(),
             latest_height: Some(optimism_ibc_proto::ibc::core::client::v1::Height {
