@@ -56,5 +56,5 @@ op-alloy-rpc-types-engine = { version = "0.5.2", default-features = false }
 revm = { version = "16.0.0", default-features = false }
 
 # IBC
-ethereum-ibc = { git = "https://github.com/datachainlab/ethereum-ibc-rs", rev = "v0.0.12", default-features = false }
-ethereum-ibc-proto = { git = "https://github.com/datachainlab/ethereum-ibc-rs", rev = "v0.0.12", default-features = false }
+ethereum-ibc = { git = "https://github.com/yoshidan/ethereum-ibc-rs", branch= "feature/for_op_elc", default-features = false }
+ethereum-ibc-proto = { git = "https://github.com/yoshidan/ethereum-ibc-rs", branch = "feature/for_op_elc", default-features = false }

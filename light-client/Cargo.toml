@@ -18,6 +18,7 @@ ssz-rs = {workspace = true}
 # LC
 light-client = { git = "https://github.com/datachainlab/lcp", rev = "v0.2.11", default-features = false, features = ["ibc"] }
 ethereum-ibc = { workspace = true }
+ethereum-ibc-proto = { workspace = true }
 
 # Kona
 kona-preimage = { workspace = true}

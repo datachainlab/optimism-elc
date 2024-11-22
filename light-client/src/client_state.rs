@@ -1,7 +1,7 @@
 use crate::consensus_state::ConsensusState;
 use crate::errors::Error;
 use crate::header::{Header, VerifyResult};
-use crate::l1::{L1Config, L1Header, L1Verifier};
+use crate::l1::{L1Config};
 use crate::misc::new_timestamp;
 use alloc::borrow::ToOwned;
 use alloc::vec::Vec;
@@ -79,7 +79,7 @@ impl ClientState {
         let VerifyResult {
             l2_header,
             l2_output_root,
-        } = header.verify(&self.chain_id, &self.rollup_config)?;
+        } = header.verify(self.chain_id, &self.rollup_config)?;
 
         let mut new_client_state = self.clone();
         let header_height = Height::new(
