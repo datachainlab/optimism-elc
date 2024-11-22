@@ -1,10 +1,54 @@
+use core::time::Duration;
+use alloy_primitives::keccak256;
+use ethereum_ibc::consensus::types::H256;
 use crate::errors::Error;
 use light_client::types::Time;
 
 pub fn new_timestamp(second: u64) -> Result<Time, Error> {
-    let second = second as u128;
-    let nanos = second
-        .checked_mul(1_000_000_000)
-        .ok_or_else(|| Error::TimestampOverflowError(second))?;
-    Time::from_unix_timestamp_nanos(nanos).map_err(Error::TimeError)
+    Time::from_unix_timestamp(second as i64, 0).map_err(Error::TimeError)
+}
+
+pub fn validate_state_timestamp_within_trusting_period(
+    current_timestamp: Time,
+    trusting_period: Duration,
+    trusted_consensus_state_timestamp: Time,
+) -> Result<(), Error> {
+    let trusting_period_end =
+        (trusted_consensus_state_timestamp + trusting_period).map_err(Error::TimeError)?;
+    if !trusting_period_end.gt(&current_timestamp) {
+        return Err(Error::OutOfTrustingPeriod(
+            current_timestamp,
+            trusting_period_end,
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_header_timestamp_not_future(
+    current_timestamp: Time,
+    clock_drift: Duration,
+    untrusted_header_timestamp: Time,
+) -> Result<(), Error> {
+    let drifted_current_timestamp = (current_timestamp + clock_drift).map_err(Error::TimeError)?;
+    if !drifted_current_timestamp.gt(&untrusted_header_timestamp) {
+        return Err(Error::HeaderFromFuture(
+            current_timestamp,
+            clock_drift,
+            untrusted_header_timestamp,
+        ));
+    }
+    Ok(())
+}
+
+
+pub fn calculate_ibc_commitment_storage_location(ibc_commitments_slot: &H256, path: &str) -> H256 {
+    keccak256(
+        &[
+            keccak256(path.as_bytes()).as_slice(),
+            ibc_commitments_slot.as_bytes(),
+        ]
+            .concat(),
+    )
+        .0
+        .into()
 }

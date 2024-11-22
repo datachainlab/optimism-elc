@@ -2,17 +2,17 @@ use crate::consensus_state::ConsensusState;
 use crate::errors::Error;
 use crate::header::{Header, VerifyResult};
 use crate::l1::L1Config;
-use crate::misc::new_timestamp;
+use crate::misc::{new_timestamp, validate_header_timestamp_not_future, validate_state_timestamp_within_trusting_period};
 use alloc::borrow::ToOwned;
 use alloc::vec::Vec;
 use alloy_primitives::{hex, B256};
 use core::time::Duration;
+use ethereum_ibc::client_state::{trim_left_zero, verify_account_storage};
 use ethereum_ibc::consensus::beacon::Version;
 use ethereum_ibc::consensus::fork::{ForkParameter, ForkParameters, ForkSpec};
 use ethereum_ibc::consensus::types::{Address, H256, U64};
 use ethereum_ibc::light_client_verifier::context::Fraction;
 use ethereum_ibc::light_client_verifier::execution::ExecutionVerifier;
-use ethereum_ibc::types::AccountUpdateInfo;
 use ethereum_ibc_proto::ibc::lightclients::ethereum::v1::{
     Fork as ProtoFork, ForkParameters as ProtoForkParameters, ForkSpec as ProtoForkSpec,
     Fraction as ProtoFraction,
@@ -80,10 +80,12 @@ impl ClientState {
 
         // Ensure world state is valid
         let account_update = header.account_update_ref();
-        self.verify_account_storage(
+        verify_account_storage(
+            &self.ibc_store_address,
+            &ExecutionVerifier::default(),
             H256::from_slice(l2_header.state_root.0.as_slice()),
             account_update,
-        )?;
+        ).map_err(Error::L1IBCError)?;
 
         // check if the current timestamp is within the trusting period
         validate_state_timestamp_within_trusting_period(
@@ -116,65 +118,6 @@ impl ClientState {
             header_height,
             timestamp,
         ))
-    }
-
-    /// https://github.com/datachainlab/ethereum-ibc-rs/blob/06864ca06431906fdad149839cda52ba43da48d2/crates/ibc/src/client_state.rs#L123
-    pub fn verify_account_storage(
-        &self,
-        state_root: H256,
-        account_update: &AccountUpdateInfo,
-    ) -> Result<(), Error> {
-        let address = &self.ibc_store_address;
-        let execution_verifier = ExecutionVerifier::default();
-        match execution_verifier
-            .verify_account(state_root, address, account_update.account_proof.clone())
-            .map_err(|e| {
-                Error::MPTVerificationError(
-                    e,
-                    state_root,
-                    hex::encode(address.0),
-                    account_update
-                        .account_proof
-                        .iter()
-                        .map(hex::encode)
-                        .collect(),
-                )
-            })? {
-            Some(account) => {
-                if account_update.account_storage_root == account.storage_root {
-                    Ok(())
-                } else {
-                    Err(Error::AccountStorageRootMismatch(
-                        account_update.account_storage_root,
-                        account.storage_root,
-                        state_root,
-                        hex::encode(address.0),
-                        account_update
-                            .account_proof
-                            .iter()
-                            .map(hex::encode)
-                            .collect(),
-                    ))
-                }
-            }
-            None => {
-                if account_update.account_storage_root.is_zero() {
-                    Ok(())
-                } else {
-                    Err(Error::AccountStorageRootMismatch(
-                        account_update.account_storage_root,
-                        H256::default(),
-                        state_root,
-                        hex::encode(address.0),
-                        account_update
-                            .account_proof
-                            .iter()
-                            .map(hex::encode)
-                            .collect(),
-                    ))
-                }
-            }
-        }
     }
 
     pub fn verify_membership(
@@ -426,47 +369,4 @@ impl TryFrom<Any> for ClientState {
     fn try_from(any: Any) -> Result<Self, Self::Error> {
         IBCAny::from(any).try_into()
     }
-}
-
-fn trim_left_zero(value: &[u8]) -> &[u8] {
-    let mut pos = 0;
-    for v in value {
-        if *v != 0 {
-            break;
-        }
-        pos += 1;
-    }
-    &value[pos..]
-}
-
-fn validate_state_timestamp_within_trusting_period(
-    current_timestamp: Time,
-    trusting_period: Duration,
-    trusted_consensus_state_timestamp: Time,
-) -> Result<(), Error> {
-    let trusting_period_end =
-        (trusted_consensus_state_timestamp + trusting_period).map_err(Error::TimeError)?;
-    if !trusting_period_end.gt(&current_timestamp) {
-        return Err(Error::OutOfTrustingPeriod(
-            current_timestamp,
-            trusting_period_end,
-        ));
-    }
-    Ok(())
-}
-
-fn validate_header_timestamp_not_future(
-    current_timestamp: Time,
-    clock_drift: Duration,
-    untrusted_header_timestamp: Time,
-) -> Result<(), Error> {
-    let drifted_current_timestamp = (current_timestamp + clock_drift).map_err(Error::TimeError)?;
-    if !drifted_current_timestamp.gt(&untrusted_header_timestamp) {
-        return Err(Error::HeaderFromFuture(
-            current_timestamp,
-            clock_drift,
-            untrusted_header_timestamp,
-        ));
-    }
-    Ok(())
 }

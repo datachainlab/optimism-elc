@@ -1,5 +1,4 @@
 use crate::client_state::ClientState;
-use crate::commitment::{calculate_ibc_commitment_storage_location, decode_eip1184_rlp_proof};
 use crate::consensus_state::ConsensusState;
 use crate::errors::Error;
 use crate::header::Header;
@@ -8,6 +7,7 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 use alloy_primitives::keccak256;
+use ethereum_ibc::commitment::decode_eip1184_rlp_proof;
 use ethereum_ibc::consensus::types::H256;
 use light_client::commitments::{
     gen_state_id_from_any, CommitmentPrefix, EmittedState, StateID, TrustingPeriodContext,
@@ -18,6 +18,7 @@ use light_client::{
     CreateClientResult, Error as LightClientError, HostClientReader, LightClient,
     UpdateClientResult, UpdateStateData, VerifyMembershipResult, VerifyNonMembershipResult,
 };
+use crate::misc::calculate_ibc_commitment_storage_location;
 
 pub struct OptimismLightClient<const L1_SYNC_COMMITTEE_SIZE: usize>;
 

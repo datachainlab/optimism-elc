@@ -3,7 +3,6 @@ extern crate alloc;
 
 mod client;
 mod client_state;
-mod commitment;
 mod consensus_state;
 mod errors;
 mod header;
