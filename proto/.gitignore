@@ -1,1 +1,4 @@
-src/prost/ibc.lightclients.ethereum.v1.rs
+src/prost/ibc.lightclients.ethereum.*
+src/prost/google.*
+src/prost/cosmos.*
+src/prost/ibc.core.*

@@ -10,6 +10,7 @@
 #![forbid(unsafe_code)]
 
 pub use ibc_proto::google;
+pub use ibc_proto::cosmos;
 
 extern crate alloc;
 
@@ -23,31 +24,19 @@ macro_rules! include_proto {
 /// The version (commit hash) of IBC Go used when generating this library.
 pub const IBC_GO_COMMIT: &str = include_str!("IBC_GO_COMMIT");
 
-pub mod cosmos {
-    pub mod upgrade {
-        pub mod v1beta1 {
-            include_proto!("cosmos.upgrade.v1beta1.rs");
-        }
-    }
-}
-
 pub mod ibc {
-    pub mod core {
-        pub mod client {
-            pub mod v1 {
-                include_proto!("ibc.core.client.v1.rs");
-            }
-        }
-    }
+
+    pub use ibc_proto::ibc::core;
+
     pub mod lightclients {
+
+        pub use ethereum_ibc_proto::ibc::lightclients::ethereum;
+
         pub mod optimism {
             pub mod v1 {
                 include_proto!("ibc.lightclients.optimism.v1.rs");
             }
         }
 
-        pub mod ethereum {
-            pub use ethereum_ibc_proto::ibc::lightclients::ethereum::v1;
-        }
     }
 }

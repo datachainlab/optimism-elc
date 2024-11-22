@@ -12,7 +12,7 @@ message L1Config {
   bytes genesis_validators_root = 1;
   uint64 min_sync_committee_participants = 2;
   uint64 genesis_time = 3;
-  ibc.lightclients.ethereum.v1.ForkParameters fork_parameters = 4;
+  ethereum.v1.ForkParameters fork_parameters = 4;
   uint64 seconds_per_slot = 5;
   uint64 slots_per_epoch = 6;
   uint64 epochs_per_sync_committee_period = 7;
@@ -60,7 +60,7 @@ message Preimage {
 
 message Header {
   ibc.core.client.v1.Height trusted_height = 1;
-   ibc.lightclients.ethereum.v1.AccountUpdate account_update = 2;
+  ibc.lightclients.ethereum.v1.AccountUpdate account_update = 2;
 
   repeated Derivation derivations = 3;
   repeated Preimage preimages = 4;
