@@ -39,8 +39,9 @@ message ClientState {
 }
 
 message L1Header {
-  ibc.lightclients.ethereum.v1.LightClientUpdate consensus_update = 1;
-  ibc.lightclients.ethereum.v1.ExecutionUpdate execution_update = 2;
+  ibc.lightclients.ethereum.v1.SyncCommittee current_sync_committee = 1;
+  ibc.lightclients.ethereum.v1.ConsensusUpdate consensus_update = 2;
+  ibc.lightclients.ethereum.v1.ExecutionUpdate execution_update = 3;
 }
 
 message Derivation {

@@ -52,10 +52,14 @@ pub struct ClientState {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct L1Header {
     #[prost(message, optional, tag = "1")]
-    pub consensus_update: ::core::option::Option<
-        super::super::ethereum::v1::LightClientUpdate,
+    pub current_sync_committee: ::core::option::Option<
+        super::super::ethereum::v1::SyncCommittee,
     >,
     #[prost(message, optional, tag = "2")]
+    pub consensus_update: ::core::option::Option<
+        super::super::ethereum::v1::ConsensusUpdate,
+    >,
+    #[prost(message, optional, tag = "3")]
     pub execution_update: ::core::option::Option<
         super::super::ethereum::v1::ExecutionUpdate,
     >,

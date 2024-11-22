@@ -1,6 +1,6 @@
 use crate::errors::Error;
+use crate::l1::{L1Config, L1Header, L1Verifier};
 use crate::oracle::MemoryOracleClient;
-use crate::types::ChainId;
 use alloc::vec::Vec;
 use alloy_primitives::B256;
 use ethereum_ibc::types::AccountUpdateInfo;
@@ -9,7 +9,6 @@ use light_client::types::{Height, Time};
 use op_alloy_genesis::RollupConfig;
 use optimism_derivation::derivation::{Derivation, Derivations};
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::Header as RawHeader;
-use crate::l1::{L1Config, L1Header, L1Verifier};
 
 pub struct VerifyResult {
     pub l2_header: alloy_consensus::Header,
@@ -24,7 +23,7 @@ pub struct Header<const L1_SYNC_COMMITTEE_SIZE: usize> {
     l1_headers: Vec<L1Header<L1_SYNC_COMMITTEE_SIZE>>,
 }
 
-impl <const L1_SYNC_COMMITTEE_SIZE: usize> Header<L1_SYNC_COMMITTEE_SIZE> {
+impl<const L1_SYNC_COMMITTEE_SIZE: usize> Header<L1_SYNC_COMMITTEE_SIZE> {
     pub fn verify(
         &self,
         chain_id: u64,
@@ -40,9 +39,9 @@ impl <const L1_SYNC_COMMITTEE_SIZE: usize> Header<L1_SYNC_COMMITTEE_SIZE> {
         })
     }
 
-    pub fn verify_l1<const L1_EXECUTION_PAYLOAD_TREE_DEPTH: usize>(&self, now: Time, l1_config: &L1Config) -> Result<(), Error> {
+    pub fn verify_l1(&self, now: Time, l1_config: &L1Config) -> Result<(), Error> {
         let now = now.as_unix_timestamp_secs();
-        let l1_verifier = L1Verifier::<L1_SYNC_COMMITTEE_SIZE, L1_EXECUTION_PAYLOAD_TREE_DEPTH>::new();
+        let l1_verifier = L1Verifier::<L1_SYNC_COMMITTEE_SIZE>::new();
         for l1_header in self.l1_headers.iter() {
             l1_verifier.verify(now, &l1_config, l1_header)?;
         }
@@ -56,10 +55,9 @@ impl <const L1_SYNC_COMMITTEE_SIZE: usize> Header<L1_SYNC_COMMITTEE_SIZE> {
     pub fn account_update_ref(&self) -> &AccountUpdateInfo {
         &self.account_update
     }
-
 }
 
-impl <const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_COMMITTEE_SIZE> {
+impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_COMMITTEE_SIZE> {
     type Error = Error;
 
     fn try_from(header: RawHeader) -> Result<Self, Self::Error> {
@@ -74,9 +72,14 @@ impl <const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC
         let mut derivations = Vec::with_capacity(header.derivations.len());
         for derivation in header.derivations {
             let l1_head = derivation.l1_head.ok_or(Error::MissingL1Head)?;
-            let l1_consensus_update = l1_head.consensus_update.as_ref()
+            let l1_consensus_update = l1_head
+                .consensus_update
+                .as_ref()
                 .ok_or(Error::MissingL1ConsensusUpdate)?;
-            let l1_head_hash : B256 = l1_consensus_update.finalized_execution_root.clone().try_into()?;
+            let l1_head_hash: B256 = l1_consensus_update
+                .finalized_execution_root
+                .clone()
+                .try_into()?;
 
             if l1_header_nums.insert(l1_head_hash) {
                 l1_headers.push(l1_head.try_into()?);

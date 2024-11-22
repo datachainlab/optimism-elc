@@ -1,7 +1,7 @@
 use crate::consensus_state::ConsensusState;
 use crate::errors::Error;
 use crate::header::{Header, VerifyResult};
-use crate::l1::{L1Config};
+use crate::l1::L1Config;
 use crate::misc::new_timestamp;
 use alloc::borrow::ToOwned;
 use alloc::vec::Vec;
@@ -64,14 +64,13 @@ impl ClientState {
 
     fn check_header_and_update_state<
         const L1_SYNC_COMMITTEE_SIZE: usize,
-        const L1_EXECUTION_PAYLOAD_TREE_DEPTH: usize
+        const L1_EXECUTION_PAYLOAD_TREE_DEPTH: usize,
     >(
         &self,
         now: Time,
         trusted_consensus_state: &ConsensusState,
         header: Header<L1_SYNC_COMMITTEE_SIZE>,
     ) -> Result<(ClientState, ConsensusState), Error> {
-
         // Ensure l1 finalized
         header.verify_l1(now, &self.l1_config)?;
 
