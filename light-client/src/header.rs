@@ -1,17 +1,17 @@
-use alloc::sync::Arc;
 use crate::errors::Error;
 use crate::l1::{L1Config, L1Header, L1Verifier};
 use crate::oracle::MemoryOracleClient;
+use alloc::sync::Arc;
 use alloc::vec::Vec;
-use alloy_primitives::{B256};
+use alloy_primitives::B256;
 use ethereum_ibc::types::AccountUpdateInfo;
 use hashbrown::HashSet;
 use light_client::types::{Any, Height, Time};
 use op_alloy_genesis::RollupConfig;
-use prost::Message;
 use optimism_derivation::derivation::{Derivation, Derivations};
-use optimism_ibc_proto::ibc::lightclients::optimism::v1::Header as RawHeader;
 use optimism_ibc_proto::google::protobuf::Any as IBCAny;
+use optimism_ibc_proto::ibc::lightclients::optimism::v1::Header as RawHeader;
+use prost::Message;
 
 pub const OPTIMISM_HEADER_TYPE_URL: &str = "/ibc.lightclients.optimism.v1.Header";
 
@@ -34,10 +34,11 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> Header<L1_SYNC_COMMITTEE_SIZE> {
         &self,
         chain_id: u64,
         rollup_config: &RollupConfig,
-    ) -> Result<VerifyResult, Self::Error> {
+    ) -> Result<VerifyResult, Error> {
         let headers = self
             .derivations
-            .verify(chain_id, rollup_config, self.oracle.clone())?;
+            .verify(chain_id, rollup_config, self.oracle.clone())
+            .map_err(Error::DerivationError)?;
         let (header, output_root) = headers.last().ok_or(Error::UnexpectedEmptyDerivations)?;
         Ok(VerifyResult {
             l2_header: header.clone(),
@@ -84,28 +85,40 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
                 .as_ref()
                 .ok_or(Error::MissingL1ConsensusUpdate)?;
 
-            let l1_head_hash = B256::try_from(l1_consensus_update
-                .finalized_execution_root.as_slice()).map_err(Error::UnexpectedL1HeadHash)?;
+            let l1_head_hash =
+                B256::try_from(l1_consensus_update.finalized_execution_root.as_slice())
+                    .map_err(Error::UnexpectedL1HeadHash)?;
 
             if l1_header_nums.insert(l1_head_hash) {
                 l1_headers.push(l1_head.try_into()?);
             }
             derivations.push(Derivation::new(
                 l1_head_hash,
-                B256::try_from(derivation.agreed_l2_head_hash.as_slice()).map_err(Error::UnexpectedAgreedL2HeadHash)?,
-                B256::try_from(derivation.agreed_l2_output_root.as_slice()).map_err(Error::UnexpectedAgreedL2OutputRoot)?,
-                B256::try_from(derivation.l2_head_hash.as_slice()).map_err(Error::UnexpectedL2HeadHash)?,
-                B256::try_from(derivation.l2_output_root.as_slice()).map_err(Error::UnexpectedL2OutputRoot)?,
+                B256::try_from(derivation.agreed_l2_head_hash.as_slice())
+                    .map_err(Error::UnexpectedAgreedL2HeadHash)?,
+                B256::try_from(derivation.agreed_l2_output_root.as_slice())
+                    .map_err(Error::UnexpectedAgreedL2OutputRoot)?,
+                B256::try_from(derivation.l2_head_hash.as_slice())
+                    .map_err(Error::UnexpectedL2HeadHash)?,
+                B256::try_from(derivation.l2_output_root.as_slice())
+                    .map_err(Error::UnexpectedL2OutputRoot)?,
                 derivation.l2_block_number,
             ));
         }
         let derivations = Derivations::new(derivations);
         let oracle: MemoryOracleClient = header.preimages.try_into()?;
-        let account_update = header.account_update
-            .ok_or(Error::MissingAccountUpdate)?.try_into().map_err(Error::L1IBCError)?;
+        let account_update = header
+            .account_update
+            .ok_or(Error::MissingAccountUpdate)?
+            .try_into()
+            .map_err(Error::L1IBCError)?;
+        let trusted_height = header.trusted_height.ok_or(Error::MissingTrustedHeight)?;
         Ok(Self {
             l1_headers,
-            trusted_height,
+            trusted_height: Height::new(
+                trusted_height.revision_number,
+                trusted_height.revision_height,
+            ),
             account_update,
             derivations,
             oracle: Arc::new(oracle),
@@ -113,7 +126,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
     }
 }
 
-impl<const L1_SYNC_COMMITTEE_SIZE:usize> TryFrom<IBCAny> for Header<L1_SYNC_COMMITTEE_SIZE> {
+impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<IBCAny> for Header<L1_SYNC_COMMITTEE_SIZE> {
     type Error = Error;
 
     fn try_from(any: IBCAny) -> Result<Header<L1_SYNC_COMMITTEE_SIZE>, Self::Error> {
@@ -125,7 +138,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE:usize> TryFrom<IBCAny> for Header<L1_SYNC_COMM
     }
 }
 
-impl<const L1_SYNC_COMMITTEE_SIZE:usize> TryFrom<Any> for Header<L1_SYNC_COMMITTEE_SIZE> {
+impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<Any> for Header<L1_SYNC_COMMITTEE_SIZE> {
     type Error = Error;
 
     fn try_from(any: Any) -> Result<Self, Self::Error> {

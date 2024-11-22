@@ -1,34 +1,30 @@
 use crate::client_state::ClientState;
+use crate::commitment::{calculate_ibc_commitment_storage_location, decode_eip1184_rlp_proof};
 use crate::consensus_state::ConsensusState;
 use crate::errors::Error;
+use crate::header::Header;
+use crate::message::ClientMessage;
 use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 use alloy_primitives::keccak256;
-use ethereum_ibc::commitment::{
-    calculate_ibc_commitment_storage_location, decode_eip1184_rlp_proof,
-};
 use ethereum_ibc::consensus::types::H256;
 use light_client::commitments::{
-    gen_state_id_from_any, CommitmentPrefix, EmittedState, StateID, UpdateStateProxyMessage,
-    ValidationContext, VerifyMembershipProxyMessage,
+    gen_state_id_from_any, CommitmentPrefix, EmittedState, StateID, TrustingPeriodContext,
+    UpdateStateProxyMessage, ValidationContext, VerifyMembershipProxyMessage,
 };
 use light_client::types::{Any, ClientId, Height};
 use light_client::{
     CreateClientResult, Error as LightClientError, HostClientReader, LightClient,
-    UpdateClientResult, VerifyMembershipResult, VerifyNonMembershipResult,
+    UpdateClientResult, UpdateStateData, VerifyMembershipResult, VerifyNonMembershipResult,
 };
-use crate::message::ClientMessage;
 
-pub struct OptimismLightClient<
-    const L1_SYNC_COMMITTEE_SIZE: usize,
-    const L1_EXECUTION_PAYLOAD_TREE_DEPTH: usize,
->;
+pub struct OptimismLightClient<const L1_SYNC_COMMITTEE_SIZE: usize>;
 
 pub(crate) const OPTIMISM_CLIENT_TYPE: &str = "optimism";
 
-impl<const L1_SYNC_COMMITTEE_SIZE: usize, const L1_EXECUTION_PAYLOAD_TREE_DEPTH: usize> LightClient
-    for OptimismLightClient<L1_SYNC_COMMITTEE_SIZE, L1_EXECUTION_PAYLOAD_TREE_DEPTH>
+impl<const L1_SYNC_COMMITTEE_SIZE: usize> LightClient
+    for OptimismLightClient<L1_SYNC_COMMITTEE_SIZE>
 {
     fn client_type(&self) -> String {
         OPTIMISM_CLIENT_TYPE.into()
@@ -49,7 +45,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize, const L1_EXECUTION_PAYLOAD_TREE_DEPTH:
         _: &dyn HostClientReader,
         any_client_state: Any,
         any_consensus_state: Any,
-    ) -> Result<CreateClientResult, Error> {
+    ) -> Result<CreateClientResult, light_client::Error> {
         let client_state = ClientState::try_from(any_client_state.clone())?;
         let consensus_state = ConsensusState::try_from(any_consensus_state)?;
 
@@ -79,11 +75,9 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize, const L1_EXECUTION_PAYLOAD_TREE_DEPTH:
         ctx: &dyn HostClientReader,
         client_id: ClientId,
         client_message: Any,
-    ) -> Result<UpdateClientResult, Error> {
+    ) -> Result<UpdateClientResult, light_client::Error> {
         match ClientMessage::<L1_SYNC_COMMITTEE_SIZE>::try_from(client_message.clone())? {
-            ClientMessage::Header(header) => Ok(self
-                .update_state(ctx, client_id, client_message, header)?
-                .into()),
+            ClientMessage::Header(header) => Ok(self.update_state(ctx, client_id, header)?.into()),
             //TODO misbehavior
             ClientMessage::Misbehaviour => todo!("misbehaviour"),
         }
@@ -98,7 +92,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize, const L1_EXECUTION_PAYLOAD_TREE_DEPTH:
         value: Vec<u8>,
         proof_height: Height,
         proof: Vec<u8>,
-    ) -> Result<VerifyMembershipResult, Error> {
+    ) -> Result<VerifyMembershipResult, light_client::Error> {
         let (client_state, cons_state, proof, key, root) =
             Self::validate_membership_args(ctx, &client_id, &path, &proof_height, proof)?;
 
@@ -108,7 +102,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize, const L1_EXECUTION_PAYLOAD_TREE_DEPTH:
 
         Ok(VerifyMembershipResult {
             message: VerifyMembershipProxyMessage::new(
-                prefix.into_vec(),
+                prefix.to_vec(),
                 path,
                 Some(value),
                 proof_height,
@@ -125,7 +119,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize, const L1_EXECUTION_PAYLOAD_TREE_DEPTH:
         path: String,
         proof_height: Height,
         proof: Vec<u8>,
-    ) -> Result<VerifyNonMembershipResult, Error> {
+    ) -> Result<VerifyNonMembershipResult, light_client::Error> {
         let (client_state, cons_state, proof, key, root) =
             Self::validate_membership_args(ctx, &client_id, &path, &proof_height, proof)?;
 
@@ -133,7 +127,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize, const L1_EXECUTION_PAYLOAD_TREE_DEPTH:
 
         Ok(VerifyNonMembershipResult {
             message: VerifyMembershipProxyMessage::new(
-                prefix.into_vec(),
+                prefix.to_vec(),
                 path.to_string(),
                 None,
                 proof_height,
@@ -143,9 +137,62 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize, const L1_EXECUTION_PAYLOAD_TREE_DEPTH:
     }
 }
 
-impl<const L1_SYNC_COMMITTEE_SIZE: usize, const L1_EXECUTION_PAYLOAD_TREE_DEPTH: usize>
-    OptimismLightClient<L1_SYNC_COMMITTEE_SIZE, L1_EXECUTION_PAYLOAD_TREE_DEPTH>
-{
+impl<const L1_SYNC_COMMITTEE_SIZE: usize> OptimismLightClient<L1_SYNC_COMMITTEE_SIZE> {
+    fn update_state(
+        &self,
+        ctx: &dyn HostClientReader,
+        client_id: ClientId,
+        header: Header<L1_SYNC_COMMITTEE_SIZE>,
+    ) -> Result<UpdateStateData, Error> {
+        let trusted_height = header.trusted_height();
+        let any_client_state = ctx.client_state(&client_id).map_err(Error::LCPError)?;
+        let any_consensus_state = ctx
+            .consensus_state(&client_id, &trusted_height)
+            .map_err(Error::LCPError)?;
+
+        //Ensure client is not frozen
+        let client_state = ClientState::try_from(any_client_state)?;
+        if client_state.frozen {
+            return Err(Error::ClientFrozen(client_id));
+        }
+
+        // Create new state and ensure header is valid
+        let trusted_consensus_state = ConsensusState::try_from(any_consensus_state)?;
+
+        let (new_client_state, new_consensus_state, height, timestamp) = client_state
+            .check_header_and_update_state(
+                ctx.host_timestamp(),
+                &trusted_consensus_state,
+                header,
+            )?;
+
+        let trusted_state_timestamp = trusted_consensus_state.timestamp;
+        let trusting_period = client_state.trusting_period;
+        let max_clock_drift = client_state.max_clock_drift;
+        let prev_state_id = gen_state_id(client_state, trusted_consensus_state)?;
+        let post_state_id = gen_state_id(new_client_state.clone(), new_consensus_state.clone())?;
+
+        Ok(UpdateStateData {
+            new_any_client_state: new_client_state.try_into()?,
+            new_any_consensus_state: new_consensus_state.try_into()?,
+            height,
+            message: UpdateStateProxyMessage {
+                prev_state_id: Some(prev_state_id),
+                post_state_id,
+                emitted_states: Default::default(),
+                prev_height: Some(trusted_height),
+                post_height: height,
+                timestamp,
+                context: ValidationContext::TrustingPeriod(TrustingPeriodContext::new(
+                    trusting_period,
+                    max_clock_drift,
+                    timestamp,
+                    trusted_state_timestamp,
+                )),
+            },
+            prove: true,
+        })
+    }
     fn validate_membership_args(
         ctx: &dyn HostClientReader,
         client_id: &ClientId,
@@ -171,18 +218,15 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize, const L1_EXECUTION_PAYLOAD_TREE_DEPTH:
                 .map_err(Error::LCPError)?,
         )?;
         let root = consensus_state.storage_root;
-        let proof = decode_eip1184_rlp_proof(proof.into())?;
-        let path = path.into();
+        let proof = decode_eip1184_rlp_proof(proof.into()).map_err(Error::L1IBCError)?;
         if root.is_zero() {
             return Err(Error::UnexpectedStorageRoot(
                 proof_height,
                 client_state.latest_height,
             ));
         }
-        let key = calculate_ibc_commitment_storage_location(
-            &client_state.ibc_commitments_slot,
-            path.clone(),
-        );
+        let key =
+            calculate_ibc_commitment_storage_location(&client_state.ibc_commitments_slot, path);
 
         Ok((client_state, consensus_state, proof, key, root))
     }

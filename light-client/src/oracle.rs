@@ -1,5 +1,6 @@
 use crate::errors::Error;
 use crate::errors::Error::InvalidPreimageKeySize;
+use alloc::boxed::Box;
 use alloc::format;
 use alloc::string::ToString;
 use alloc::sync::Arc;
@@ -17,14 +18,7 @@ pub struct MemoryOracleClient {
     preimages: Arc<HashMap<PreimageKey, Vec<u8>>>,
 }
 
-impl MemoryOracleClient {
-    pub fn new(preimages: HashMap<PreimageKey, Vec<u8>>) -> Self {
-        Self {
-            preimages: Arc::new(preimages),
-        }
-    }
-}
-
+#[async_trait::async_trait]
 impl PreimageOracleClient for MemoryOracleClient {
     async fn get(&self, key: PreimageKey) -> PreimageOracleResult<Vec<u8>> {
         if let Some(value) = self.preimages.get(&key) {
@@ -50,8 +44,9 @@ impl PreimageOracleClient for MemoryOracleClient {
     }
 }
 
+#[async_trait::async_trait]
 impl HintWriterClient for MemoryOracleClient {
-    async fn write(&self, hint: &str) -> PreimageOracleResult<()> {
+    async fn write(&self, _hint: &str) -> PreimageOracleResult<()> {
         Err(PreimageOracleError::Other(
             "unsupported operation".to_string(),
         ))
@@ -68,10 +63,8 @@ impl TryFrom<Vec<Preimage>> for MemoryOracleClient {
                 .key
                 .try_into()
                 .map_err(|v: Vec<u8>| InvalidPreimageKeySize(v.len()))?;
-            let preimage_key= PreimageKey::try_from(key).map_err(|e| Error::InvalidPreimageKey {
-                source: e,
-                key,
-            })?;
+            let preimage_key = PreimageKey::try_from(key)
+                .map_err(|e| Error::InvalidPreimageKey { source: e, key })?;
 
             // Ensure preimage key and value match
             verify_preimage(&preimage_key, &preimage.value)?;

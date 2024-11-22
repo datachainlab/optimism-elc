@@ -6,14 +6,15 @@ use ethereum_ibc::consensus::fork::ForkParameters;
 use ethereum_ibc::consensus::sync_protocol::{SyncCommittee, SyncCommitteePeriod};
 use ethereum_ibc::consensus::types::U64;
 use ethereum_ibc::light_client_verifier::consensus::SyncProtocolVerifier;
-use ethereum_ibc::light_client_verifier::context::{ChainConsensusVerificationContext, Fraction, LightClientContext};
+use ethereum_ibc::light_client_verifier::context::{
+    ChainConsensusVerificationContext, Fraction, LightClientContext,
+};
 use ethereum_ibc::light_client_verifier::state::LightClientStoreReader;
 use ethereum_ibc::light_client_verifier::updates::ConsensusUpdate;
 use ethereum_ibc::types::{
     convert_proto_to_consensus_update, convert_proto_to_execution_update,
-    convert_proto_to_sync_committee, ExecutionUpdateInfo,
+    convert_proto_to_sync_committee, ConsensusUpdateInfo, ExecutionUpdateInfo,
 };
-use ethereum_ibc::update::ConsensusUpdateInfo;
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::L1Header as RawL1Header;
 use serde::{Deserialize, Serialize};
 
@@ -69,15 +70,16 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL1Header> for L1Header<SYNC_CO
         let execution_update = value
             .execution_update
             .ok_or(Error::MissingL1ExecutionUpdate)?;
-        let consensus_update = convert_proto_to_consensus_update(consensus_update)
-            .map_err(Error::L1IBCError)?;
+        let consensus_update =
+            convert_proto_to_consensus_update(consensus_update).map_err(Error::L1IBCError)?;
         let execution_update = convert_proto_to_execution_update(execution_update);
 
         let slot = consensus_update.finalized_header.0.slot.clone();
         let next_sync_committee = consensus_update.next_sync_committee.clone().map(|c| c.0);
-        let current_sync_committee = Some(convert_proto_to_sync_committee(
-            value.current_sync_committee,
-        ).map_err(Error::L1IBCError)?);
+        let current_sync_committee = Some(
+            convert_proto_to_sync_committee(value.current_sync_committee)
+                .map_err(Error::L1IBCError)?,
+        );
 
         Ok(Self {
             l1_sync_committee: L1SyncCommittee {
@@ -129,7 +131,6 @@ pub struct L1Verifier<const SYNC_COMMITTEE_SIZE: usize> {
 }
 
 impl<const SYNC_COMMITTEE_SIZE: usize> L1Verifier<SYNC_COMMITTEE_SIZE> {
-
     pub fn verify(
         &self,
         host_unix_timestamp: u64,
