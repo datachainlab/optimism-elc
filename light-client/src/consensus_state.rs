@@ -36,13 +36,14 @@ impl TryFrom<RawConsensusState> for ConsensusState {
     type Error = Error;
 
     fn try_from(value: RawConsensusState) -> Result<Self, Self::Error> {
-        let storage_root: H256 = H256::try_from(&value.storage_root)
-            .map_err(|e| Error::UnexpectedConsensusStorageRoot(value.storage_root))?;
-        let timestamp = new_timestamp(value.timestamp)?;
-        let output_root: B256 = B256::try_from(&value.output_root)
-            .map_err(|e| Error::UnexpectedOutputRoot(value.output_root))?;
-        let hash: B256 =
-            B256::try_from(&value.hash).map_err(|e| Error::UnexpectedHeaderHash(value.hash))?;
+        let storage_root = B256::try_from(value.storage_root.as_slice()).map_err(Error::UnexpectedConsensusStorageRoot)?;
+        let storage_root = H256::from(storage_root.0);
+        let timestamp =
+            new_timestamp(value.timestamp)?;
+        let output_root=
+            B256::try_from(value.output_root.as_slice()).map_err(Error::UnexpectedOutputRoot)?;
+        let hash =
+            B256::try_from(value.hash.as_slice()).map_err(Error::UnexpectedHeaderHash)?;
         Ok(Self {
             storage_root,
             timestamp,
@@ -55,10 +56,10 @@ impl TryFrom<RawConsensusState> for ConsensusState {
 impl From<ConsensusState> for RawConsensusState {
     fn from(value: ConsensusState) -> Self {
         Self {
-            storage_root: value.storage_root.to_vec(),
+            storage_root: value.storage_root.0.to_vec(),
             timestamp: value.timestamp.as_unix_timestamp_secs(),
-            output_root: value.output_root.into(),
-            hash: value.hash.into(),
+            output_root: value.output_root.to_vec(),
+            hash: value.hash.to_vec(),
         }
     }
 }

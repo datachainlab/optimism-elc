@@ -417,7 +417,7 @@ fn validate_state_timestamp_within_trusting_period(
     trusting_period: Duration,
     trusted_consensus_state_timestamp: Time,
 ) -> Result<(), Error> {
-    let trusting_period_end = (trusted_consensus_state_timestamp + trusting_period)?;
+    let trusting_period_end = (trusted_consensus_state_timestamp + trusting_period).map_err(Error::TimeError)?;
     if !trusting_period_end.gt(&current_timestamp) {
         return Err(Error::OutOfTrustingPeriod(
             current_timestamp,
@@ -432,7 +432,7 @@ fn validate_header_timestamp_not_future(
     clock_drift: Duration,
     untrusted_header_timestamp: Time,
 ) -> Result<(), Error> {
-    let drifted_current_timestamp = (current_timestamp + clock_drift)?;
+    let drifted_current_timestamp = (current_timestamp + clock_drift).map_err(Error::TimeError)?;
     if !drifted_current_timestamp.gt(&untrusted_header_timestamp) {
         return Err(Error::HeaderFromFuture(
             current_timestamp,

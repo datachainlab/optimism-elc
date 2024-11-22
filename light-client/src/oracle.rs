@@ -68,8 +68,15 @@ impl TryFrom<Vec<Preimage>> for MemoryOracleClient {
                 .key
                 .try_into()
                 .map_err(|v: Vec<u8>| InvalidPreimageKeySize(v.len()))?;
-            //TODO verify the key is derived from the value
-            inner.insert(PreimageKey::try_from(key)?, preimage.value);
+            let preimage_key= PreimageKey::try_from(key).map_err(|e| Error::InvalidPreimageKey {
+                source: e,
+                key,
+            })?;
+
+            // Ensure preimage key and value match
+            verify_preimage(&preimage_key, &preimage.value)?;
+
+            inner.insert(preimage_key, preimage.value);
         }
         Ok(Self {
             preimages: Arc::new(inner),
@@ -86,7 +93,8 @@ fn verify_preimage(key: &PreimageKey, data: &[u8]) -> Result<(), Error> {
         PreimageKeyType::GlobalGeneric => Err(Error::UnexpectedGlobalGlobalGeneric(key.clone())),
         PreimageKeyType::Keccak256 => {
             let value_data = &keccak256(data).0[1..];
-            let key_data = key.key_value().as_le_slice();
+            let key_data = key.key_value();
+            let key_data = key_data.as_le_slice();
             if value_data != key_data {
                 Err(Error::InvalidPreimageValue {
                     key: key.clone(),
@@ -99,7 +107,8 @@ fn verify_preimage(key: &PreimageKey, data: &[u8]) -> Result<(), Error> {
         PreimageKeyType::Sha256 => {
             let value_hash: [u8; 32] = Sha256::digest(data).into();
             let value_data = &value_hash[1..];
-            let key_data = key.key_value().as_le_slice();
+            let key_data = key.key_value();
+            let key_data = key_data.as_le_slice();
             if value_data != key_data {
                 Err(Error::InvalidPreimageValue {
                     key: key.clone(),

@@ -9,7 +9,7 @@
 #![allow(rustdoc::bare_urls)]
 #![forbid(unsafe_code)]
 
-pub mod google;
+pub use ibc_proto::google;
 
 extern crate alloc;
 

@@ -1,5 +1,6 @@
 use alloc::string::String;
 use alloc::vec::Vec;
+use core::array::TryFromSliceError;
 use ethereum_ibc::consensus::types::H256;
 use ethereum_ibc::light_client_verifier::errors::Error as L1VerifyError;
 use ethereum_ibc::errors::Error as L1IBCError;
@@ -50,9 +51,9 @@ pub enum Error {
     // ConsState error
     #[error("UnexpectedStorageRoot: proof_height={0} latest_height={1}")]
     UnexpectedStorageRoot(Height, Height),
-    UnexpectedConsensusStorageRoot(Vec<u8>),
-    UnexpectedHeaderHash(Vec<u8>),
-    UnexpectedOutputRoot(Vec<u8>),
+    UnexpectedConsensusStorageRoot(#[from] TryFromSliceError),
+    UnexpectedHeaderHash(#[from] TryFromSliceError),
+    UnexpectedOutputRoot(#[from] TryFromSliceError),
     MissingTrustLevel,
     MissingForkParameters,
 
@@ -60,7 +61,13 @@ pub enum Error {
     MissingL1Head,
     MissingL1ConsensusUpdate,
     MissingL1ExecutionUpdate,
+    MissingAccountUpdate,
     UnexpectedEmptyDerivations,
+    UnexpectedL1HeadHash(#[from] TryFromSliceError),
+    UnexpectedAgreedL2HeadHash(#[from] TryFromSliceError),
+    UnexpectedAgreedL2OutputRoot(#[from] TryFromSliceError),
+    UnexpectedL2HeadHash(#[from] TryFromSliceError),
+    UnexpectedL2OutputRoot(#[from] TryFromSliceError),
     AccountStorageRootMismatch(H256, H256, H256, String, Vec<String>),
     MPTVerificationError(
         ethereum_ibc::light_client_verifier::errors::Error,

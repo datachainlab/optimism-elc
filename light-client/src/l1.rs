@@ -6,9 +6,7 @@ use ethereum_ibc::consensus::fork::ForkParameters;
 use ethereum_ibc::consensus::sync_protocol::{SyncCommittee, SyncCommitteePeriod};
 use ethereum_ibc::consensus::types::U64;
 use ethereum_ibc::light_client_verifier::consensus::SyncProtocolVerifier;
-use ethereum_ibc::light_client_verifier::context::{
-    ConsensusVerificationContext, Fraction, LightClientContext,
-};
+use ethereum_ibc::light_client_verifier::context::{ChainConsensusVerificationContext, Fraction, LightClientContext};
 use ethereum_ibc::light_client_verifier::state::LightClientStoreReader;
 use ethereum_ibc::light_client_verifier::updates::ConsensusUpdate;
 use ethereum_ibc::types::{
@@ -38,7 +36,7 @@ impl L1Config {
     pub(crate) fn build_context(
         &self,
         host_unix_timestamp: u64,
-    ) -> impl ChainContext + ConsensusVerificationContext {
+    ) -> impl ChainConsensusVerificationContext {
         let current_timestamp = U64::from(host_unix_timestamp);
         LightClientContext::new(
             self.fork_parameters.clone(),
@@ -62,7 +60,7 @@ pub struct L1Header<const SYNC_COMMITTEE_SIZE: usize> {
 }
 
 impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL1Header> for L1Header<SYNC_COMMITTEE_SIZE> {
-    type Error = ();
+    type Error = Error;
 
     fn try_from(value: RawL1Header) -> Result<Self, Self::Error> {
         let consensus_update = value
@@ -71,14 +69,15 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL1Header> for L1Header<SYNC_CO
         let execution_update = value
             .execution_update
             .ok_or(Error::MissingL1ExecutionUpdate)?;
-        let consensus_update = convert_proto_to_consensus_update(consensus_update)?;
+        let consensus_update = convert_proto_to_consensus_update(consensus_update)
+            .map_err(Error::L1IBCError)?;
         let execution_update = convert_proto_to_execution_update(execution_update);
 
         let slot = consensus_update.finalized_header.0.slot.clone();
         let next_sync_committee = consensus_update.next_sync_committee.clone().map(|c| c.0);
         let current_sync_committee = Some(convert_proto_to_sync_committee(
             value.current_sync_committee,
-        )?);
+        ).map_err(Error::L1IBCError)?);
 
         Ok(Self {
             l1_sync_committee: L1SyncCommittee {
@@ -92,7 +91,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL1Header> for L1Header<SYNC_CO
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct L1SyncCommittee<const SYNC_COMMITTEE_SIZE: usize> {
     pub slot: Slot,
     pub next_sync_committee: Option<SyncCommittee<SYNC_COMMITTEE_SIZE>>,
@@ -116,24 +115,21 @@ impl<const SYNC_COMMITTEE_SIZE: usize> LightClientStoreReader<SYNC_COMMITTEE_SIZ
 
     fn ensure_relevant_update<CC: ChainContext, C: ConsensusUpdate<SYNC_COMMITTEE_SIZE>>(
         &self,
-        ctx: &CC,
-        update: &C,
+        _ctx: &CC,
+        _update: &C,
     ) -> Result<(), ethereum_ibc::light_client_verifier::errors::Error> {
         unreachable!("ensure_relevant_update is not implemented for L1SyncCommittee");
     }
 }
 
+#[derive(Default)]
 pub struct L1Verifier<const SYNC_COMMITTEE_SIZE: usize> {
     consensus_verifier:
         SyncProtocolVerifier<SYNC_COMMITTEE_SIZE, L1SyncCommittee<SYNC_COMMITTEE_SIZE>>,
 }
 
 impl<const SYNC_COMMITTEE_SIZE: usize> L1Verifier<SYNC_COMMITTEE_SIZE> {
-    pub fn new() -> Self {
-        Self {
-            consensus_verifier: Default::default(),
-        }
-    }
+
     pub fn verify(
         &self,
         host_unix_timestamp: u64,
@@ -145,7 +141,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L1Verifier<SYNC_COMMITTEE_SIZE> {
         let consensus_update = &header.consensus_update;
         let execution_update = &header.execution_update;
         self.consensus_verifier
-            .validate_updates(ctx, &store, consensus_update, execution_update)
-            .map_err(Error::L1Error)
+            .validate_updates(&ctx, &store, consensus_update, execution_update)
+            .map_err(Error::L1VerifyError)
     }
 }
