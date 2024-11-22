@@ -6,6 +6,7 @@ use alloc::vec::Vec;
 use alloy_consensus::Header;
 use alloy_primitives::B256;
 use anyhow::{Error, Result};
+use core::fmt::Debug;
 use kona_client::l1::{OracleBlobProvider, OracleL1ChainProvider};
 use kona_client::l2::OracleL2ChainProvider;
 use kona_client::BootInfo;
@@ -40,18 +41,18 @@ impl Derivation {
             l2_block_number,
         }
     }
-    pub async fn verify(
+    pub async fn verify<T: CommsClient + Send + Sync + Debug>(
         &self,
         chain_id: u64,
         rollup_config: &RollupConfig,
-        oracle: impl CommsClient,
+        oracle: Arc<T>,
     ) -> Result<Header> {
         let boot = Arc::new(BootInfo {
             l1_head: self.l1_head_hash,
             agreed_l2_output_root: self.agreed_l2_output_root,
             claimed_l2_output_root: self.l2_output_root,
             claimed_l2_block_number: self.l2_block_number,
-            chain_id: chain_id.clone(),
+            chain_id,
             rollup_config: rollup_config.clone(),
         });
 
@@ -104,21 +105,21 @@ impl Derivations {
         Derivations { inner }
     }
 
-    pub fn verify(
+    pub fn verify<T: CommsClient + Send + Sync + Debug>(
         &self,
         chain_id: u64,
         rollup_config: &RollupConfig,
-        oracle: impl CommsClient,
+        oracle: Arc<T>,
     ) -> Result<Vec<(Header, B256)>> {
-        let headers = kona_common::block_on(async move {
+        let headers: Result<Vec<(Header, B256)>, Error> = kona_common::block_on(async move {
             let mut headers = Vec::with_capacity(self.inner.len());
             for d in &self.inner {
                 let header = d.verify(chain_id, rollup_config, oracle.clone()).await?;
                 headers.push((header, d.l2_output_root));
             }
             Ok(headers)
-        })?;
-        Ok(headers)
+        });
+        headers
     }
 
     pub fn last(&self) -> Option<&Derivation> {

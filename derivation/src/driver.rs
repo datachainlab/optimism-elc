@@ -90,19 +90,9 @@ where
     O: CommsClient + Send + Sync + Debug,
     B: BlobProvider + Send + Sync + Debug + Clone,
 {
-    /// Returns the current L2 safe head [L2BlockInfo].
-    pub fn l2_safe_head(&self) -> &L2BlockInfo {
-        &self.l2_safe_head
-    }
-
     /// Returns the [Header] of the current L2 safe head.
     pub fn l2_safe_head_header(&self) -> &Sealed<Header> {
         &self.l2_safe_head_header
-    }
-
-    /// Consumes self and returns the owned [Header] of the current L2 safe head.
-    pub fn take_l2_safe_head_header(self) -> Sealed<Header> {
-        self.l2_safe_head_header
     }
 
     /// Creates a new [DerivationDriver] with the given configuration, blob provider, and chain
@@ -199,7 +189,7 @@ where
 
             let mut executor = self.new_executor(cfg, provider, hinter, handle_register);
             let header = match executor.execute_payload(attributes.clone()) {
-                Ok(header) => header,
+                Ok(header) => header.clone(),
                 Err(e) => {
                     error!(target: "client", "Failed to execute L2 block: {}", e);
 
@@ -223,7 +213,7 @@ where
                         // Retry the execution.
                         executor = self.new_executor(cfg, provider, hinter, handle_register);
                         match executor.execute_payload(attributes) {
-                            Ok(header) => header,
+                            Ok(header) => header.clone(),
                             Err(e) => {
                                 error!(
                                     target: "client",
@@ -239,7 +229,7 @@ where
             };
             let output_root = executor.compute_output_root()?;
 
-            return Ok((header.clone(), output_root));
+            return Ok((header, output_root));
         }
     }
 

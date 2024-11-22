@@ -1,3 +1,4 @@
+use alloc::sync::Arc;
 use crate::errors::Error;
 use crate::l1::{L1Config, L1Header, L1Verifier};
 use crate::oracle::MemoryOracleClient;
@@ -15,11 +16,10 @@ pub struct VerifyResult {
     pub l2_output_root: B256,
 }
 
-#[derive(Clone, Debug)]
 pub struct Header<const L1_SYNC_COMMITTEE_SIZE: usize> {
     trusted_height: Height,
     derivations: Derivations,
-    oracle: MemoryOracleClient,
+    oracle: Arc<MemoryOracleClient>,
     account_update: AccountUpdateInfo,
     l1_headers: Vec<L1Header<L1_SYNC_COMMITTEE_SIZE>>,
 }
@@ -32,7 +32,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> Header<L1_SYNC_COMMITTEE_SIZE> {
     ) -> Result<VerifyResult, Self::Error> {
         let headers = self
             .derivations
-            .verify(chain_id, rollup_config, &self.oracle)?;
+            .verify(chain_id, rollup_config, self.oracle.clone())?;
         let (header, output_root) = headers.last().ok_or(Error::UnexpectedEmptyDerivations)?;
         Ok(VerifyResult {
             l2_header: header.clone(),
@@ -102,7 +102,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
             trusted_height,
             account_update,
             derivations,
-            oracle,
+            oracle: Arc::new(oracle),
         })
     }
 }
