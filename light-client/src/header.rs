@@ -15,6 +15,7 @@ pub struct VerifyResult {
     pub l2_output_root: B256,
 }
 
+#[derive(Clone, Debug)]
 pub struct Header<const L1_SYNC_COMMITTEE_SIZE: usize> {
     trusted_height: Height,
     derivations: Derivations,
@@ -86,10 +87,10 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
             }
             derivations.push(Derivation::new(
                 l1_head_hash,
-                B256::try_from(derivation.agreed_l2_head_hash),
-                B256::try_from(derivation.agreed_l2_output_root),
-                B256::try_from(derivation.l1_head),
-                B256::try_from(derivation.l2_output_root),
+                B256::try_from(derivation.agreed_l2_head_hash)?,
+                B256::try_from(derivation.agreed_l2_output_root)?,
+                B256::try_from(derivation.l2_head_hash)?,
+                B256::try_from(derivation.l2_output_root)?,
                 derivation.l2_block_number,
             ));
         }

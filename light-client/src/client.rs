@@ -18,6 +18,7 @@ use light_client::{
     CreateClientResult, Error as LightClientError, HostClientReader, LightClient,
     UpdateClientResult, VerifyMembershipResult, VerifyNonMembershipResult,
 };
+use crate::message::ClientMessage;
 
 pub struct OptimismLightClient<
     const L1_SYNC_COMMITTEE_SIZE: usize,
@@ -79,7 +80,13 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize, const L1_EXECUTION_PAYLOAD_TREE_DEPTH:
         client_id: ClientId,
         client_message: Any,
     ) -> Result<UpdateClientResult, Error> {
-        todo!("update_client")
+        match ClientMessage::<L1_SYNC_COMMITTEE_SIZE>::try_from(client_message.clone())? {
+            ClientMessage::Header(header) => Ok(self
+                .update_state(ctx, client_id, client_message, header)?
+                .into()),
+            //TODO misbehavior
+            ClientMessage::Misbehaviour => todo!("misbehaviour"),
+        }
     }
 
     fn verify_membership(

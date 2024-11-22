@@ -13,7 +13,7 @@ use ethereum_ibc::consensus::types::{Address, H256};
 use ethereum_ibc::light_client_verifier::context::Fraction;
 use ethereum_ibc::light_client_verifier::execution::ExecutionVerifier;
 use ethereum_ibc::types::AccountUpdateInfo;
-use light_client::types::{Any, Height, Time};
+use light_client::types::{Any, ClientId, Height, Time};
 use op_alloy_genesis::RollupConfig;
 use optimism_ibc_proto::google::protobuf::Any as IBCAny;
 use optimism_ibc_proto::ibc::lightclients::ethereum::v1::{
@@ -68,17 +68,42 @@ impl ClientState {
     >(
         &self,
         now: Time,
+        client_id: ClientId,
         trusted_consensus_state: &ConsensusState,
         header: Header<L1_SYNC_COMMITTEE_SIZE>,
     ) -> Result<(ClientState, ConsensusState), Error> {
-        // Ensure l1 finalized
-        header.verify_l1(now, &self.l1_config)?;
+        if self.is_frozen() {
+            return Err(Error::ClientFrozen(client_id));
+        }
 
         // Ensure header is valid
         let VerifyResult {
             l2_header,
             l2_output_root,
         } = header.verify(self.chain_id, &self.rollup_config)?;
+
+        // Ensure l1 finalized
+        header.verify_l1(now, &self.l1_config)?;
+
+        // Ensure world state is valid
+        let account_update = header.account_update_ref();
+        self.verify_account_storage(
+            H256::from_slice(l2_header.state_root.0.as_slice()),
+            account_update,
+        )?;
+
+        // check if the current timestamp is within the trusting period
+        validate_state_timestamp_within_trusting_period(
+            now,
+            self.trusting_period,
+            trusted_consensus_state.timestamp,
+        )?;
+        // check if the header timestamp does not indicate a future time
+        validate_header_timestamp_not_future(
+            now,
+            self.max_clock_drift,
+            new_timestamp(l2_header.timestamp)?,
+        )?;
 
         let mut new_client_state = self.clone();
         let header_height = Height::new(
@@ -88,14 +113,6 @@ impl ClientState {
         if new_client_state.latest_height < header_height {
             new_client_state.latest_height = header_height;
         }
-
-        // Ensure world state is valid
-        let account_update = header.account_update_ref();
-        self.verify_account_storage(
-            H256::from_slice(l2_header.state_root.0.as_slice()),
-            account_update,
-        )?;
-
         let new_consensus_state = ConsensusState {
             storage_root: account_update.account_storage_root,
             timestamp: new_timestamp(l2_header.timestamp)?,
@@ -180,7 +197,7 @@ impl ClientState {
                 rlp::encode(&trim_left_zero(value)).as_ref(),
                 proof,
             )
-            .map_err(Error::L1Error)
+            .map_err(Error::L1VerifyError)
     }
 
     pub fn verify_non_membership(
@@ -192,7 +209,7 @@ impl ClientState {
         let execution_verifier = ExecutionVerifier::default();
         execution_verifier
             .verify_non_membership(root, key.as_bytes(), proof)
-            .map_err(Error::L1Error)
+            .map_err(Error::L1VerifyError)
     }
 }
 
@@ -247,7 +264,7 @@ impl TryFrom<RawL1Config> for L1Config {
                 .into_iter()
                 .map(|f| ForkParameter::new(bytes_to_version(f.version), f.epoch.into()))
                 .collect(),
-        );
+        ).map_err(|e| Error::L1IBCError(ethereum_ibc::errors::Error::EthereumConsensusError(e)))?;
         let trust_level = value.trust_level.ok_or(Error::MissingTrustLevel)?;
 
         Ok(Self {
@@ -393,4 +410,35 @@ fn trim_left_zero(value: &[u8]) -> &[u8] {
         pos += 1;
     }
     &value[pos..]
+}
+
+fn validate_state_timestamp_within_trusting_period(
+    current_timestamp: Time,
+    trusting_period: Duration,
+    trusted_consensus_state_timestamp: Time,
+) -> Result<(), Error> {
+    let trusting_period_end = (trusted_consensus_state_timestamp + trusting_period)?;
+    if !trusting_period_end.gt(&current_timestamp) {
+        return Err(Error::OutOfTrustingPeriod(
+            current_timestamp,
+            trusting_period_end,
+        ));
+    }
+    Ok(())
+}
+
+fn validate_header_timestamp_not_future(
+    current_timestamp: Time,
+    clock_drift: Duration,
+    untrusted_header_timestamp: Time,
+) -> Result<(), Error> {
+    let drifted_current_timestamp = (current_timestamp + clock_drift)?;
+    if !drifted_current_timestamp.gt(&untrusted_header_timestamp) {
+        return Err(Error::HeaderFromFuture(
+            current_timestamp,
+            clock_drift,
+            untrusted_header_timestamp,
+        ));
+    }
+    Ok(())
 }

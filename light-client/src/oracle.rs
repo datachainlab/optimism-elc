@@ -11,7 +11,7 @@ use kona_preimage::{HintWriterClient, PreimageKey, PreimageKeyType, PreimageOrac
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::Preimage;
 use sha2::{Digest, Sha256};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MemoryOracleClient {
     /// Avoid deepcopy by clone operation because the preimage size is so big.
     preimages: Arc<HashMap<PreimageKey, Vec<u8>>>,

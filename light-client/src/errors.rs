@@ -1,11 +1,12 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 use ethereum_ibc::consensus::types::H256;
-use ethereum_ibc::light_client_verifier::errors::Error as L1Error;
+use ethereum_ibc::light_client_verifier::errors::Error as L1VerifyError;
+use ethereum_ibc::errors::Error as L1IBCError;
 use kona_preimage::errors::InvalidPreimageKeyType;
 use kona_preimage::PreimageKey;
 use light_client::commitments::{CommitmentPrefix, Error as CommitmentError};
-use light_client::types::{Any, ClientId, Height, TimeError};
+use light_client::types::{Any, ClientId, Height, Time, TimeError};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -67,7 +68,10 @@ pub enum Error {
         String,
         Vec<String>,
     ),
-    L1Error(#[from] L1Error),
+    OutOfTrustingPeriod(Time, Time),
+    HeaderFromFuture(Time, core::time::Duration, Time),
+    L1VerifyError(#[from] L1VerifyError),
+    L1IBCError(#[from] L1IBCError),
 
     // Framework
     LCPError(light_client::Error),

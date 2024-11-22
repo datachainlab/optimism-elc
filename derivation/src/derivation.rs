@@ -12,6 +12,7 @@ use kona_client::BootInfo;
 use kona_preimage::CommsClient;
 use op_alloy_genesis::RollupConfig;
 
+#[derive(Clone, Debug)]
 pub struct Derivation {
     pub l1_head_hash: B256,
     pub agreed_l2_head_hash: B256,
@@ -93,6 +94,7 @@ impl Derivation {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct Derivations {
     inner: Vec<Derivation>,
 }
