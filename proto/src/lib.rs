@@ -47,9 +47,7 @@ pub mod ibc {
         }
 
         pub mod ethereum {
-            pub mod v1 {
-                include_proto!("ibc.lightclients.ethereum.v1.rs");
-            }
+            pub use ethereum_ibc_proto::ibc::lightclients::ethereum::v1;
         }
     }
 }

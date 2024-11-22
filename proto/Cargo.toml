@@ -15,6 +15,7 @@ all-features = true
 prost       = { workspace = true }
 serde       = { workspace = true }
 schemars    = { version = "0.8", optional = true }
+ethereum-ibc-proto = { workspace = true }
 
 [features]
 default     = ["std"]
