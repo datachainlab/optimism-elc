@@ -6,5 +6,6 @@ pub mod derivation;
 mod driver;
 mod fault;
 
+pub mod precompiles;
 
 pub use anyhow::Error;

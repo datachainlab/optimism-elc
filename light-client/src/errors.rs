@@ -13,15 +13,19 @@ use light_client::types::{ClientId, Height, Time, TimeError};
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     // Preimage
-    #[error("InvalidPreimageKeySize: {0}")]
-    InvalidPreimageKeySize(usize),
-    #[error("InvalidPreimageKey: {source:?} {key:?}")]
-    InvalidPreimageKey {
+    #[error("UnexpectedPreimageKey: {0}")]
+    UnexpectedPreimageKeySize(usize),
+    #[error("UnexpectedPreimageKey: {source:?} {key:?}")]
+    UnexpectedPreimageKey {
         source: InvalidPreimageKeyType,
         key: [u8; 32],
     },
-    #[error("InvalidPreimageValue: {value:?} {key:?}")]
-    InvalidPreimageValue { value: Vec<u8>, key: PreimageKey },
+    #[error("UnexpectedPreimageValue: {value:?} {key:?}")]
+    UnexpectedPreimageValue { value: Vec<u8>, key: PreimageKey },
+    #[error("UnexpectedPrecompiledValue: {value:?} {key:?}")]
+    UnexpectedPrecompiledValue { value: Vec<u8>, key: PreimageKey },
+    #[error("NoPreimagePrecompiledCodeFound: {key:?}")]
+    NoPreimagePrecompiledCodeFound{ key: PreimageKey },
     #[error("UnexpectedGlobalGlobalGeneric: {0}")]
     UnexpectedGlobalGlobalGeneric(PreimageKey),
 
