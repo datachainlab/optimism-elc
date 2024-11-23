@@ -45,7 +45,6 @@ message L1Header {
 }
 
 message Derivation {
-  L1Header l1_head = 1;
   bytes agreed_l2_head_hash = 2;
   bytes agreed_l2_output_root = 3;
   bytes l2_head_hash = 4;
@@ -62,8 +61,9 @@ message Header {
   ibc.core.client.v1.Height trusted_height = 1;
   ibc.lightclients.ethereum.v1.AccountUpdate account_update = 2;
 
-  repeated Derivation derivations = 3;
-  repeated Preimage preimages = 4;
+  L1Header l1_head = 3;
+  repeated Derivation derivations = 4;
+  repeated Preimage preimages = 5;
 }
 
 message ConsensusState {

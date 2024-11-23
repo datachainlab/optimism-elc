@@ -8,7 +8,7 @@ use crate::misc::{
 };
 use alloc::borrow::ToOwned;
 use alloc::vec::Vec;
-use alloy_primitives::{hex, B256};
+use alloy_primitives::{B256};
 use core::time::Duration;
 use ethereum_ibc::client_state::{trim_left_zero, verify_account_storage};
 use ethereum_ibc::consensus::beacon::Version;

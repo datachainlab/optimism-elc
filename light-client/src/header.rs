@@ -5,7 +5,6 @@ use alloc::sync::Arc;
 use alloc::vec::Vec;
 use alloy_primitives::B256;
 use ethereum_ibc::types::AccountUpdateInfo;
-use hashbrown::HashSet;
 use light_client::types::{Any, Height, Time};
 use op_alloy_genesis::RollupConfig;
 use optimism_derivation::derivation::{Derivation, Derivations};
@@ -26,7 +25,7 @@ pub struct Header<const L1_SYNC_COMMITTEE_SIZE: usize> {
     derivations: Derivations,
     oracle: Arc<MemoryOracleClient>,
     account_update: AccountUpdateInfo,
-    l1_headers: Vec<L1Header<L1_SYNC_COMMITTEE_SIZE>>,
+    l1_header: L1Header<L1_SYNC_COMMITTEE_SIZE>
 }
 
 impl<const L1_SYNC_COMMITTEE_SIZE: usize> Header<L1_SYNC_COMMITTEE_SIZE> {
@@ -49,9 +48,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> Header<L1_SYNC_COMMITTEE_SIZE> {
     pub fn verify_l1(&self, now: Time, l1_config: &L1Config) -> Result<(), Error> {
         let now = now.as_unix_timestamp_secs();
         let l1_verifier = L1Verifier::<L1_SYNC_COMMITTEE_SIZE>::default();
-        for l1_header in self.l1_headers.iter() {
-            l1_verifier.verify(now, &l1_config, l1_header)?;
-        }
+        l1_verifier.verify(now, &l1_config, &self.l1_header)?;
         Ok(())
     }
 
@@ -72,26 +69,16 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
             return Err(Error::UnexpectedEmptyDerivations);
         }
 
-        let mut l1_headers = Vec::with_capacity(header.derivations.len());
-        let mut l1_header_nums = HashSet::new();
+        let l1_header : L1Header<L1_SYNC_COMMITTEE_SIZE> = header.l1_head.ok_or(Error::MissingL1Head)?.try_into()?;
+        let mut derivations = Vec::with_capacity(header.derivations.len());
 
         //TODO Test if sorted
-        let mut derivations = Vec::with_capacity(header.derivations.len());
         for derivation in header.derivations {
-            let l1_head = derivation.l1_head.ok_or(Error::MissingL1Head)?;
+            let l1_consensus_update = &l1_header
+                .consensus_update;
 
-            let l1_consensus_update = l1_head
-                .consensus_update
-                .as_ref()
-                .ok_or(Error::MissingL1ConsensusUpdate)?;
+            let l1_head_hash = B256::from(&l1_consensus_update.finalized_execution_root.0);
 
-            let l1_head_hash =
-                B256::try_from(l1_consensus_update.finalized_execution_root.as_slice())
-                    .map_err(Error::UnexpectedL1HeadHash)?;
-
-            if l1_header_nums.insert(l1_head_hash) {
-                l1_headers.push(l1_head.try_into()?);
-            }
             derivations.push(Derivation::new(
                 l1_head_hash,
                 B256::try_from(derivation.agreed_l2_head_hash.as_slice())
@@ -114,7 +101,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
             .map_err(Error::L1IBCError)?;
         let trusted_height = header.trusted_height.ok_or(Error::MissingTrustedHeight)?;
         Ok(Self {
-            l1_headers,
+            l1_header,
             trusted_height: Height::new(
                 trusted_height.revision_number,
                 trusted_height.revision_height,

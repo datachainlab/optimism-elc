@@ -95,13 +95,6 @@ impl TryFrom<Vec<Preimage>> for MemoryOracleClient {
         })
     }
 }
-fn verify_hash_preimage(key: &PreimageKey, data: &[u8]) -> Result<(), Error> {
-    match key.key_type() {
-        PreimageKeyType::Keccak256 => verify_keccak256_preimage(key, data),
-        PreimageKeyType::Sha256 => verify_sha256_preimage(key, data),
-        _ => Ok(()),
-    }
-}
 
 fn get_data_by_hash_key<'a>(
     key: &PreimageKey,
