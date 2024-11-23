@@ -32,7 +32,11 @@ pub enum Error {
     #[error("UnexpectedPreimageValue: {value:?} {key:?}")]
     UnexpectedPreimageValue { value: Vec<u8>, key: PreimageKey },
     #[error("UnexpectedPrecompiledValue: {actual:?} {expected:?} {key:?}")]
-    UnexpectedPrecompiledValue { expected: Vec<u8>, actual: Vec<u8>, key: PreimageKey },
+    UnexpectedPrecompiledValue {
+        expected: Vec<u8>,
+        actual: Vec<u8>,
+        key: PreimageKey,
+    },
     #[error("NoPreimagePrecompiledCodeFound: {key:?}")]
     NoPreimagePrecompiledCodeFound { key: PreimageKey },
     #[error("NoPreimageBlobFound: {key:?}")]
