@@ -2,7 +2,10 @@ use crate::consensus_state::ConsensusState;
 use crate::errors::Error;
 use crate::header::{Header, VerifyResult};
 use crate::l1::L1Config;
-use crate::misc::{new_timestamp, validate_header_timestamp_not_future, validate_state_timestamp_within_trusting_period};
+use crate::misc::{
+    new_timestamp, validate_header_timestamp_not_future,
+    validate_state_timestamp_within_trusting_period,
+};
 use alloc::borrow::ToOwned;
 use alloc::vec::Vec;
 use alloy_primitives::{hex, B256};
@@ -85,7 +88,8 @@ impl ClientState {
             &ExecutionVerifier::default(),
             H256::from_slice(l2_header.state_root.0.as_slice()),
             account_update,
-        ).map_err(Error::L1IBCError)?;
+        )
+        .map_err(Error::L1IBCError)?;
 
         // check if the current timestamp is within the trusting period
         validate_state_timestamp_within_trusting_period(

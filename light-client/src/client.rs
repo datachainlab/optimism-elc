@@ -3,6 +3,7 @@ use crate::consensus_state::ConsensusState;
 use crate::errors::Error;
 use crate::header::Header;
 use crate::message::ClientMessage;
+use crate::misc::calculate_ibc_commitment_storage_location;
 use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
@@ -18,7 +19,6 @@ use light_client::{
     CreateClientResult, Error as LightClientError, HostClientReader, LightClient,
     UpdateClientResult, UpdateStateData, VerifyMembershipResult, VerifyNonMembershipResult,
 };
-use crate::misc::calculate_ibc_commitment_storage_location;
 
 pub struct OptimismLightClient<const L1_SYNC_COMMITTEE_SIZE: usize>;
 

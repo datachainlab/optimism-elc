@@ -1,5 +1,6 @@
 use alloc::string::String;
 use alloc::vec::Vec;
+use alloy_eips::eip4844::BlobTransactionValidationError;
 use core::array::TryFromSliceError;
 use ethereum_ibc::consensus::errors::Error as L1ConsensusError;
 use ethereum_ibc::consensus::types::H256;
@@ -13,6 +14,8 @@ use light_client::types::{ClientId, Height, Time, TimeError};
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     // Preimage
+    #[error("UnexpectedPreimageBlob: {0}")]
+    UnexpectedPreimageBlob(#[from] BlobTransactionValidationError),
     #[error("UnexpectedPreimageKey: {0}")]
     UnexpectedPreimageKeySize(usize),
     #[error("UnexpectedPreimageKey: {source:?} {key:?}")]
@@ -25,7 +28,9 @@ pub enum Error {
     #[error("UnexpectedPrecompiledValue: {value:?} {key:?}")]
     UnexpectedPrecompiledValue { value: Vec<u8>, key: PreimageKey },
     #[error("NoPreimagePrecompiledCodeFound: {key:?}")]
-    NoPreimagePrecompiledCodeFound{ key: PreimageKey },
+    NoPreimagePrecompiledCodeFound { key: PreimageKey },
+    #[error("NoPreimageBlobFound: {key:?}")]
+    NoPreimageBlobFound { key: PreimageKey },
     #[error("UnexpectedGlobalGlobalGeneric: {0}")]
     UnexpectedGlobalGlobalGeneric(PreimageKey),
 
