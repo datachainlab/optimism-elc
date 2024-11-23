@@ -52,8 +52,8 @@ pub struct ClientState {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct L1Header {
     #[prost(message, optional, tag = "1")]
-    pub current_sync_committee: ::core::option::Option<
-        super::super::ethereum::v1::SyncCommittee,
+    pub trusted_sync_committee: ::core::option::Option<
+        super::super::ethereum::v1::TrustedSyncCommittee,
     >,
     #[prost(message, optional, tag = "2")]
     pub consensus_update: ::core::option::Option<
@@ -115,6 +115,12 @@ pub struct ConsensusState {
     pub output_root: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes = "vec", tag = "4")]
     pub hash: ::prost::alloc::vec::Vec<u8>,
+    #[prost(uint64, tag = "5")]
+    pub l1_slot: u64,
+    #[prost(bytes = "vec", tag = "6")]
+    pub l1_current_sync_committee: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "7")]
+    pub l1_next_sync_committee: ::prost::alloc::vec::Vec<u8>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

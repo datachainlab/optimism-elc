@@ -1,3 +1,4 @@
+use crate::consensus_state::ConsensusState;
 use crate::errors::Error;
 use ethereum_ibc::consensus::beacon::{Epoch, Root, Slot};
 use ethereum_ibc::consensus::compute::compute_sync_committee_period_at_slot;
@@ -14,6 +15,7 @@ use ethereum_ibc::light_client_verifier::updates::ConsensusUpdate;
 use ethereum_ibc::types::{
     convert_proto_to_consensus_update, convert_proto_to_execution_update,
     convert_proto_to_sync_committee, ConsensusUpdateInfo, ExecutionUpdateInfo,
+    TrustedSyncCommittee,
 };
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::L1Header as RawL1Header;
 use serde::{Deserialize, Serialize};
@@ -55,7 +57,7 @@ impl L1Config {
 
 #[derive(Clone, Debug)]
 pub struct L1Header<const SYNC_COMMITTEE_SIZE: usize> {
-    pub l1_sync_committee: L1SyncCommittee<SYNC_COMMITTEE_SIZE>,
+    pub trusted_sync_committee: TrustedSyncCommittee<SYNC_COMMITTEE_SIZE>,
     pub consensus_update: ConsensusUpdateInfo<SYNC_COMMITTEE_SIZE>,
     pub execution_update: ExecutionUpdateInfo,
 }
@@ -73,20 +75,14 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL1Header> for L1Header<SYNC_CO
         let consensus_update =
             convert_proto_to_consensus_update(consensus_update).map_err(Error::L1IBCError)?;
         let execution_update = convert_proto_to_execution_update(execution_update);
-
-        let slot = consensus_update.finalized_header.0.slot.clone();
-        let next_sync_committee = consensus_update.next_sync_committee.clone().map(|c| c.0);
-        let current_sync_committee = Some(
-            convert_proto_to_sync_committee(value.current_sync_committee)
-                .map_err(Error::L1IBCError)?,
-        );
+        let trusted_sync_committee = value
+            .trusted_sync_committee
+            .ok_or(Error::MissingTrustedSyncCommittee)?
+            .try_into()
+            .map_err(Error::L1IBCError)?;
 
         Ok(Self {
-            l1_sync_committee: L1SyncCommittee {
-                slot,
-                next_sync_committee,
-                current_sync_committee,
-            },
+            trusted_sync_committee,
             consensus_update,
             execution_update,
         })
@@ -95,9 +91,64 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL1Header> for L1Header<SYNC_CO
 
 #[derive(Clone, Debug, Default)]
 pub struct L1SyncCommittee<const SYNC_COMMITTEE_SIZE: usize> {
-    pub slot: Slot,
-    pub next_sync_committee: Option<SyncCommittee<SYNC_COMMITTEE_SIZE>>,
-    pub current_sync_committee: Option<SyncCommittee<SYNC_COMMITTEE_SIZE>>,
+    slot: Slot,
+    next_sync_committee: Option<SyncCommittee<SYNC_COMMITTEE_SIZE>>,
+    current_sync_committee: Option<SyncCommittee<SYNC_COMMITTEE_SIZE>>,
+
+    consensus_verifier:
+        SyncProtocolVerifier<SYNC_COMMITTEE_SIZE, L1SyncCommittee<SYNC_COMMITTEE_SIZE>>,
+}
+
+impl<const SYNC_COMMITTEE_SIZE: usize> L1SyncCommittee<SYNC_COMMITTEE_SIZE> {
+    pub fn new(
+        consensus_state: &ConsensusState,
+        sync_committee: SyncCommittee<SYNC_COMMITTEE_SIZE>,
+        is_next: bool,
+    ) -> Result<Self, Error> {
+        sync_committee.validate().map_err(Error::L1ConsensusError)?;
+        if !is_next {
+            return if sync_committee.aggregate_pubkey == consensus_state.l1_current_sync_committee {
+                Ok(Self {
+                    slot: consensus_state.l1_slot,
+                    current_sync_committee: Some(sync_committee),
+                    next_sync_committee: None,
+                    ..Default::default()
+                })
+            } else {
+                Err(Error::UnexpectedCurrentSyncCommitteeKeys(
+                    sync_committee.aggregate_pubkey,
+                    consensus_state.l1_current_sync_committee.clone(),
+                ))
+            };
+        }
+
+        if sync_committee.aggregate_pubkey == consensus_state.l1_next_sync_committee {
+            Ok(Self {
+                slot: consensus_state.l1_slot,
+                current_sync_committee: None,
+                next_sync_committee: Some(sync_committee),
+                ..Default::default()
+            })
+        } else {
+            Err(Error::UnexpectedNextSyncCommitteeKeys(
+                sync_committee.aggregate_pubkey,
+                consensus_state.l1_next_sync_committee.clone(),
+            ))
+        }
+    }
+
+    pub fn verify(
+        &self,
+        host_unix_timestamp: u64,
+        l1_config: &L1Config,
+        consensus_update: &ConsensusUpdateInfo<SYNC_COMMITTEE_SIZE>,
+        execution_update: &ExecutionUpdateInfo,
+    ) -> Result<(), Error> {
+        let ctx = l1_config.build_context(host_unix_timestamp);
+        self.consensus_verifier
+            .validate_updates(&ctx, &self, consensus_update, execution_update)
+            .map_err(Error::L1VerifyError)
+    }
 }
 
 impl<const SYNC_COMMITTEE_SIZE: usize> LightClientStoreReader<SYNC_COMMITTEE_SIZE>
@@ -121,28 +172,5 @@ impl<const SYNC_COMMITTEE_SIZE: usize> LightClientStoreReader<SYNC_COMMITTEE_SIZ
         _update: &C,
     ) -> Result<(), ethereum_ibc::light_client_verifier::errors::Error> {
         unreachable!("ensure_relevant_update is not implemented for L1SyncCommittee");
-    }
-}
-
-#[derive(Default)]
-pub struct L1Verifier<const SYNC_COMMITTEE_SIZE: usize> {
-    consensus_verifier:
-        SyncProtocolVerifier<SYNC_COMMITTEE_SIZE, L1SyncCommittee<SYNC_COMMITTEE_SIZE>>,
-}
-
-impl<const SYNC_COMMITTEE_SIZE: usize> L1Verifier<SYNC_COMMITTEE_SIZE> {
-    pub fn verify(
-        &self,
-        host_unix_timestamp: u64,
-        l1_config: &L1Config,
-        header: &L1Header<SYNC_COMMITTEE_SIZE>,
-    ) -> Result<(), Error> {
-        let ctx = l1_config.build_context(host_unix_timestamp);
-        let store = &header.l1_sync_committee;
-        let consensus_update = &header.consensus_update;
-        let execution_update = &header.execution_update;
-        self.consensus_verifier
-            .validate_updates(&ctx, &store, consensus_update, execution_update)
-            .map_err(Error::L1VerifyError)
     }
 }

@@ -2,6 +2,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use alloy_eips::eip4844::BlobTransactionValidationError;
 use core::array::TryFromSliceError;
+use ethereum_ibc::consensus::bls::PublicKey;
 use ethereum_ibc::consensus::errors::Error as L1ConsensusError;
 use ethereum_ibc::consensus::types::H256;
 use ethereum_ibc::errors::Error as L1IBCError;
@@ -111,6 +112,8 @@ pub enum Error {
     MissingL1Head,
     #[error("MissingL1ConsensusUpdate")]
     MissingL1ConsensusUpdate,
+    #[error("MissingTrustedSyncCommittee")]
+    MissingTrustedSyncCommittee,
     #[error("MissingL1ExecutionUpdate")]
     MissingL1ExecutionUpdate,
     #[error("MissingAccountUpdate")]
@@ -144,8 +147,14 @@ pub enum Error {
     L1VerifyError(L1VerifyError),
     #[error("L1IBCError {0}")]
     L1IBCError(L1IBCError),
+    #[error("L1ConsensusError {0}")]
+    L1ConsensusError(L1ConsensusError),
     #[error("DerivationError {0}")]
     DerivationError(optimism_derivation::Error),
+    #[error("InvalidCurrentSyncCommitteeKeys {0:?} {1:?}")]
+    UnexpectedCurrentSyncCommitteeKeys(PublicKey, PublicKey),
+    #[error("InvalidNextSyncCommitteeKeys {0:?} {1:?}")]
+    UnexpectedNextSyncCommitteeKeys(PublicKey, PublicKey),
 
     // Framework
     #[error("LCPError {0}")]

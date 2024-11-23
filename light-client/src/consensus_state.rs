@@ -1,6 +1,8 @@
 use alloc::borrow::ToOwned as _;
 use alloc::vec::Vec;
 use alloy_primitives::B256;
+use ethereum_ibc::consensus::beacon::Slot;
+use ethereum_ibc::consensus::bls::PublicKey;
 use ethereum_ibc::consensus::types::H256;
 use light_client::types::{Any, Time};
 use prost::Message as _;
@@ -22,6 +24,16 @@ pub struct ConsensusState {
     pub output_root: B256,
     /// The agreed l2 header hash
     pub hash: B256,
+
+    /// L1 Consensus
+    /// finalized header's slot
+    pub l1_slot: Slot,
+    /// aggregate public key of current sync committee
+    /// "current" indicates a period corresponding to the `slot`
+    pub l1_current_sync_committee: PublicKey,
+    /// aggregate public key of next sync committee
+    /// "next" indicates `current + 1` period
+    pub l1_next_sync_committee: PublicKey,
 }
 
 impl ConsensusState {
@@ -43,11 +55,18 @@ impl TryFrom<RawConsensusState> for ConsensusState {
         let output_root =
             B256::try_from(value.output_root.as_slice()).map_err(Error::UnexpectedOutputRoot)?;
         let hash = B256::try_from(value.hash.as_slice()).map_err(Error::UnexpectedHeaderHash)?;
+
         Ok(Self {
             storage_root,
             timestamp,
             output_root,
             hash,
+            // L1
+            l1_slot: value.l1_slot.into(),
+            l1_current_sync_committee: PublicKey::try_from(value.l1_current_sync_committee)
+                .map_err(Error::L1ConsensusError)?,
+            l1_next_sync_committee: PublicKey::try_from(value.l1_next_sync_committee)
+                .map_err(Error::L1ConsensusError)?,
         })
     }
 }
@@ -59,6 +78,10 @@ impl From<ConsensusState> for RawConsensusState {
             timestamp: value.timestamp.as_unix_timestamp_secs(),
             output_root: value.output_root.to_vec(),
             hash: value.hash.to_vec(),
+            // L1
+            l1_slot: value.l1_slot.into(),
+            l1_current_sync_committee: value.l1_current_sync_committee.to_vec(),
+            l1_next_sync_committee: value.l1_next_sync_committee.to_vec(),
         }
     }
 }

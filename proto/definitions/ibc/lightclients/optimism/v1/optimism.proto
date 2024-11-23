@@ -39,7 +39,7 @@ message ClientState {
 }
 
 message L1Header {
-  ibc.lightclients.ethereum.v1.SyncCommittee current_sync_committee = 1;
+  ibc.lightclients.ethereum.v1.TrustedSyncCommittee trusted_sync_committee = 1;
   ibc.lightclients.ethereum.v1.ConsensusUpdate consensus_update = 2;
   ibc.lightclients.ethereum.v1.ExecutionUpdate execution_update = 3;
 }
@@ -71,6 +71,10 @@ message ConsensusState {
   uint64 timestamp = 2;
   bytes output_root = 3;
   bytes hash = 4;
+
+  uint64 l1_slot = 5;
+  bytes l1_current_sync_committee = 6;
+  bytes l1_next_sync_committee = 7;
 }
 
 message Misbehaviour {

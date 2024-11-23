@@ -1,14 +1,14 @@
 use crate::consensus_state::ConsensusState;
 use crate::errors::Error;
 use crate::header::{Header, VerifyResult};
-use crate::l1::L1Config;
+use crate::l1::{L1Config, L1SyncCommittee};
 use crate::misc::{
     new_timestamp, validate_header_timestamp_not_future,
     validate_state_timestamp_within_trusting_period,
 };
 use alloc::borrow::ToOwned;
 use alloc::vec::Vec;
-use alloy_primitives::{B256};
+use alloy_primitives::B256;
 use core::time::Duration;
 use ethereum_ibc::client_state::{trim_left_zero, verify_account_storage};
 use ethereum_ibc::consensus::beacon::Version;
@@ -79,7 +79,18 @@ impl ClientState {
         } = header.verify(self.chain_id, &self.rollup_config)?;
 
         // Ensure l1 finalized
-        header.verify_l1(now, &self.l1_config)?;
+        let l1_header = header.l1_header();
+        L1SyncCommittee::new(
+            trusted_consensus_state,
+            l1_header.trusted_sync_committee.sync_committee.clone(),
+            l1_header.trusted_sync_committee.is_next,
+        )?
+        .verify(
+            now.as_unix_timestamp_secs(),
+            &self.l1_config,
+            &l1_header.consensus_update,
+            &l1_header.execution_update,
+        )?;
 
         // Ensure world state is valid
         let account_update = header.account_update_ref();
@@ -114,6 +125,7 @@ impl ClientState {
             timestamp: new_timestamp(l2_header.timestamp)?,
             output_root: l2_output_root,
             hash: l2_header.hash_slow(),
+            //TODO set l1 consensus
         };
 
         Ok((

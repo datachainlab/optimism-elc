@@ -1,5 +1,5 @@
 use crate::errors::Error;
-use crate::l1::{L1Config, L1Header, L1Verifier};
+use crate::l1::L1Header;
 use crate::oracle::MemoryOracleClient;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
@@ -25,7 +25,7 @@ pub struct Header<const L1_SYNC_COMMITTEE_SIZE: usize> {
     derivations: Derivations,
     oracle: Arc<MemoryOracleClient>,
     account_update: AccountUpdateInfo,
-    l1_header: L1Header<L1_SYNC_COMMITTEE_SIZE>
+    l1_header: L1Header<L1_SYNC_COMMITTEE_SIZE>,
 }
 
 impl<const L1_SYNC_COMMITTEE_SIZE: usize> Header<L1_SYNC_COMMITTEE_SIZE> {
@@ -45,11 +45,8 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> Header<L1_SYNC_COMMITTEE_SIZE> {
         })
     }
 
-    pub fn verify_l1(&self, now: Time, l1_config: &L1Config) -> Result<(), Error> {
-        let now = now.as_unix_timestamp_secs();
-        let l1_verifier = L1Verifier::<L1_SYNC_COMMITTEE_SIZE>::default();
-        l1_verifier.verify(now, &l1_config, &self.l1_header)?;
-        Ok(())
+    pub fn l1_header(&self) -> &L1Header<L1_SYNC_COMMITTEE_SIZE> {
+        &self.l1_header
     }
 
     pub fn trusted_height(&self) -> Height {
@@ -69,13 +66,13 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
             return Err(Error::UnexpectedEmptyDerivations);
         }
 
-        let l1_header : L1Header<L1_SYNC_COMMITTEE_SIZE> = header.l1_head.ok_or(Error::MissingL1Head)?.try_into()?;
+        let l1_header: L1Header<L1_SYNC_COMMITTEE_SIZE> =
+            header.l1_head.ok_or(Error::MissingL1Head)?.try_into()?;
         let mut derivations = Vec::with_capacity(header.derivations.len());
 
         //TODO Test if sorted
         for derivation in header.derivations {
-            let l1_consensus_update = &l1_header
-                .consensus_update;
+            let l1_consensus_update = &l1_header.consensus_update;
 
             let l1_head_hash = B256::from(&l1_consensus_update.finalized_execution_root.0);
 
