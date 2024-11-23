@@ -14,8 +14,14 @@ use light_client::types::{ClientId, Height, Time, TimeError};
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     // Preimage
+    #[error("UnexpectedBlobFieldIndex: {0}")]
+    UnexpectedBlobFieldIndex(TryFromSliceError),
+    #[error("UnexpectedKZGCommitment: {0}")]
+    UnexpectedKZGCommitment(TryFromSliceError),
+    #[error("UnexpectedKZGProof: {0}")]
+    UnexpectedKZGProof(TryFromSliceError),
     #[error("UnexpectedPreimageBlob: {0}")]
-    UnexpectedPreimageBlob(#[from] BlobTransactionValidationError),
+    UnexpectedPreimageBlob(BlobTransactionValidationError),
     #[error("UnexpectedPreimageKey: {0}")]
     UnexpectedPreimageKeySize(usize),
     #[error("UnexpectedPreimageKey: {source:?} {key:?}")]
@@ -25,12 +31,12 @@ pub enum Error {
     },
     #[error("UnexpectedPreimageValue: {value:?} {key:?}")]
     UnexpectedPreimageValue { value: Vec<u8>, key: PreimageKey },
-    #[error("UnexpectedPrecompiledValue: {value:?} {key:?}")]
-    UnexpectedPrecompiledValue { value: Vec<u8>, key: PreimageKey },
+    #[error("UnexpectedPrecompiledValue: {actual:?} {expected:?} {key:?}")]
+    UnexpectedPrecompiledValue { expected: Vec<u8>, actual: Vec<u8>, key: PreimageKey },
     #[error("NoPreimagePrecompiledCodeFound: {key:?}")]
     NoPreimagePrecompiledCodeFound { key: PreimageKey },
     #[error("NoPreimageBlobFound: {key:?}")]
-    NoPreimageBlobFound { key: PreimageKey },
+    NoPreimageKeyFound { key: PreimageKey },
     #[error("UnexpectedGlobalGlobalGeneric: {0}")]
     UnexpectedGlobalGlobalGeneric(PreimageKey),
 

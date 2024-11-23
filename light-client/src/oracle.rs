@@ -4,10 +4,9 @@ use alloc::boxed::Box;
 use alloc::string::ToString;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
-use alloc::{format, vec};
-use alloy_eips::eip4844::builder::Bytes48;
+use alloc::{format};
 use alloy_eips::eip4844::{BlobTransactionSidecarItem, Bytes48, FIELD_ELEMENTS_PER_BLOB};
-use alloy_primitives::{keccak256, Address, B256};
+use alloy_primitives::{keccak256, B256};
 use hashbrown::HashMap;
 use kona_preimage::errors::{PreimageOracleError, PreimageOracleResult};
 use kona_preimage::{HintWriterClient, PreimageKey, PreimageKeyType, PreimageOracleClient};
@@ -123,63 +122,46 @@ fn verify_precompile_and_blob_preimage(
 ) -> Result<(), Error> {
     match key.key_type() {
         PreimageKeyType::Precompile => {
-            let raw_key = B256::from(*key).0;
-            let hash_code_key = PreimageKey::new(raw_key, PreimageKeyType::Keccak256);
-            let hint_data = preimages
-                .get(&hash_code_key)
-                .ok_or(Error::NoPreimagePrecompiledCodeFound { key: hash_code_key })?;
-
-            if !precompiles::verify(hint_data, data) {
+            let actual= get_data_by_hash_key(key, preimages)?;
+            if !precompiles::verify(actual, data) {
                 return Err(Error::UnexpectedPrecompiledValue {
                     key: key.clone(),
-                    value: data.to_vec(),
+                    actual: actual.to_vec(),
+                    expected: data.to_vec(),
                 });
             }
             Ok(())
         }
         PreimageKeyType::Blob => {
-            let raw_key = B256::from(*key).0;
-            let blob_key_hash = PreimageKey::new(raw_key, PreimageKeyType::Keccak256);
-            let blob_key_got = preimages
-                .get(&blob_key_hash)
-                .ok_or(Error::NoPreimageBlobFound { key: blob_key_hash })?;
-
-            let blob_key = blob_key_got.clone();
-            let kzg_commitment = blob_key_got[..48];
+            let blob_key = get_data_by_hash_key(key, preimages)?;
+            let kzg_commitment = &blob_key[..48];
+            let index_bytes :[u8; 8] = blob_key[72..].try_into().map_err(Error::UnexpectedBlobFieldIndex)?;
+            let field_element_index = u64::from_be_bytes(index_bytes);
             //TODO cache by kzg_commitment
 
-            let field_element_index = blob_key_got[72..];
-            let field_element_index = u64::try_from_slice(&field_element_index)?;
-
+            let blob_key  = &mut blob_key.to_vec();
             // Require kzg_proof data to verify all the blob index
             let kzg_proof = if field_element_index == FIELD_ELEMENTS_PER_BLOB {
                 data
             } else {
                 blob_key[72..].copy_from_slice((FIELD_ELEMENTS_PER_BLOB).to_be_bytes().as_ref());
-                let blob_key_hash = keccak256(blob_key.as_ref());
-                preimages
-                    .get(&PreimageKey::new(*blob_key_hash, PreimageKeyType::Blob))
-                    .ok_or(Error::NoPreimageBlobFound {
-                        key: PreimageKey::new(*blob_key_hash, PreimageKeyType::Blob),
-                    })?
+                get_data_by_blob_key(blob_key, preimages)?
             };
 
+            // Populate blob sidecar
             let mut sidecar = BlobTransactionSidecarItem {
-                index: 0,
-                blob: Box::new(Default::default()),
-                kzg_commitment: Bytes48::try_from(&kzg_commitment)?,
-                kzg_proof: Bytes48::try_from(&kzg_proof)?,
+                kzg_commitment: Bytes48::try_from(kzg_commitment).map_err(Error::UnexpectedKZGCommitment)?,
+                kzg_proof: Bytes48::try_from(kzg_proof).map_err(Error::UnexpectedKZGProof)?,
+                ..Default::default()
             };
             for i in 0..FIELD_ELEMENTS_PER_BLOB {
                 blob_key[72..].copy_from_slice(i.to_be_bytes().as_ref());
-                let blob_key_hash = keccak256(blob_key.as_ref());
-                let blob_key_hash = PreimageKey::new(*blob_key_hash, PreimageKeyType::Blob);
-                let sidecar_blob = preimages
-                    .get(&blob_key_hash)
-                    .ok_or(Error::NoPreimageBlobFound { key: blob_key_hash })?;
+                let sidecar_blob = get_data_by_blob_key(blob_key, preimages)?;
                 sidecar.blob[(i as usize) << 5..(i as usize + 1) << 5]
                     .copy_from_slice(sidecar_blob);
             }
+
+            // Ensure valida blob
             sidecar
                 .verify_blob_kzg_proof()
                 .map_err(Error::UnexpectedPreimageBlob)?;
@@ -187,4 +169,23 @@ fn verify_precompile_and_blob_preimage(
         }
         _ => Ok(()),
     }
+}
+
+fn get_data_by_hash_key<'a>(key: &PreimageKey, preimages: &'a HashMap<PreimageKey, Vec<u8>>) -> Result<&'a [u8], Error> {
+    let raw_key = B256::from(*key).0;
+    let hash_key = PreimageKey::new(raw_key, PreimageKeyType::Keccak256);
+    let data = preimages
+        .get(&hash_key)
+        .ok_or(Error::NoPreimageKeyFound{ key: hash_key })?;
+    Ok(data)
+}
+
+fn get_data_by_blob_key<'a>(blob_key: &[u8], preimages: &'a HashMap<PreimageKey, Vec<u8>>) -> Result<&'a [u8], Error> {
+    let blob_key_hash = keccak256(blob_key);
+    let blob = preimages
+        .get(&PreimageKey::new(*blob_key_hash, PreimageKeyType::Blob))
+        .ok_or(Error::NoPreimageKeyFound {
+            key: PreimageKey::new(*blob_key_hash, PreimageKeyType::Blob),
+        })?;
+    Ok(blob)
 }
