@@ -4,6 +4,7 @@ use alloy_eips::eip4844::BlobTransactionValidationError;
 use core::array::TryFromSliceError;
 use ethereum_ibc::consensus::bls::PublicKey;
 use ethereum_ibc::consensus::errors::Error as L1ConsensusError;
+use ethereum_ibc::consensus::sync_protocol::SyncCommitteePeriod;
 use ethereum_ibc::consensus::types::H256;
 use ethereum_ibc::errors::Error as L1IBCError;
 use ethereum_ibc::light_client_verifier::errors::Error as L1VerifyError;
@@ -155,6 +156,10 @@ pub enum Error {
     UnexpectedCurrentSyncCommitteeKeys(PublicKey, PublicKey),
     #[error("InvalidNextSyncCommitteeKeys {0:?} {1:?}")]
     UnexpectedNextSyncCommitteeKeys(PublicKey, PublicKey),
+    #[error("NoNextSyncCommitteeInConsensusUpdate {0:?} {1:?}")]
+    NoNextSyncCommitteeInConsensusUpdate(SyncCommitteePeriod, SyncCommitteePeriod),
+    #[error("StoreNotSupportedFinalizedPeriod {0:?} {1:?}")]
+    StoreNotSupportedFinalizedPeriod(SyncCommitteePeriod, SyncCommitteePeriod),
 
     // Framework
     #[error("LCPError {0}")]

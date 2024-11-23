@@ -3,6 +3,9 @@ use alloc::vec::Vec;
 use alloy_primitives::B256;
 use ethereum_ibc::consensus::beacon::Slot;
 use ethereum_ibc::consensus::bls::PublicKey;
+use ethereum_ibc::consensus::compute::compute_sync_committee_period_at_slot;
+use ethereum_ibc::consensus::context::ChainContext;
+use ethereum_ibc::consensus::sync_protocol::SyncCommitteePeriod;
 use ethereum_ibc::consensus::types::H256;
 use light_client::types::{Any, Time};
 use prost::Message as _;
@@ -41,6 +44,10 @@ impl ConsensusState {
     /// target fields: nothing
     pub fn canonicalize(self) -> Self {
         self
+    }
+
+    pub fn current_l1_period<C: ChainContext>(&self, ctx: &C) -> SyncCommitteePeriod {
+        compute_sync_committee_period_at_slot(ctx, self.l1_slot)
     }
 }
 
