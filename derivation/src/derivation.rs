@@ -3,14 +3,15 @@ use crate::fault::fpvm_handle_register;
 use alloc::format;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
-use alloy_consensus::Header;
-use alloy_primitives::B256;
-use anyhow::{Error, Result};
+use alloy_consensus::{BlockHeader, Header};
+use alloy_primitives::{Sealable, B256};
+use anyhow::{anyhow, Context, Error, Result};
 use core::fmt::Debug;
+use alloy_primitives::private::alloy_rlp::Decodable;
 use kona_client::l1::{OracleBlobProvider, OracleL1ChainProvider};
 use kona_client::l2::OracleL2ChainProvider;
 use kona_client::BootInfo;
-use kona_preimage::CommsClient;
+use kona_preimage::{CommsClient, PreimageKey, PreimageKeyType};
 use op_alloy_genesis::RollupConfig;
 
 #[derive(Clone, Debug)]
@@ -111,11 +112,25 @@ impl Derivations {
         rollup_config: &RollupConfig,
         oracle: Arc<T>,
     ) -> Result<Vec<(Header, B256)>> {
-        // Ensure collect order
-
         let headers: Result<Vec<(Header, B256)>, Error> = kona_common::block_on(async move {
             let mut headers = Vec::with_capacity(self.inner.len());
-            for d in &self.inner {
+            for (i, d) in self.inner.iter().enumerate() {
+                if i > 0 {
+                    // Ensure collect order
+                    let parent_hash = self.inner.get(i - 1).unwrap().l2_head_hash;
+
+                    let l2_head = oracle.get(PreimageKey::new(d.l2_head_hash.0, PreimageKeyType::Keccak256)).await?;
+                    let l2_head = Header::decode(&mut l2_head.as_slice())
+                        .map_err(|e| anyhow!(e))?;
+
+                    if l2_head.parent_hash != parent_hash {
+                        return Err(Error::msg(format!(
+                            "Derivation failed by parent hash expected={}, actual={}",
+                            parent_hash, l2_head.parent_hash
+                        )));
+                    }
+                }
+
                 let header = d.verify(chain_id, rollup_config, oracle.clone()).await?;
                 headers.push((header, d.l2_output_root));
             }
@@ -126,5 +141,9 @@ impl Derivations {
 
     pub fn last(&self) -> Option<&Derivation> {
         self.inner.last()
+    }
+
+    pub fn first(&self) -> Option<&Derivation> {
+        self.inner.first()
     }
 }

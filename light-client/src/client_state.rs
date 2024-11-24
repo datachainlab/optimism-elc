@@ -76,7 +76,7 @@ impl ClientState {
         let VerifyResult {
             l2_header,
             l2_output_root,
-        } = header.verify(self.chain_id, &self.rollup_config)?;
+        } = header.verify(self.chain_id, trusted_consensus_state.hash, &self.rollup_config)?;
 
         // Ensure l1 finalized
         let (l1_slot, l1_current_sync_committee, l1_next_sync_committee) =

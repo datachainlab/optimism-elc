@@ -32,8 +32,16 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> Header<L1_SYNC_COMMITTEE_SIZE> {
     pub fn verify(
         &self,
         chain_id: u64,
+        trusted_hash: B256,
         rollup_config: &RollupConfig,
     ) -> Result<VerifyResult, Error> {
+        // Ensure trusted
+        let first = self.derivations.first().ok_or(Error::UnexpectedEmptyDerivations)?;
+        if first.l2_head_hash != trusted_hash {
+            return Err(Error::UnexpectedTrustedHash(first.l2_head_hash, trusted_hash));
+        }
+
+        // Ensure collect derivation
         let headers = self
             .derivations
             .verify(chain_id, rollup_config, self.oracle.clone())
@@ -70,7 +78,6 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
             header.l1_head.ok_or(Error::MissingL1Head)?.try_into()?;
         let mut derivations = Vec::with_capacity(header.derivations.len());
 
-        //TODO Test if sorted
         for derivation in header.derivations {
             let l1_consensus_update = &l1_header.consensus_update;
 
