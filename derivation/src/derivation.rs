@@ -111,6 +111,8 @@ impl Derivations {
         rollup_config: &RollupConfig,
         oracle: Arc<T>,
     ) -> Result<Vec<(Header, B256)>> {
+        // Ensure collect order
+
         let headers: Result<Vec<(Header, B256)>, Error> = kona_common::block_on(async move {
             let mut headers = Vec::with_capacity(self.inner.len());
             for d in &self.inner {

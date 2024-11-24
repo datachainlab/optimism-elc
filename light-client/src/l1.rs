@@ -15,7 +15,7 @@ use ethereum_ibc::light_client_verifier::state::LightClientStoreReader;
 use ethereum_ibc::light_client_verifier::updates::ConsensusUpdate;
 use ethereum_ibc::types::{
     convert_proto_to_consensus_update, convert_proto_to_execution_update,
-    convert_proto_to_sync_committee, ConsensusUpdateInfo, ExecutionUpdateInfo,
+    ConsensusUpdateInfo, ExecutionUpdateInfo,
     TrustedSyncCommittee,
 };
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::L1Header as RawL1Header;
@@ -61,6 +61,27 @@ pub struct L1Header<const SYNC_COMMITTEE_SIZE: usize> {
     pub trusted_sync_committee: TrustedSyncCommittee<SYNC_COMMITTEE_SIZE>,
     pub consensus_update: ConsensusUpdateInfo<SYNC_COMMITTEE_SIZE>,
     pub execution_update: ExecutionUpdateInfo,
+}
+
+impl<const SYNC_COMMITTEE_SIZE: usize> L1Header<SYNC_COMMITTEE_SIZE> {
+   pub fn verify(&self, now: u64, l1_config: &L1Config, trusted_consensus_state: &ConsensusState)
+       -> Result<(Slot, PublicKey, PublicKey), Error> {
+       let ctx = l1_config.build_context(now);
+
+       let l1_sync_committee = L1SyncCommittee::new(
+           trusted_consensus_state,
+           self.trusted_sync_committee.sync_committee.clone(),
+           self.trusted_sync_committee.is_next,
+       )?;
+       L1Verifier::default().verify(
+           &ctx,
+           &l1_sync_committee,
+           &self.consensus_update,
+           &self.execution_update,
+       )?;
+
+       apply_updates(&ctx, trusted_consensus_state, &self.consensus_update)
+   }
 }
 
 impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL1Header> for L1Header<SYNC_COMMITTEE_SIZE> {
@@ -156,7 +177,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L1Verifier<SYNC_COMMITTEE_SIZE> {
     }
 }
 
-pub fn apply_updates<const SYNC_COMMITTEE_SIZE: usize, CC: ChainConsensusVerificationContext>(
+fn apply_updates<const SYNC_COMMITTEE_SIZE: usize, CC: ChainConsensusVerificationContext>(
     ctx: &CC,
     consensus_state: &ConsensusState,
     consensus_update: &ConsensusUpdateInfo<SYNC_COMMITTEE_SIZE>,
