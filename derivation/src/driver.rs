@@ -108,6 +108,7 @@ where
     /// - A new [DerivationDriver] instance.
     pub async fn new(
         boot_info: &BootInfo,
+        l2_head: B256,
         caching_oracle: &O,
         blob_provider: B,
         mut chain_provider: OracleL1ChainProvider<O>,
@@ -119,6 +120,7 @@ where
         let (l1_origin, l2_safe_head, l2_safe_head_header) = Self::find_startup_info(
             caching_oracle,
             boot_info,
+            l2_head,
             &mut chain_provider,
             &mut l2_chain_provider,
         )
@@ -320,6 +322,7 @@ where
     async fn find_startup_info(
         caching_oracle: &O,
         boot_info: &BootInfo,
+        l2_head: B256,
         chain_provider: &mut OracleL1ChainProvider<O>,
         l2_chain_provider: &mut OracleL2ChainProvider<O>,
     ) -> Result<(BlockInfo, L2BlockInfo, Sealed<Header>)> {
@@ -327,7 +330,7 @@ where
         caching_oracle
             .write(
                 &HintType::StartingL2Output
-                    .encode_with(&[boot_info.agreed_l2_output_root.as_ref()]),
+                    .encode_with(&[boot_info.agreed_l2_output_root.as_ref(), l2_head.as_ref()]),
             )
             .await?;
         let mut output_preimage = [0u8; 128];

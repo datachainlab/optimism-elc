@@ -63,6 +63,7 @@ impl Derivation {
 
         let mut driver = DerivationDriver::new(
             &boot,
+            self.agreed_l2_head_hash,
             oracle.as_ref(),
             beacon,
             l1_provider,
