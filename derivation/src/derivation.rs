@@ -13,8 +13,9 @@ use kona_client::l2::OracleL2ChainProvider;
 use kona_client::BootInfo;
 use kona_preimage::{CommsClient, PreimageKey, PreimageKeyType};
 use op_alloy_genesis::RollupConfig;
+use serde::Deserialize;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Derivation {
     pub l1_head_hash: B256,
     pub agreed_l2_head_hash: B256,
