@@ -13,9 +13,9 @@ use kona_client::l2::OracleL2ChainProvider;
 use kona_client::BootInfo;
 use kona_preimage::{CommsClient, PreimageKey, PreimageKeyType};
 use op_alloy_genesis::RollupConfig;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Derivation {
     pub l1_head_hash: B256,
     pub agreed_l2_head_hash: B256,
@@ -47,7 +47,7 @@ impl Derivation {
         &self,
         chain_id: u64,
         rollup_config: &RollupConfig,
-        oracle: Arc<T>,
+        oracle: T,
     ) -> Result<Header> {
         let boot = Arc::new(BootInfo {
             l1_head: self.l1_head_hash,
@@ -58,6 +58,7 @@ impl Derivation {
             rollup_config: rollup_config.clone(),
         });
 
+        let oracle = Arc::new(oracle);
         let l1_provider = OracleL1ChainProvider::new(boot.clone(), oracle.clone());
         let l2_provider = OracleL2ChainProvider::new(boot.clone(), oracle.clone());
         let beacon = OracleBlobProvider::new(oracle.clone());
@@ -112,7 +113,7 @@ impl Derivations {
         &self,
         chain_id: u64,
         rollup_config: &RollupConfig,
-        oracle: Arc<T>,
+        oracle: T,
     ) -> Result<Vec<(Header, B256)>> {
         let headers: Result<Vec<(Header, B256)>, Error> = kona_common::block_on(async move {
             let mut headers = Vec::with_capacity(self.inner.len());

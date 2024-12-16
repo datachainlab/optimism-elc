@@ -8,7 +8,7 @@ use alloc::vec::Vec;
 use alloy_eips::eip4844::{
     BlobTransactionSidecarItem, Bytes48, BYTES_PER_COMMITMENT, FIELD_ELEMENTS_PER_BLOB,
 };
-use alloy_primitives::{keccak256, B256};
+use alloy_primitives::{keccak256, B256, U256};
 use hashbrown::HashMap;
 use kona_preimage::errors::{PreimageOracleError, PreimageOracleResult};
 use kona_preimage::{HintWriterClient, PreimageKey, PreimageKeyType, PreimageOracleClient};
@@ -79,7 +79,7 @@ impl TryFrom<Vec<Preimage>> for MemoryOracleClient {
                 _ => {}
             }
 
-            inner.insert(preimage_key, preimage.value);
+            inner.insert(preimage_key.clone(), preimage.value);
         }
 
         // Ensure blob and precomile preimage is value
@@ -124,8 +124,8 @@ fn get_data_by_blob_key<'a>(
 fn verify_sha256_preimage(key: &PreimageKey, data: &[u8]) -> Result<(), Error> {
     let value_hash: [u8; 32] = Sha256::digest(data).into();
     let value_data = &value_hash[1..];
+    let value_data = U256::from_be_slice(&value_data);
     let key_data = key.key_value();
-    let key_data = key_data.as_le_slice();
     if value_data != key_data {
         return Err(Error::UnexpectedPreimageValue {
             key: key.clone(),
@@ -136,8 +136,8 @@ fn verify_sha256_preimage(key: &PreimageKey, data: &[u8]) -> Result<(), Error> {
 }
 fn verify_keccak256_preimage(key: &PreimageKey, data: &[u8]) -> Result<(), Error> {
     let value_data = &keccak256(data).0[1..];
+    let value_data = U256::from_be_slice(&value_data);
     let key_data = key.key_value();
-    let key_data = key_data.as_le_slice();
     if value_data != key_data {
         return Err(Error::UnexpectedPreimageValue {
             key: key.clone(),
@@ -167,7 +167,8 @@ fn verify_blob_preimage(
     preimages: &HashMap<PreimageKey, Vec<u8>>,
 ) -> Result<(), Error> {
     const POSITION_FIELD_ELEMENT: usize = 72;
-    let blob_key = get_data_by_hash_key(key, preimages)?;
+    let blob_key = get_data_by_hash_key(key, preimages)
+        .map_err(|e| Error::NoPreimageKeyFoundInVerifyBlob(Box::new(e)))?;
     let kzg_commitment = &blob_key[..BYTES_PER_COMMITMENT];
     let index_bytes: [u8; 8] = blob_key[POSITION_FIELD_ELEMENT..]
         .try_into()
@@ -203,4 +204,50 @@ fn verify_blob_preimage(
         .verify_blob_kzg_proof()
         .map_err(Error::UnexpectedPreimageBlob)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod test {
+    use crate::oracle::MemoryOracleClient;
+    use alloc::vec;
+    use alloy_primitives::utils::ParseUnits::U256;
+    use kona_preimage::{PreimageKey, PreimageKeyType};
+    use optimism_ibc_proto::ibc::lightclients::optimism::v1::Preimage;
+    use prost::Message;
+
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct Preimages {
+        #[prost(message, repeated, tag = "1")]
+        pub preimages: ::prost::alloc::vec::Vec<Preimage>,
+    }
+
+    extern crate std;
+
+    #[test]
+    pub fn test_verify() {
+        let value = std::fs::read("../preimage.bin").unwrap();
+        let preimages = Preimages::decode(value.as_slice()).unwrap();
+        let oracle = MemoryOracleClient::try_from(preimages.preimages).unwrap();
+    }
+
+    #[test]
+    pub fn test_individual() {
+        let target = [
+            0, 97, 43, 227, 142, 196, 166, 150, 11, 9, 46, 51, 49, 218, 70, 71, 86, 8, 52, 54, 187,
+            2, 36, 139, 70, 30, 89, 179, 47, 145, 17, 50,
+        ];
+        let key = PreimageKey::new(target, PreimageKeyType::Blob);
+
+        let value = std::fs::read("../preimage.bin").unwrap();
+        let preimages = Preimages::decode(value.as_slice()).unwrap();
+
+        for image in preimages.preimages.iter() {
+            let v: [u8; 32] = image.clone().key.try_into().unwrap();
+            let saved_key = PreimageKey::try_from(v).unwrap();
+            if saved_key == key {
+                panic!("test")
+            }
+        }
+    }
 }

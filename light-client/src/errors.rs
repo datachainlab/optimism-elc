@@ -1,8 +1,9 @@
+use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
 use alloy_eips::eip4844::BlobTransactionValidationError;
-use core::array::TryFromSliceError;
 use alloy_primitives::B256;
+use core::array::TryFromSliceError;
 use ethereum_ibc::consensus::bls::PublicKey;
 use ethereum_ibc::consensus::errors::Error as L1ConsensusError;
 use ethereum_ibc::consensus::sync_protocol::SyncCommitteePeriod;
@@ -42,8 +43,10 @@ pub enum Error {
     },
     #[error("NoPreimagePrecompiledCodeFound: {key:?}")]
     NoPreimagePrecompiledCodeFound { key: PreimageKey },
-    #[error("NoPreimageBlobFound: {key:?}")]
+    #[error("NoPreimageKeyFound: {key:?}")]
     NoPreimageKeyFound { key: PreimageKey },
+    #[error("NoPreimageKeyFoundInVerifyBlob: {0:?}")]
+    NoPreimageKeyFoundInVerifyBlob(Box<Error>),
     #[error("UnexpectedGlobalGlobalGeneric: {0}")]
     UnexpectedGlobalGlobalGeneric(PreimageKey),
 
@@ -123,7 +126,7 @@ pub enum Error {
     #[error("UnexpectedEmptyDerivations")]
     UnexpectedEmptyDerivations,
     #[error("UnexpectedTrustedHash {0:?} {1:?}")]
-    UnexpectedTrustedHash(B256, B256) ,
+    UnexpectedTrustedHash(B256, B256),
     #[error("UnexpectedL1HeadHash {0}")]
     UnexpectedL1HeadHash(TryFromSliceError),
     #[error("UnexpectedAgreedL2HeadHash {0}")]

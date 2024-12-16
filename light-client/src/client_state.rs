@@ -1,7 +1,7 @@
 use crate::consensus_state::ConsensusState;
 use crate::errors::Error;
 use crate::header::{Header, VerifyResult};
-use crate::l1::{L1Config};
+use crate::l1::L1Config;
 use crate::misc::{
     new_timestamp, validate_header_timestamp_not_future,
     validate_state_timestamp_within_trusting_period,
@@ -76,11 +76,19 @@ impl ClientState {
         let VerifyResult {
             l2_header,
             l2_output_root,
-        } = header.verify(self.chain_id, trusted_consensus_state.hash, &self.rollup_config)?;
+        } = header.verify(
+            self.chain_id,
+            trusted_consensus_state.hash,
+            &self.rollup_config,
+        )?;
 
         // Ensure l1 finalized
         let (l1_slot, l1_current_sync_committee, l1_next_sync_committee) =
-            header.l1_header().verify(now.as_unix_timestamp_secs(), &self.l1_config, &trusted_consensus_state)?;
+            header.l1_header().verify(
+                now.as_unix_timestamp_secs(),
+                &self.l1_config,
+                &trusted_consensus_state,
+            )?;
 
         // Ensure world state is valid
         let account_update = header.account_update_ref();

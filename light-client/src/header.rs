@@ -23,7 +23,7 @@ pub struct VerifyResult {
 pub struct Header<const L1_SYNC_COMMITTEE_SIZE: usize> {
     trusted_height: Height,
     derivations: Derivations,
-    oracle: Arc<MemoryOracleClient>,
+    oracle: MemoryOracleClient,
     account_update: AccountUpdateInfo,
     l1_header: L1Header<L1_SYNC_COMMITTEE_SIZE>,
 }
@@ -36,9 +36,15 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> Header<L1_SYNC_COMMITTEE_SIZE> {
         rollup_config: &RollupConfig,
     ) -> Result<VerifyResult, Error> {
         // Ensure trusted
-        let first = self.derivations.first().ok_or(Error::UnexpectedEmptyDerivations)?;
+        let first = self
+            .derivations
+            .first()
+            .ok_or(Error::UnexpectedEmptyDerivations)?;
         if first.l2_head_hash != trusted_hash {
-            return Err(Error::UnexpectedTrustedHash(first.l2_head_hash, trusted_hash));
+            return Err(Error::UnexpectedTrustedHash(
+                first.l2_head_hash,
+                trusted_hash,
+            ));
         }
 
         // Ensure collect derivation
@@ -112,7 +118,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
             ),
             account_update,
             derivations,
-            oracle: Arc::new(oracle),
+            oracle: oracle.clone(),
         })
     }
 }
