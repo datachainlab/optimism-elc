@@ -12,7 +12,7 @@ use alloy_primitives::{keccak256, B256, U256};
 use hashbrown::{HashMap, HashSet};
 use kona_preimage::errors::{PreimageOracleError, PreimageOracleResult};
 use kona_preimage::{HintWriterClient, PreimageKey, PreimageKeyType, PreimageOracleClient};
-use optimism_derivation::precompiles;
+use optimism_derivation::{precompiles, POSITION_FIELD_ELEMENT};
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::Preimage;
 use sha2::{Digest, Sha256};
 
@@ -168,7 +168,6 @@ fn verify_blob_preimage(
     preimages: &HashMap<PreimageKey, Vec<u8>>,
     kzg_cache: &mut HashSet<Vec<u8>>
 ) -> Result<(), Error> {
-    const POSITION_FIELD_ELEMENT: usize = 72;
     let blob_key = get_data_by_hash_key(key, preimages)
         .map_err(|e| Error::NoPreimageKeyFoundInVerifyBlob(Box::new(e)))?;
     let kzg_commitment = &blob_key[..BYTES_PER_COMMITMENT];

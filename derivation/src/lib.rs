@@ -9,3 +9,5 @@ mod fault;
 pub mod precompiles;
 
 pub use anyhow::Error;
+
+pub const POSITION_FIELD_ELEMENT: usize = 72;
