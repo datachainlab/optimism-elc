@@ -13,8 +13,8 @@ use hashbrown::{HashMap, HashSet};
 use kona_preimage::errors::{PreimageOracleError, PreimageOracleResult};
 use kona_preimage::{HintWriterClient, PreimageKey, PreimageKeyType, PreimageOracleClient};
 use optimism_derivation::{precompiles, POSITION_FIELD_ELEMENT};
-use optimism_ibc_proto::ibc::lightclients::optimism::v1::Preimage;
 use sha2::{Digest, Sha256};
+use optimism_derivation::types::Preimage;
 
 #[derive(Clone, Debug)]
 pub struct MemoryOracleClient {
@@ -73,13 +73,13 @@ impl TryFrom<Vec<Preimage>> for MemoryOracleClient {
             // Ensure hash type preimage is valid
             match preimage_key.key_type() {
                 PreimageKeyType::Keccak256 => {
-                    verify_keccak256_preimage(&preimage_key, &preimage.value)?
+                    verify_keccak256_preimage(&preimage_key, &preimage.data)?
                 }
-                PreimageKeyType::Sha256 => verify_sha256_preimage(&preimage_key, &preimage.value)?,
+                PreimageKeyType::Sha256 => verify_sha256_preimage(&preimage_key, &preimage.data)?,
                 _ => {}
             }
 
-            inner.insert(preimage_key.clone(), preimage.value);
+            inner.insert(preimage_key.clone(), preimage.data);
         }
 
         let mut kzg_cache = HashSet::<Vec<u8>>::new();
@@ -214,15 +214,8 @@ fn verify_blob_preimage(
 #[cfg(test)]
 mod test {
     use crate::oracle::MemoryOracleClient;
-    use optimism_ibc_proto::ibc::lightclients::optimism::v1::Preimage;
     use prost::Message;
-
-    #[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
-    pub struct Preimages {
-        #[prost(message, repeated, tag = "1")]
-        pub preimages: ::prost::alloc::vec::Vec<Preimage>,
-    }
+    use optimism_derivation::types::Preimages;
 
     extern crate std;
 

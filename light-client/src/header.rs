@@ -11,6 +11,7 @@ use optimism_derivation::derivation::{Derivation, Derivations};
 use optimism_ibc_proto::google::protobuf::Any as IBCAny;
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::Header as RawHeader;
 use prost::Message;
+use optimism_derivation::types::Preimages;
 
 pub const OPTIMISM_HEADER_TYPE_URL: &str = "/ibc.lightclients.optimism.v1.Header";
 
@@ -103,7 +104,8 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
             ));
         }
         let derivations = Derivations::new(derivations);
-        let oracle: MemoryOracleClient = header.preimages.try_into()?;
+        let preimages = Preimages::decode(header.preimages.as_slice()).map_err(Error::ProtoDecodeError)?;
+        let oracle: MemoryOracleClient = preimages.preimages.try_into()?;
         let account_update = header
             .account_update
             .ok_or(Error::MissingAccountUpdate)?

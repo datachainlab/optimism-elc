@@ -7,6 +7,7 @@ mod driver;
 mod fault;
 
 pub mod precompiles;
+pub mod types;
 
 pub use anyhow::Error;
 

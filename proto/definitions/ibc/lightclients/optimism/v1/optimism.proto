@@ -52,18 +52,13 @@ message Derivation {
   uint64 l2_block_number = 6;
 }
 
-message Preimage {
-    bytes key = 1;
-    bytes value = 2;
-}
-
 message Header {
   ibc.core.client.v1.Height trusted_height = 1;
   ibc.lightclients.ethereum.v1.AccountUpdate account_update = 2;
 
   L1Header l1_head = 3;
   repeated Derivation derivations = 4;
-  repeated Preimage preimages = 5;
+  bytes preimages = 5;
 }
 
 message ConsensusState {
