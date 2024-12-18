@@ -1,9 +1,10 @@
-use alloc::vec;
 use alloc::vec::Vec;
 use alloy_primitives::B256;
 use kona_preimage::PreimageKey;
+use prost::Message as ProtoMessage;
+use prost_derive::Message;
 
-#[derive(::prost::Message, Clone, PartialEq)]
+#[derive(Message, Clone, PartialEq)]
 pub struct Preimage {
     #[prost(bytes = "vec", tag = "1")]
     pub key: Vec<u8>,
@@ -20,10 +21,18 @@ impl Preimage {
     }
 }
 
-#[derive(::prost::Message, Clone, PartialEq)]
+#[derive(Message, Clone, PartialEq)]
 pub struct Preimages {
     #[prost(message, repeated, tag = "1")]
     pub preimages: Vec<Preimage>,
+}
+
+impl Preimages {
+    pub fn into_vec(self) -> Result<Vec<u8>, prost::EncodeError> {
+        let mut buf: Vec<u8> = Vec::new();
+        self.encode(&mut buf)?;
+        Ok(buf)
+    }
 }
 
 
@@ -61,9 +70,7 @@ mod test {
                 },
             ],
         };
-        let mut buf: Vec<u8> = Vec::new();
-        expected.encode(&mut buf).unwrap();
-
+        let mut buf = expected.clone().into_vec().unwrap();
         let actual = Preimages::decode(&*buf).unwrap();
         assert_eq!(expected, actual);
     }
