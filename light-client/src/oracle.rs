@@ -51,9 +51,7 @@ impl PreimageOracleClient for MemoryOracleClient {
 #[async_trait::async_trait]
 impl HintWriterClient for MemoryOracleClient {
     async fn write(&self, _hint: &str) -> PreimageOracleResult<()> {
-        Err(PreimageOracleError::Other(
-            "unsupported operation".to_string(),
-        ))
+        Ok(())
     }
 }
 
@@ -213,16 +211,35 @@ fn verify_blob_preimage(
 
 #[cfg(test)]
 mod test {
+    use alloc::vec::Vec;
+    use op_alloy_genesis::RollupConfig;
     use crate::oracle::MemoryOracleClient;
     use prost::Message;
+    use optimism_derivation::derivation::{Derivation, Derivations};
     use optimism_derivation::types::Preimages;
 
     extern crate std;
 
     #[test]
-    pub fn test_verify() {
+    pub fn test_try_from() {
         let value = std::fs::read("../preimage.bin").unwrap();
         let preimages = Preimages::decode(value.as_slice()).unwrap();
         let oracle = MemoryOracleClient::try_from(preimages.preimages).unwrap();
+    }
+
+    #[test]
+    pub fn test_derivation() {
+        let value = std::fs::read("../testdata/preimage.bin").unwrap();
+        let preimages = Preimages::decode(value.as_slice()).unwrap();
+        let oracle = MemoryOracleClient::try_from(preimages.preimages).unwrap();
+
+        let derivations = std::fs::read("../testdata/derivations.json").unwrap();
+        let derivations: Vec<Derivation> = serde_json::from_slice(&derivations).unwrap();
+        let derivations = Derivations::new(derivations);
+
+        let rollup_config = std::fs::read("../testdata/rollup.json").unwrap();
+        let rollup_config : RollupConfig = serde_json::from_slice(&rollup_config).unwrap();
+
+        derivations.verify(0, &rollup_config, oracle.clone()).unwrap();
     }
 }

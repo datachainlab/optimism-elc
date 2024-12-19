@@ -120,7 +120,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
             ),
             account_update,
             derivations,
-            oracle: oracle.clone(),
+            oracle,
         })
     }
 }

@@ -118,23 +118,26 @@ impl Derivations {
         let headers: Result<Vec<(Header, B256)>, Error> = kona_common::block_on(async move {
             let mut headers = Vec::with_capacity(self.inner.len());
             for (i, d) in self.inner.iter().enumerate() {
+                let header = d.verify(chain_id, rollup_config, oracle.clone()).await.context(format!(
+                    "Derivation failed by index={}, number={}",
+                    i,
+                    d.l2_block_number
+                ))?;
+
+                // Verify collect order
                 if i > 0 {
-                    // Ensure collect order
-                    let parent_hash = self.inner.get(i - 1).unwrap().l2_head_hash;
-
-                    let l2_head = oracle.get(PreimageKey::new(d.l2_head_hash.0, PreimageKeyType::Keccak256)).await?;
-                    let l2_head = Header::decode(&mut l2_head.as_slice())
-                        .map_err(|e| anyhow!(e))?;
-
-                    if l2_head.parent_hash != parent_hash {
+                    let prev_hash = self.inner[i - 1].l2_head_hash;
+                    if header.parent_hash != prev_hash {
                         return Err(Error::msg(format!(
-                            "Derivation failed by parent hash expected={}, actual={}",
-                            parent_hash, l2_head.parent_hash
+                            "Derivation failed by parent_hash expected={}, actual={}, block={}, index={}",
+                            prev_hash,
+                            header.parent_hash,
+                            d.l2_block_number,
+                            i
                         )));
                     }
                 }
 
-                let header = d.verify(chain_id, rollup_config, oracle.clone()).await?;
                 headers.push((header, d.l2_output_root));
             }
             Ok(headers)
