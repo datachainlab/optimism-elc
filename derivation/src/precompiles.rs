@@ -18,8 +18,9 @@ const ACCELERATED_PRECOMPILES: &[PrecompileWithAddress] = &[
 
 /// Executes an accelerated precompile on [revm].
 pub fn execute<T: Into<Bytes>>(address: Address, input: T) -> Result<Vec<u8>> {
-    if let Some(precompile) =
-        ACCELERATED_PRECOMPILES.iter().find(|precompile| precompile.0 == address)
+    if let Some(precompile) = ACCELERATED_PRECOMPILES
+        .iter()
+        .find(|precompile| precompile.0 == address)
     {
         match precompile.1 {
             Precompile::Standard(std_precompile) => {
@@ -46,15 +47,14 @@ pub fn execute<T: Into<Bytes>>(address: Address, input: T) -> Result<Vec<u8>> {
 pub fn verify(hint_data: &[u8], expected: &[u8]) -> bool {
     let precompile_address = Address::from_slice(&hint_data[..20]);
     let precompile_input = hint_data[20..].to_vec();
-    let result = execute(precompile_address, precompile_input)
-        .map_or_else(
-            |_| vec![0u8; 1],
-            |raw_res| {
-                let mut res = Vec::with_capacity(1 + raw_res.len());
-                res.push(0x01);
-                res.extend_from_slice(&raw_res);
-                res
-            },
-        );
+    let result = execute(precompile_address, precompile_input).map_or_else(
+        |_| vec![0u8; 1],
+        |raw_res| {
+            let mut res = Vec::with_capacity(1 + raw_res.len());
+            res.push(0x01);
+            res.extend_from_slice(&raw_res);
+            res
+        },
+    );
     &result == expected
 }

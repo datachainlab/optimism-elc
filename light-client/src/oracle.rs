@@ -12,9 +12,9 @@ use alloy_primitives::{keccak256, B256, U256};
 use hashbrown::{HashMap, HashSet};
 use kona_preimage::errors::{PreimageOracleError, PreimageOracleResult};
 use kona_preimage::{HintWriterClient, PreimageKey, PreimageKeyType, PreimageOracleClient};
+use optimism_derivation::types::Preimage;
 use optimism_derivation::{precompiles, POSITION_FIELD_ELEMENT};
 use sha2::{Digest, Sha256};
-use optimism_derivation::types::Preimage;
 
 #[derive(Clone, Debug)]
 pub struct MemoryOracleClient {
@@ -164,7 +164,7 @@ fn verify_blob_preimage(
     key: &PreimageKey,
     data: &[u8],
     preimages: &HashMap<PreimageKey, Vec<u8>>,
-    kzg_cache: &mut HashSet<Vec<u8>>
+    kzg_cache: &mut HashSet<Vec<u8>>,
 ) -> Result<(), Error> {
     let blob_key = get_data_by_hash_key(key, preimages)
         .map_err(|e| Error::NoPreimageKeyFoundInVerifyBlob(Box::new(e)))?;
@@ -211,12 +211,12 @@ fn verify_blob_preimage(
 
 #[cfg(test)]
 mod test {
+    use crate::oracle::MemoryOracleClient;
     use alloc::vec::Vec;
     use op_alloy_genesis::RollupConfig;
-    use crate::oracle::MemoryOracleClient;
-    use prost::Message;
     use optimism_derivation::derivation::{Derivation, Derivations};
     use optimism_derivation::types::Preimages;
+    use prost::Message;
 
     extern crate std;
 
@@ -238,8 +238,10 @@ mod test {
         let derivations = Derivations::new(derivations);
 
         let rollup_config = std::fs::read("../testdata/rollup.json").unwrap();
-        let rollup_config : RollupConfig = serde_json::from_slice(&rollup_config).unwrap();
+        let rollup_config: RollupConfig = serde_json::from_slice(&rollup_config).unwrap();
 
-        derivations.verify(0, &rollup_config, oracle.clone()).unwrap();
+        derivations
+            .verify(0, &rollup_config, oracle.clone())
+            .unwrap();
     }
 }

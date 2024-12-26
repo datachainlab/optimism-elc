@@ -8,10 +8,10 @@ use ethereum_ibc::types::AccountUpdateInfo;
 use light_client::types::{Any, Height, Time};
 use op_alloy_genesis::RollupConfig;
 use optimism_derivation::derivation::{Derivation, Derivations};
+use optimism_derivation::types::Preimages;
 use optimism_ibc_proto::google::protobuf::Any as IBCAny;
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::Header as RawHeader;
 use prost::Message;
-use optimism_derivation::types::Preimages;
 
 pub const OPTIMISM_HEADER_TYPE_URL: &str = "/ibc.lightclients.optimism.v1.Header";
 
@@ -71,6 +71,10 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> Header<L1_SYNC_COMMITTEE_SIZE> {
     pub fn account_update_ref(&self) -> &AccountUpdateInfo {
         &self.account_update
     }
+
+    pub fn is_empty_derivation(&self) -> bool {
+        self.derivations.first().is_none()
+    }
 }
 
 impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_COMMITTEE_SIZE> {
@@ -103,8 +107,17 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
                 derivation.l2_block_number,
             ));
         }
+        let empty_derivation = derivations.is_empty();
         let derivations = Derivations::new(derivations);
-        let preimages = Preimages::decode(header.preimages.as_slice()).map_err(Error::ProtoDecodeError)?;
+
+        // For only l1 update
+        let preimages = if empty_derivation {
+            Preimages {
+                preimages: Vec::new(),
+            }
+        } else {
+            Preimages::decode(header.preimages.as_slice()).map_err(Error::ProtoDecodeError)?
+        };
         let oracle: MemoryOracleClient = preimages.preimages.try_into()?;
         let account_update = header
             .account_update

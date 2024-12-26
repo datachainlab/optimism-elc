@@ -35,13 +35,12 @@ impl Preimages {
     }
 }
 
-
 #[cfg(test)]
 mod test {
+    use crate::types::{Preimage, Preimages};
     use alloc::vec;
     use alloc::vec::Vec;
     use prost::Message;
-    use crate::types::{Preimage, Preimages};
 
     #[test]
     pub fn test_preimage_encode_decode() {

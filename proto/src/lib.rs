@@ -9,8 +9,8 @@
 #![allow(rustdoc::bare_urls)]
 #![forbid(unsafe_code)]
 
-pub use ibc_proto::google;
 pub use ibc_proto::cosmos;
+pub use ibc_proto::google;
 
 extern crate alloc;
 
@@ -37,6 +37,5 @@ pub mod ibc {
                 include_proto!("ibc.lightclients.optimism.v1.rs");
             }
         }
-
     }
 }

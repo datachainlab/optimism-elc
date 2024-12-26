@@ -4,10 +4,10 @@ use alloc::format;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use alloy_consensus::{BlockHeader, Header};
+use alloy_primitives::private::alloy_rlp::Decodable;
 use alloy_primitives::{Sealable, B256};
 use anyhow::{anyhow, Context, Error, Result};
 use core::fmt::Debug;
-use alloy_primitives::private::alloy_rlp::Decodable;
 use kona_client::l1::{OracleBlobProvider, OracleL1ChainProvider};
 use kona_client::l2::OracleL2ChainProvider;
 use kona_client::BootInfo;
@@ -118,11 +118,13 @@ impl Derivations {
         let headers: Result<Vec<(Header, B256)>, Error> = kona_common::block_on(async move {
             let mut headers = Vec::with_capacity(self.inner.len());
             for (i, d) in self.inner.iter().enumerate() {
-                let header = d.verify(chain_id, rollup_config, oracle.clone()).await.context(format!(
-                    "Derivation failed by index={}, number={}",
-                    i,
-                    d.l2_block_number
-                ))?;
+                let header = d
+                    .verify(chain_id, rollup_config, oracle.clone())
+                    .await
+                    .context(format!(
+                        "Derivation failed by index={}, number={}",
+                        i, d.l2_block_number
+                    ))?;
 
                 // Verify collect order
                 if i > 0 {

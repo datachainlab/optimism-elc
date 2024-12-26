@@ -72,6 +72,28 @@ impl ClientState {
         trusted_consensus_state: &ConsensusState,
         header: Header<L1_SYNC_COMMITTEE_SIZE>,
     ) -> Result<(ClientState, ConsensusState, Height, Time), Error> {
+        // Ensure l1 finalized
+        let (l1_slot, l1_current_sync_committee, l1_next_sync_committee) =
+            header.l1_header().verify(
+                now.as_unix_timestamp_secs(),
+                &self.l1_config,
+                &trusted_consensus_state,
+            )?;
+
+        // Update only L1 sync committee
+        if header.is_empty_derivation() {
+            let mut new_consensus_state = trusted_consensus_state.clone();
+            new_consensus_state.l1_slot = l1_slot;
+            new_consensus_state.l1_current_sync_committee = l1_current_sync_committee;
+            new_consensus_state.l1_next_sync_committee = l1_next_sync_committee;
+            return Ok((
+                self.clone(),
+                new_consensus_state,
+                header.trusted_height(),
+                trusted_consensus_state.timestamp,
+            ));
+        }
+
         // Ensure header is valid
         let VerifyResult {
             l2_header,
@@ -81,14 +103,6 @@ impl ClientState {
             trusted_consensus_state.hash,
             &self.rollup_config,
         )?;
-
-        // Ensure l1 finalized
-        let (l1_slot, l1_current_sync_committee, l1_next_sync_committee) =
-            header.l1_header().verify(
-                now.as_unix_timestamp_secs(),
-                &self.l1_config,
-                &trusted_consensus_state,
-            )?;
 
         // Ensure world state is valid
         let account_update = header.account_update_ref();
