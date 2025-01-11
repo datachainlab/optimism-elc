@@ -1,6 +1,6 @@
 syntax = "proto3";
 package ibc.lightclients.optimism.v1;
-option go_package = "github.com/datachainlab/optimism-ibc-relay-prover/module";
+option go_package = "github.com/datachainlab/optimism-ibc-relay-prover/module/types";
 option (gogoproto.goproto_getters_all) = false;
 
 import "gogoproto/gogo.proto";
