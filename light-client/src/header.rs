@@ -92,6 +92,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
         for derivation in header.derivations {
             let l1_consensus_update = &l1_header.consensus_update;
 
+            //TODO finalized_execution_root is not a hash of l1 head.
             let l1_head_hash = B256::from(&l1_consensus_update.finalized_execution_root.0);
 
             derivations.push(Derivation::new(
