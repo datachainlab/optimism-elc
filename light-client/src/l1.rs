@@ -249,9 +249,10 @@ impl<const SYNC_COMMITTEE_SIZE: usize> LightClientStoreReader<SYNC_COMMITTEE_SIZ
         _ctx: &CC,
         update: &C,
     ) -> Result<(), ethereum_ibc::light_client_verifier::errors::Error> {
-        if self.slot >= update.finalized_beacon_header().slot {
+        // L2 is shorter than L1, so it is possible that only L2 is different and L1 is in the same slot.
+        if self.slot > update.finalized_beacon_header().slot {
             Err(IrrelevantConsensusUpdates(
-                "finalized header slot is not greater than current slot".to_string(),
+                "finalized header slot is not greater than or equal to current slot".to_string(),
             ))
         } else {
             Ok(())
@@ -348,7 +349,7 @@ mod tests {
                 { ethereum_ibc::consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE },
             >::try_from(raw_l1_header.clone())
             .unwrap();
-            let cons_state = ConsensusState {
+            let mut cons_state = ConsensusState {
                 storage_root: Root::default(),
                 timestamp: Time::unix_epoch(),
                 output_root: B256::default(),
@@ -360,9 +361,9 @@ mod tests {
             let (slot, l1_current_sync_committee, l1_next_sync_committee) = l1_header
                 .verify(1736839576, &l1_config, &cons_state)
                 .unwrap();
-            // same period : cons_state period == finalized_period
             assert_eq!(slot, l1_header.consensus_update.finalized_header.0.slot);
             if i == cases.len() - 1 {
+                // last is same period( cons_state period == finalized_period )
                 assert_eq!(
                     l1_current_sync_committee, cons_state.l1_current_sync_committee,
                     "result {i}"
@@ -370,6 +371,22 @@ mod tests {
                 assert_eq!(
                     l1_next_sync_committee, cons_state.l1_next_sync_committee,
                     "result {i}"
+                );
+
+                // Verify exactly same slot
+                cons_state.l1_slot = slot;
+                cons_state.l1_current_sync_committee = l1_current_sync_committee;
+                cons_state.l1_next_sync_committee = l1_next_sync_committee;
+                let result = l1_header
+                    .verify(1736839576, &l1_config, &cons_state)
+                    .unwrap();
+                assert_eq!(
+                    result,
+                    (
+                        cons_state.l1_slot,
+                        cons_state.l1_current_sync_committee,
+                        cons_state.l1_next_sync_committee
+                    )
                 );
             } else {
                 assert_eq!(
