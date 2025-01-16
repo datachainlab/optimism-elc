@@ -90,10 +90,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
         let mut derivations = Vec::with_capacity(header.derivations.len());
 
         for derivation in header.derivations {
-            let l1_consensus_update = &l1_header.consensus_update;
-
-            //TODO finalized_execution_root is not a hash of l1 head.
-            let l1_head_hash = B256::from(&l1_consensus_update.finalized_execution_root.0);
+            let l1_head_hash = B256::from(&l1_header.execution_update.block_hash.0);
 
             derivations.push(Derivation::new(
                 l1_head_hash,

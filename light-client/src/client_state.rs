@@ -195,6 +195,8 @@ impl From<L1Config> for RawL1Config {
                     execution_payload_state_root_gindex: spec.execution_payload_state_root_gindex,
                     execution_payload_block_number_gindex: spec
                         .execution_payload_block_number_gindex,
+                    execution_payload_block_hash_gindex: spec
+                        .execution_payload_block_hash_gindex,
                 }),
             }
         }
@@ -219,8 +221,8 @@ impl From<L1Config> for RawL1Config {
             slots_per_epoch: value.slots_per_epoch.into(),
             epochs_per_sync_committee_period: value.epochs_per_sync_committee_period.into(),
             trust_level: Some(ProtoFraction {
-                numerator: value.trust_level.numerator,
-                denominator: value.trust_level.denominator,
+                numerator: value.trust_level.numerator(),
+                denominator: value.trust_level.denominator(),
             }),
         }
     }
@@ -246,6 +248,7 @@ impl TryFrom<RawL1Config> for L1Config {
                 execution_payload_gindex: spec.execution_payload_gindex,
                 execution_payload_state_root_gindex: spec.execution_payload_state_root_gindex,
                 execution_payload_block_number_gindex: spec.execution_payload_block_number_gindex,
+                execution_payload_block_hash_gindex: spec.execution_payload_block_hash_gindex,
             })
         }
         let raw_fork_parameters = value.fork_parameters.ok_or(Error::MissingForkParameters)?;
@@ -275,7 +278,7 @@ impl TryFrom<RawL1Config> for L1Config {
             seconds_per_slot: value.seconds_per_slot.into(),
             slots_per_epoch: value.slots_per_epoch.into(),
             epochs_per_sync_committee_period: value.epochs_per_sync_committee_period.into(),
-            trust_level: Fraction::new(trust_level.numerator, trust_level.denominator),
+            trust_level: Fraction::new(trust_level.numerator, trust_level.denominator).unwrap(),
         })
     }
 }
