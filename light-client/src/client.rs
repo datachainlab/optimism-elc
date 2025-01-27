@@ -254,6 +254,7 @@ mod test {
     use prost::Message;
     use crate::header::Header;
     use optimism_ibc_proto::ibc::lightclients::optimism::v1::Header as RawHeader;
+    use optimism_ibc_proto::ibc::lightclients::optimism::v1::ConsensusState as RawConsensusState;
     use crate::client_state::ClientState;
     use crate::consensus_state::ConsensusState;
     extern crate std;
@@ -318,7 +319,12 @@ mod test {
         let client = super::OptimismLightClient::<{ethereum_ibc::consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE}>;
         let client_id = ClientId::new("optimism", 0).unwrap();
 
-        let mock_consensus_state = BTreeMap::new();
+        let cons_state= hex!("0a2063cff3982b666e7dc23a797be67792b45266f77ae5f1fdfbd1e9dc28a3118db710858ddebc061a208d953eec84e4383729d52a74af918f051267e7ec0610e3e1cb3e0db8fc45f8db2220db705841353225f91f6ad2fbfa97097a0c253eee4d73f672f76b00a3fd1f4b842880ce0232309565d62fe007e3f9eaa2b9cd6bdba8b10a7d4c267cc6af0da1a9c64b688805476de38c782a287c6db70d9512943cb7453a308f85b43fc8d7742b8f60cdfdb4cb58fe309c22555a13b3b3618489b41ead816cccbfc70791a5fea8d2c534736ba42092");
+        let cons_state = RawConsensusState::decode(cons_state.as_ref()).unwrap();
+        let cons_state = ConsensusState::try_from(cons_state).unwrap();
+
+        let mut mock_consensus_state = BTreeMap::new();
+        mock_consensus_state.insert(Height::new(0, 128252), cons_state);
         let ctx = MockClientReader {
             client_state: None,
             consensus_state: mock_consensus_state,
