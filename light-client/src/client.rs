@@ -243,3 +243,86 @@ fn gen_state_id(
         .map_err(LightClientError::commitment)
         .map_err(Error::LCPError)
 }
+
+#[cfg(test)]
+mod test {
+    use alloc::collections::BTreeMap;
+    use alloc::vec::Vec;
+    use light_client::types::{Any, ClientId, Height, Time};
+    use alloy_primitives::hex;
+    use light_client::{ClientReader, HostClientReader, HostContext};
+    use prost::Message;
+    use crate::header::Header;
+    use optimism_ibc_proto::ibc::lightclients::optimism::v1::Header as RawHeader;
+    use crate::client_state::ClientState;
+    use crate::consensus_state::ConsensusState;
+    extern crate std;
+
+    struct MockClientReader {
+        client_state: Option<ClientState>,
+        consensus_state: BTreeMap<Height, ConsensusState>,
+    }
+
+    impl HostContext for MockClientReader {
+        fn host_timestamp(&self) -> Time {
+            Time::now()
+        }
+    }
+
+    impl HostClientReader for MockClientReader {}
+
+    impl store::KVStore for MockClientReader {
+        fn set(&mut self, _key: Vec<u8>, _value: Vec<u8>) {
+            todo!()
+        }
+
+        fn get(&self, _key: &[u8]) -> Option<Vec<u8>> {
+            todo!()
+        }
+
+        fn remove(&mut self, _key: &[u8]) {
+            todo!()
+        }
+    }
+
+    impl ClientReader for MockClientReader {
+        fn client_state(&self, client_id: &ClientId) -> Result<Any, light_client::Error> {
+            let cs = self
+                .client_state
+                .clone()
+                .ok_or_else(|| light_client::Error::client_state_not_found(client_id.clone()))?;
+            Ok(Any::try_from(cs).unwrap())
+        }
+
+        fn consensus_state(
+            &self,
+            client_id: &ClientId,
+            height: &Height,
+        ) -> Result<Any, light_client::Error> {
+            let state = self
+                .consensus_state
+                .get(height)
+                .ok_or_else(|| {
+                    light_client::Error::consensus_state_not_found(client_id.clone(), *height)
+                })?
+                .clone();
+            Ok(Any::try_from(state).unwrap())
+        }
+    }
+
+    #[test]
+    fn test_update_client_success() {
+        let header = std::fs::read("../testdata/test_update_client_success.bin").unwrap();
+        let header = RawHeader::decode(header.as_slice()).unwrap();
+        let header = Header::<{ethereum_ibc::consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE}>::try_from(header).unwrap();
+        let client = super::OptimismLightClient::<{ethereum_ibc::consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE}>;
+        let client_id = ClientId::new("optimism", 0).unwrap();
+
+        let mock_consensus_state = BTreeMap::new();
+        let ctx = MockClientReader {
+            client_state: None,
+            consensus_state: mock_consensus_state,
+        };
+        client.update_state(&ctx, client_id, header).unwrap();
+    }
+}
