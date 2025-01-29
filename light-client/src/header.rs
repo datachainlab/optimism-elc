@@ -81,10 +81,6 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
     type Error = Error;
 
     fn try_from(header: RawHeader) -> Result<Self, Self::Error> {
-        if header.derivations.is_empty() {
-            return Err(Error::UnexpectedEmptyDerivations);
-        }
-
         let l1_header: L1Header<L1_SYNC_COMMITTEE_SIZE> =
             header.l1_head.ok_or(Error::MissingL1Head)?.try_into()?;
         let mut derivations = Vec::with_capacity(header.derivations.len());
@@ -117,11 +113,15 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
             Preimages::decode(header.preimages.as_slice()).map_err(Error::ProtoDecodeError)?
         };
         let oracle: MemoryOracleClient = preimages.preimages.try_into()?;
-        let account_update = header
-            .account_update
-            .ok_or(Error::MissingAccountUpdate)?
-            .try_into()
-            .map_err(Error::L1IBCError)?;
+        let account_update = if empty_derivation {
+            AccountUpdateInfo::default()
+        }else {
+            header
+                .account_update
+                .ok_or(Error::MissingAccountUpdate)?
+                .try_into()
+                .map_err(Error::L1IBCError)?
+        };
         let trusted_height = header.trusted_height.ok_or(Error::MissingTrustedHeight)?;
         Ok(Self {
             l1_header,
