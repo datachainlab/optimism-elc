@@ -1,12 +1,13 @@
 #![no_std]
 extern crate alloc;
 
-pub mod derivation;
-// see kona/bin/client/src/fault
-mod driver;
-mod fault;
+// see kona/host
+pub mod host;
+// see kona/client
+mod client;
 
-pub mod precompiles;
+pub mod derivation;
+pub mod errors;
 pub mod types;
 
 pub use anyhow::Error;

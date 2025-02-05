@@ -67,15 +67,13 @@ pub struct L1Header {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Derivation {
-    #[prost(bytes = "vec", tag = "2")]
+    #[prost(bytes = "vec", tag = "1")]
     pub agreed_l2_head_hash: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "3")]
+    #[prost(bytes = "vec", tag = "2")]
     pub agreed_l2_output_root: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "4")]
-    pub l2_head_hash: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "5")]
+    #[prost(bytes = "vec", tag = "3")]
     pub l2_output_root: ::prost::alloc::vec::Vec<u8>,
-    #[prost(uint64, tag = "6")]
+    #[prost(uint64, tag = "4")]
     pub l2_block_number: u64,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -91,8 +89,8 @@ pub struct Header {
     >,
     #[prost(message, optional, tag = "3")]
     pub l1_head: ::core::option::Option<L1Header>,
-    #[prost(message, repeated, tag = "4")]
-    pub derivations: ::prost::alloc::vec::Vec<Derivation>,
+    #[prost(message, optional, tag = "4")]
+    pub derivation: ::core::option::Option<Derivation>,
     #[prost(bytes = "vec", tag = "5")]
     pub preimages: ::prost::alloc::vec::Vec<u8>,
 }
@@ -105,13 +103,11 @@ pub struct ConsensusState {
     pub timestamp: u64,
     #[prost(bytes = "vec", tag = "3")]
     pub output_root: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "4")]
-    pub hash: ::prost::alloc::vec::Vec<u8>,
-    #[prost(uint64, tag = "5")]
+    #[prost(uint64, tag = "4")]
     pub l1_slot: u64,
-    #[prost(bytes = "vec", tag = "6")]
+    #[prost(bytes = "vec", tag = "5")]
     pub l1_current_sync_committee: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "7")]
+    #[prost(bytes = "vec", tag = "6")]
     pub l1_next_sync_committee: ::prost::alloc::vec::Vec<u8>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]

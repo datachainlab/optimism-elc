@@ -21,7 +21,7 @@ use ethereum_ibc_proto::ibc::lightclients::ethereum::v1::{
     Fraction as ProtoFraction,
 };
 use light_client::types::{Any, Height, Time};
-use op_alloy_genesis::RollupConfig;
+use maili_genesis::RollupConfig;
 use optimism_ibc_proto::google::protobuf::Any as IBCAny;
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::ClientState as RawClientState;
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::L1Config as RawL1Config;
@@ -95,17 +95,17 @@ impl ClientState {
         }
 
         // Ensure header is valid
-        let VerifyResult {
-            l2_header,
-            l2_output_root,
-        } = header.verify(
+        let (l2_header, l2_output_root) = header.verify(
             self.chain_id,
-            trusted_consensus_state.hash,
+            trusted_consensus_state.output_root,
             &self.rollup_config,
         )?;
 
         // Ensure world state is valid
-        let account_update = header.account_update_ref();
+        let account_update = header
+            .account_update_ref()
+            .as_ref()
+            .ok_or(Error::MissingAccountUpdate)?;
         verify_account_storage(
             &self.ibc_store_address,
             &ExecutionVerifier::default(),
@@ -136,7 +136,6 @@ impl ClientState {
             storage_root: account_update.account_storage_root,
             timestamp: new_timestamp(l2_header.timestamp)?,
             output_root: l2_output_root,
-            hash: l2_header.hash_slow(),
             l1_slot,
             l1_current_sync_committee,
             l1_next_sync_committee,
@@ -195,8 +194,7 @@ impl From<L1Config> for RawL1Config {
                     execution_payload_state_root_gindex: spec.execution_payload_state_root_gindex,
                     execution_payload_block_number_gindex: spec
                         .execution_payload_block_number_gindex,
-                    execution_payload_block_hash_gindex: spec
-                        .execution_payload_block_hash_gindex,
+                    execution_payload_block_hash_gindex: spec.execution_payload_block_hash_gindex,
                 }),
             }
         }

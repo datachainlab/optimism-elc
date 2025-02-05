@@ -1,6 +1,5 @@
 //! Accelerated precompile runner for the host program.
 
-use alloc::vec;
 use alloc::vec::Vec;
 use alloy_primitives::{Address, Bytes};
 use anyhow::{anyhow, Result};
@@ -10,14 +9,14 @@ use revm::{
 };
 
 /// List of precompiles that are accelerated by the host program.
-const ACCELERATED_PRECOMPILES: &[PrecompileWithAddress] = &[
+pub(crate) const ACCELERATED_PRECOMPILES: &[PrecompileWithAddress] = &[
     precompile::secp256k1::ECRECOVER,                   // ecRecover
     precompile::bn128::pair::ISTANBUL,                  // ecPairing
     precompile::kzg_point_evaluation::POINT_EVALUATION, // KZG point evaluation
 ];
 
 /// Executes an accelerated precompile on [revm].
-pub fn execute<T: Into<Bytes>>(address: Address, input: T) -> Result<Vec<u8>> {
+pub(crate) fn execute<T: Into<Bytes>>(address: Address, input: T) -> Result<Vec<u8>> {
     if let Some(precompile) = ACCELERATED_PRECOMPILES
         .iter()
         .find(|precompile| precompile.0 == address)
@@ -42,19 +41,4 @@ pub fn execute<T: Into<Bytes>>(address: Address, input: T) -> Result<Vec<u8>> {
     } else {
         anyhow::bail!("Precompile not accelerated");
     }
-}
-
-pub fn verify(hint_data: &[u8], expected: &[u8]) -> bool {
-    let precompile_address = Address::from_slice(&hint_data[..20]);
-    let precompile_input = hint_data[20..].to_vec();
-    let result = execute(precompile_address, precompile_input).map_or_else(
-        |_| vec![0u8; 1],
-        |raw_res| {
-            let mut res = Vec::with_capacity(1 + raw_res.len());
-            res.push(0x01);
-            res.extend_from_slice(&raw_res);
-            res
-        },
-    );
-    &result == expected
 }

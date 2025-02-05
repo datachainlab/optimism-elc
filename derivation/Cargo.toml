@@ -10,20 +10,26 @@ prost       = { workspace = true }
 
 # kona
 kona-client = { workspace = true }
-kona-common = { workspace = true}
 kona-preimage = { workspace = true}
-kona-mpt = { workspace = true}
 kona-executor = { workspace = true}
-kona-derive= { workspace = true}
+kona-mpt.workspace = true
+kona-driver.workspace = true
+kona-proof.workspace = true
+kona-std-fpvm.workspace = true
+
+# Maili
+maili-genesis = { workspace = true, features = ["serde"] }
 
 # Revm + Alloy
 revm = { workspace = true, features = ["optimism","c-kzg"] }
-alloy-consensus.workspace = true
-alloy-primitives.workspace = true
-op-alloy-genesis = { workspace = true }
-op-alloy-consensus= { workspace = true }
-op-alloy-protocol = { workspace = true }
-op-alloy-rpc-types-engine= { workspace = true }
+alloy-primitives = { workspace = true }
+alloy-consensus = { workspace = true}
+
+# OP Alloy
+op-alloy-consensus.workspace = true
+op-alloy-rpc-types-engine = { workspace = true, features = ["serde"] }
+
+# misc
 tracing = "0.1.40"
 serde = { version = "1.0.214", features = ["derive"] }
 prost-derive = "0.11.9"

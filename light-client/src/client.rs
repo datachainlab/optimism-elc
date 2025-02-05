@@ -246,18 +246,18 @@ fn gen_state_id(
 
 #[cfg(test)]
 mod test {
-    use alloc::collections::BTreeMap;
-    use alloc::vec::Vec;
-    use light_client::types::{Any, ClientId, Height, Time};
-    use alloy_primitives::hex;
-    use light_client::{ClientReader, HostClientReader, HostContext};
-    use prost::Message;
-    use crate::header::Header;
-    use optimism_ibc_proto::ibc::lightclients::optimism::v1::Header as RawHeader;
-    use optimism_ibc_proto::ibc::lightclients::optimism::v1::ConsensusState as RawConsensusState;
-    use optimism_ibc_proto::ibc::lightclients::optimism::v1::ClientState as RawClientState;
     use crate::client_state::ClientState;
     use crate::consensus_state::ConsensusState;
+    use crate::header::Header;
+    use alloc::collections::BTreeMap;
+    use alloc::vec::Vec;
+    use alloy_primitives::hex;
+    use light_client::types::{Any, ClientId, Height, Time};
+    use light_client::{ClientReader, HostClientReader, HostContext};
+    use optimism_ibc_proto::ibc::lightclients::optimism::v1::ClientState as RawClientState;
+    use optimism_ibc_proto::ibc::lightclients::optimism::v1::ConsensusState as RawConsensusState;
+    use optimism_ibc_proto::ibc::lightclients::optimism::v1::Header as RawHeader;
+    use prost::Message;
     extern crate std;
 
     struct MockClientReader {
@@ -316,8 +316,13 @@ mod test {
     fn test_update_client_success() {
         let header = std::fs::read("../testdata/test_update_client_success.bin").unwrap();
         let header = RawHeader::decode(header.as_slice()).unwrap();
-        let header = Header::<{ethereum_ibc::consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE}>::try_from(header).unwrap();
-        let client = super::OptimismLightClient::<{ethereum_ibc::consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE}>;
+        let header = Header::<
+            { ethereum_ibc::consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE },
+        >::try_from(header)
+        .unwrap();
+        let client = super::OptimismLightClient::<
+            { ethereum_ibc::consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE },
+        >;
         let client_id = ClientId::new("optimism", 0).unwrap();
 
         let cs = hex!("088507121430346563383746363433353343344435433835331a201ee222554989dda120e26ecacf756fe1235cd8d726706b57517715dde4f0c9002204108ac20c2a040880a3053202080a42c3077b2267656e65736973223a7b226c31223a7b2268617368223a22307837383234373266366335303437393463356164373731646633323737383066643436306162373062313162303239356664666665356366643836323036366639222c226e756d626572223a317d2c226c32223a7b2268617368223a22307832303034356338323034373931326539306530633438363539323331306538346132386163336535336131316366623536333532656431373732653031386562222c226e756d626572223a307d2c226c325f74696d65223a313733373732373131372c2273797374656d5f636f6e666967223a7b226261746368657241646472223a22307833633434636464646236613930306661326235383564643239396530336431326661343239336263222c226f76657268656164223a22307830303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030383334222c227363616c6172223a22307830303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030306634323430222c226761734c696d6974223a33303030303030307d7d2c22626c6f636b5f74696d65223a322c226d61785f73657175656e6365725f6472696674223a3330302c227365715f77696e646f775f73697a65223a3230302c226368616e6e656c5f74696d656f7574223a3132302c226c315f636861696e5f6964223a3930302c226c325f636861696e5f6964223a3930312c227265676f6c6974685f74696d65223a302c2263616e796f6e5f74696d65223a302c2264656c74615f74696d65223a302c2265636f746f6e655f74696d65223a302c22666a6f72645f74696d65223a302c2262617463685f696e626f785f61646472657373223a22307866663030303030303030303030303030303030303030303030303030303030303030303030393031222c226465706f7369745f636f6e74726163745f61646472657373223a22307836353039663261383534626137343431303339666365336239353964356261646432666663666364222c226c315f73797374656d5f636f6e6669675f61646472657373223a22307834616638303262333031306530373834356232623863323235303132366539616330626462366239222c2270726f746f636f6c5f76657273696f6e735f61646472657373223a22307830303030303030303030303030303030303030303030303030303030303030303030303030303030227d4a96010a2075da2cb5dbf4d891796935c9dedd02e1aae3a02c9416f97c008c499d87879136100118efb8cebc06225e0a0400000001120e0a04010000011a0608691036183712160a04020000011a0e086910361837201928123016381c12160a04030000011a0e086910361837201928123016381c12160a04040000011a0e086910361837201928223026382c280630083808420408021003");
@@ -337,13 +342,17 @@ mod test {
         client.update_state(&ctx, client_id, header).unwrap();
     }
 
-
     #[test]
     fn test_update_client_l1_only_success() {
         let header = std::fs::read("../testdata/test_update_client_l1_only_success.bin").unwrap();
         let header = RawHeader::decode(header.as_slice()).unwrap();
-        let header = Header::<{ethereum_ibc::consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE}>::try_from(header).unwrap();
-        let client = super::OptimismLightClient::<{ethereum_ibc::consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE}>;
+        let header = Header::<
+            { ethereum_ibc::consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE },
+        >::try_from(header)
+        .unwrap();
+        let client = super::OptimismLightClient::<
+            { ethereum_ibc::consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE },
+        >;
         let client_id = ClientId::new("optimism", 0).unwrap();
         assert!(header.is_empty_derivation());
 

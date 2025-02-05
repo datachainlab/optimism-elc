@@ -22,12 +22,16 @@ ethereum-ibc-proto = { workspace = true }
 
 # Kona
 kona-preimage = { workspace = true}
+kona-proof.workspace = true
+
+# Maili
+maili-genesis = { workspace = true, features = ["serde"] }
 
 # Alloy
 alloy-eips = { workspace = true, features = ["kzg"]}
 alloy-consensus = { workspace = true}
 alloy-primitives = { workspace = true }
-op-alloy-genesis = { workspace = true }
+
 
 [dev-dependencies]
 store = { git = "https://github.com/datachainlab/lcp.git", rev = "v0.2.11", default-features = false, features = ['std'] }
