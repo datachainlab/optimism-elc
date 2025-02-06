@@ -2,7 +2,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use alloy_primitives::Address;
 
-mod precompiles;
+pub mod precompiles;
 
 pub fn verify(hint_data: &[u8], expected: &[u8]) -> bool {
     let precompile_address = Address::from_slice(&hint_data[..20]);

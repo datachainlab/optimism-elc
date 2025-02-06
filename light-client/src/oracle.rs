@@ -227,7 +227,7 @@ mod test {
 
     #[test]
     pub fn test_try_from() {
-        let value = std::fs::read("../preimage.bin").unwrap();
+        let value = std::fs::read("../testdata/preimage.bin").unwrap();
         let preimages = Preimages::decode(value.as_slice()).unwrap();
         let oracle = MemoryOracleClient::try_from(preimages.preimages).unwrap();
     }
@@ -241,7 +241,7 @@ mod test {
         let derivation = std::fs::read("../testdata/derivation.json").unwrap();
         let derivation: Derivation = serde_json::from_slice(&derivation).unwrap();
 
-        let rollup_config = std::fs::read("../testdata/rollup.json").unwrap();
+        let rollup_config = std::fs::read("../testdata/rollup_config.json").unwrap();
         let rollup_config: RollupConfig = serde_json::from_slice(&rollup_config).unwrap();
 
         derivation
