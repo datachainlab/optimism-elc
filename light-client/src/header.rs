@@ -85,7 +85,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
                 let l1_head_hash = B256::from(&l1_header.execution_update.block_hash.0);
                 Some(Derivation::new(
                     l1_head_hash,
-                    B256::try_from(derivation.agreed_l2_head_hash.as_slice())
+                    B256::try_from(derivation.agreed_l2_output_root.as_slice())
                         .map_err(Error::UnexpectedAgreedL2HeadHash)?,
                     B256::try_from(derivation.l2_output_root.as_slice())
                         .map_err(Error::UnexpectedL2OutputRoot)?,

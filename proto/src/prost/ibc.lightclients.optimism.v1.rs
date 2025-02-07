@@ -68,12 +68,10 @@ pub struct L1Header {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Derivation {
     #[prost(bytes = "vec", tag = "1")]
-    pub agreed_l2_head_hash: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "2")]
     pub agreed_l2_output_root: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "3")]
+    #[prost(bytes = "vec", tag = "2")]
     pub l2_output_root: ::prost::alloc::vec::Vec<u8>,
-    #[prost(uint64, tag = "4")]
+    #[prost(uint64, tag = "3")]
     pub l2_block_number: u64,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]

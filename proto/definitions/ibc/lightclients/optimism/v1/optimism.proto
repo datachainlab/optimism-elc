@@ -46,10 +46,9 @@ message L1Header {
 }
 
 message Derivation {
-  bytes agreed_l2_head_hash = 1;
-  bytes agreed_l2_output_root = 2;
-  bytes l2_output_root = 3;
-  uint64 l2_block_number = 4;
+  bytes agreed_l2_output_root = 1;
+  bytes l2_output_root = 2;
+  uint64 l2_block_number = 3;
 }
 
 message Header {
