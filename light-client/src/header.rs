@@ -6,8 +6,8 @@ use alloc::vec::Vec;
 use alloy_primitives::B256;
 use ethereum_ibc::types::AccountUpdateInfo;
 use light_client::types::{Any, Height, Time};
-use op_alloy_genesis::RollupConfig;
-use optimism_derivation::derivation::{Derivation, Derivations};
+use maili_genesis::RollupConfig;
+use optimism_derivation::derivation::Derivation;
 use optimism_derivation::types::Preimages;
 use optimism_ibc_proto::google::protobuf::Any as IBCAny;
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::Header as RawHeader;
@@ -23,41 +23,37 @@ pub struct VerifyResult {
 #[derive(Clone, Debug)]
 pub struct Header<const L1_SYNC_COMMITTEE_SIZE: usize> {
     trusted_height: Height,
-    derivations: Derivations,
-    oracle: MemoryOracleClient,
-    account_update: AccountUpdateInfo,
     l1_header: L1Header<L1_SYNC_COMMITTEE_SIZE>,
+    derivation: Option<Derivation>,
+    account_update: Option<AccountUpdateInfo>,
+    oracle: MemoryOracleClient,
 }
 
 impl<const L1_SYNC_COMMITTEE_SIZE: usize> Header<L1_SYNC_COMMITTEE_SIZE> {
     pub fn verify(
         &self,
         chain_id: u64,
-        trusted_hash: B256,
+        trusted_output_root: B256,
         rollup_config: &RollupConfig,
-    ) -> Result<VerifyResult, Error> {
-        // Ensure trusted
-        let first = self
-            .derivations
-            .first()
+    ) -> Result<(alloy_consensus::Header, B256), Error> {
+        let derivation = self
+            .derivation
+            .as_ref()
             .ok_or(Error::UnexpectedEmptyDerivations)?;
-        if first.l2_head_hash != trusted_hash {
-            return Err(Error::UnexpectedTrustedHash(
-                first.l2_head_hash,
-                trusted_hash,
+
+        // Ensure trusted
+        if derivation.agreed_l2_output_root != trusted_output_root {
+            return Err(Error::UnexpectedTrustedOutputRoot(
+                derivation.agreed_l2_output_root,
+                trusted_output_root,
             ));
         }
 
-        // Ensure collect derivation
-        let headers = self
-            .derivations
+        // Ensure honest derivation
+        let header = derivation
             .verify(chain_id, rollup_config, self.oracle.clone())
             .map_err(Error::DerivationError)?;
-        let (header, output_root) = headers.last().ok_or(Error::UnexpectedEmptyDerivations)?;
-        Ok(VerifyResult {
-            l2_header: header.clone(),
-            l2_output_root: output_root.clone(),
-        })
+        Ok((header, derivation.l2_output_root.clone()))
     }
 
     pub fn l1_header(&self) -> &L1Header<L1_SYNC_COMMITTEE_SIZE> {
@@ -68,12 +64,12 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> Header<L1_SYNC_COMMITTEE_SIZE> {
         self.trusted_height
     }
 
-    pub fn account_update_ref(&self) -> &AccountUpdateInfo {
+    pub fn account_update_ref(&self) -> &Option<AccountUpdateInfo> {
         &self.account_update
     }
 
     pub fn is_empty_derivation(&self) -> bool {
-        self.derivations.first().is_none()
+        self.derivation.is_none()
     }
 }
 
@@ -83,45 +79,42 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
     fn try_from(header: RawHeader) -> Result<Self, Self::Error> {
         let l1_header: L1Header<L1_SYNC_COMMITTEE_SIZE> =
             header.l1_head.ok_or(Error::MissingL1Head)?.try_into()?;
-        let mut derivations = Vec::with_capacity(header.derivations.len());
 
-        for derivation in header.derivations {
-            let l1_head_hash = B256::from(&l1_header.execution_update.block_hash.0);
-
-            derivations.push(Derivation::new(
-                l1_head_hash,
-                B256::try_from(derivation.agreed_l2_head_hash.as_slice())
-                    .map_err(Error::UnexpectedAgreedL2HeadHash)?,
-                B256::try_from(derivation.agreed_l2_output_root.as_slice())
-                    .map_err(Error::UnexpectedAgreedL2OutputRoot)?,
-                B256::try_from(derivation.l2_head_hash.as_slice())
-                    .map_err(Error::UnexpectedL2HeadHash)?,
-                B256::try_from(derivation.l2_output_root.as_slice())
-                    .map_err(Error::UnexpectedL2OutputRoot)?,
-                derivation.l2_block_number,
-            ));
-        }
-        let empty_derivation = derivations.is_empty();
-        let derivations = Derivations::new(derivations);
-
-        // For only l1 update
-        let preimages = if empty_derivation {
-            Preimages {
-                preimages: Vec::new(),
+        let derivation = match header.derivation {
+            Some(derivation) => {
+                let l1_head_hash = B256::from(&l1_header.execution_update.block_hash.0);
+                Some(Derivation::new(
+                    l1_head_hash,
+                    B256::try_from(derivation.agreed_l2_output_root.as_slice())
+                        .map_err(Error::UnexpectedAgreedL2HeadHash)?,
+                    B256::try_from(derivation.l2_output_root.as_slice())
+                        .map_err(Error::UnexpectedL2OutputRoot)?,
+                    derivation.l2_block_number,
+                ))
             }
-        } else {
-            Preimages::decode(header.preimages.as_slice()).map_err(Error::ProtoDecodeError)?
+            // L1 update
+            None => None,
+        };
+
+        let preimages = match derivation {
+            None => Preimages {
+                preimages: Vec::new(),
+            },
+            Some(_) => {
+                Preimages::decode(header.preimages.as_slice()).map_err(Error::ProtoDecodeError)?
+            }
+        };
+        let account_update_info = match derivation {
+            None => None,
+            Some(_) => Some(
+                header
+                    .account_update
+                    .ok_or(Error::MissingAccountUpdate)?
+                    .try_into()
+                    .map_err(Error::L1IBCError)?,
+            ),
         };
         let oracle: MemoryOracleClient = preimages.preimages.try_into()?;
-        let account_update = if empty_derivation {
-            AccountUpdateInfo::default()
-        }else {
-            header
-                .account_update
-                .ok_or(Error::MissingAccountUpdate)?
-                .try_into()
-                .map_err(Error::L1IBCError)?
-        };
         let trusted_height = header.trusted_height.ok_or(Error::MissingTrustedHeight)?;
         Ok(Self {
             l1_header,
@@ -129,8 +122,8 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
                 trusted_height.revision_number,
                 trusted_height.revision_height,
             ),
-            account_update,
-            derivations,
+            account_update: account_update_info,
+            derivation,
             oracle,
         })
     }

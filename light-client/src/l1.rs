@@ -294,7 +294,6 @@ mod tests {
             storage_root: Root::default(),
             timestamp: Time::unix_epoch(),
             output_root: B256::default(),
-            hash: B256::default(),
             l1_slot: 39.into(),
             l1_current_sync_committee: PublicKey::try_from(hex!("82c0c49d5142e3f5a7340864440c61787b6741271e4ce2a21114f137a693fc4484582aee2ebbb9c6d9f9ebdae7ff73f7").to_vec()).unwrap(),
             l1_next_sync_committee: PublicKey::default()
@@ -356,7 +355,6 @@ mod tests {
                 storage_root: Root::default(),
                 timestamp: Time::unix_epoch(),
                 output_root: B256::default(),
-                hash: B256::default(),
                 l1_slot: case.cons_slot.into(),
                 l1_current_sync_committee: case.cons_l1_current_sync_committee.clone(),
                 l1_next_sync_committee: case.cons_l1_next_sync_committee.clone(),

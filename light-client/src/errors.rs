@@ -10,7 +10,7 @@ use ethereum_ibc::consensus::sync_protocol::SyncCommitteePeriod;
 use ethereum_ibc::consensus::types::H256;
 use ethereum_ibc::errors::Error as L1IBCError;
 use ethereum_ibc::light_client_verifier::errors::Error as L1VerifyError;
-use kona_preimage::errors::InvalidPreimageKeyType;
+use kona_preimage::errors::PreimageOracleError;
 use kona_preimage::PreimageKey;
 use light_client::commitments::Error as CommitmentError;
 use light_client::types::{ClientId, Height, Time, TimeError};
@@ -30,7 +30,7 @@ pub enum Error {
     UnexpectedPreimageKeySize(usize),
     #[error("UnexpectedPreimageKey: {source:?} {key:?}")]
     UnexpectedPreimageKey {
-        source: InvalidPreimageKeyType,
+        source: PreimageOracleError,
         key: [u8; 32],
     },
     #[error("UnexpectedPreimageValue: {value:?} {key:?}")]
@@ -125,8 +125,8 @@ pub enum Error {
     MissingAccountUpdate,
     #[error("UnexpectedEmptyDerivations")]
     UnexpectedEmptyDerivations,
-    #[error("UnexpectedTrustedHash {0:?} {1:?}")]
-    UnexpectedTrustedHash(B256, B256),
+    #[error("UnexpectedTrustedOutputRoot {0:?} {1:?}")]
+    UnexpectedTrustedOutputRoot(B256, B256),
     #[error("UnexpectedL1HeadHash {0}")]
     UnexpectedL1HeadHash(TryFromSliceError),
     #[error("UnexpectedAgreedL2HeadHash {0}")]

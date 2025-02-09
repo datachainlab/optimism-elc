@@ -25,8 +25,6 @@ pub struct ConsensusState {
     pub timestamp: Time,
     /// The agreed l2 output root
     pub output_root: B256,
-    /// The agreed l2 header hash
-    pub hash: B256,
 
     /// L1 Consensus
     /// finalized header's slot
@@ -64,13 +62,11 @@ impl TryFrom<RawConsensusState> for ConsensusState {
         let timestamp = new_timestamp(value.timestamp)?;
         let output_root =
             B256::try_from(value.output_root.as_slice()).map_err(Error::UnexpectedOutputRoot)?;
-        let hash = B256::try_from(value.hash.as_slice()).map_err(Error::UnexpectedHeaderHash)?;
 
         Ok(Self {
             storage_root,
             timestamp,
             output_root,
-            hash,
             // L1
             l1_slot: value.l1_slot.into(),
             l1_current_sync_committee: PublicKey::try_from(value.l1_current_sync_committee)
@@ -87,7 +83,6 @@ impl From<ConsensusState> for RawConsensusState {
             storage_root: value.storage_root.0.to_vec(),
             timestamp: value.timestamp.as_unix_timestamp_secs(),
             output_root: value.output_root.to_vec(),
-            hash: value.hash.to_vec(),
             // L1
             l1_slot: value.l1_slot.into(),
             l1_current_sync_committee: value.l1_current_sync_committee.to_vec(),

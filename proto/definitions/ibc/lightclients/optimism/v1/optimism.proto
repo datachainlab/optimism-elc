@@ -46,11 +46,9 @@ message L1Header {
 }
 
 message Derivation {
-  bytes agreed_l2_head_hash = 2;
-  bytes agreed_l2_output_root = 3;
-  bytes l2_head_hash = 4;
-  bytes l2_output_root = 5;
-  uint64 l2_block_number = 6;
+  bytes agreed_l2_output_root = 1;
+  bytes l2_output_root = 2;
+  uint64 l2_block_number = 3;
 }
 
 message Header {
@@ -58,7 +56,7 @@ message Header {
   ibc.lightclients.ethereum.v1.AccountUpdate account_update = 2;
 
   L1Header l1_head = 3;
-  repeated Derivation derivations = 4;
+  Derivation derivation = 4;
   bytes preimages = 5;
 }
 
@@ -66,11 +64,10 @@ message ConsensusState {
   bytes storage_root = 1;
   uint64 timestamp = 2;
   bytes output_root = 3;
-  bytes hash = 4;
 
-  uint64 l1_slot = 5;
-  bytes l1_current_sync_committee = 6;
-  bytes l1_next_sync_committee = 7;
+  uint64 l1_slot = 4;
+  bytes l1_current_sync_committee = 5;
+  bytes l1_next_sync_committee = 6;
 }
 
 message Misbehaviour {

@@ -12,14 +12,20 @@ use alloy_primitives::{keccak256, B256, U256};
 use hashbrown::{HashMap, HashSet};
 use kona_preimage::errors::{PreimageOracleError, PreimageOracleResult};
 use kona_preimage::{HintWriterClient, PreimageKey, PreimageKeyType, PreimageOracleClient};
+use kona_proof::FlushableCache;
+use optimism_derivation::host::eth;
 use optimism_derivation::types::Preimage;
-use optimism_derivation::{precompiles, POSITION_FIELD_ELEMENT};
+use optimism_derivation::{host, POSITION_FIELD_ELEMENT};
 use sha2::{Digest, Sha256};
 
 #[derive(Clone, Debug)]
 pub struct MemoryOracleClient {
     /// Avoid deepcopy by clone operation because the preimage size is so big.
     preimages: Arc<HashMap<PreimageKey, Vec<u8>>>,
+}
+
+impl FlushableCache for MemoryOracleClient {
+    fn flush(&self) {}
 }
 
 #[async_trait::async_trait]
@@ -151,7 +157,7 @@ fn verify_precomile_preimage(
     preimages: &HashMap<PreimageKey, Vec<u8>>,
 ) -> Result<(), Error> {
     let actual = get_data_by_hash_key(key, preimages)?;
-    if !precompiles::verify(actual, data) {
+    if !eth::verify(actual, data) {
         return Err(Error::UnexpectedPrecompiledValue {
             key: key.clone(),
             actual: actual.to_vec(),
@@ -212,9 +218,8 @@ fn verify_blob_preimage(
 #[cfg(test)]
 mod test {
     use crate::oracle::MemoryOracleClient;
-    use alloc::vec::Vec;
-    use op_alloy_genesis::RollupConfig;
-    use optimism_derivation::derivation::{Derivation, Derivations};
+    use maili_genesis::RollupConfig;
+    use optimism_derivation::derivation::Derivation;
     use optimism_derivation::types::Preimages;
     use prost::Message;
 
@@ -222,7 +227,7 @@ mod test {
 
     #[test]
     pub fn test_try_from() {
-        let value = std::fs::read("../preimage.bin").unwrap();
+        let value = std::fs::read("../testdata/preimage.bin").unwrap();
         let preimages = Preimages::decode(value.as_slice()).unwrap();
         let oracle = MemoryOracleClient::try_from(preimages.preimages).unwrap();
     }
@@ -233,14 +238,13 @@ mod test {
         let preimages = Preimages::decode(value.as_slice()).unwrap();
         let oracle = MemoryOracleClient::try_from(preimages.preimages).unwrap();
 
-        let derivations = std::fs::read("../testdata/derivations.json").unwrap();
-        let derivations: Vec<Derivation> = serde_json::from_slice(&derivations).unwrap();
-        let derivations = Derivations::new(derivations);
+        let derivation = std::fs::read("../testdata/derivation.json").unwrap();
+        let derivation: Derivation = serde_json::from_slice(&derivation).unwrap();
 
-        let rollup_config = std::fs::read("../testdata/rollup.json").unwrap();
+        let rollup_config = std::fs::read("../testdata/rollup_config.json").unwrap();
         let rollup_config: RollupConfig = serde_json::from_slice(&rollup_config).unwrap();
 
-        derivations
+        derivation
             .verify(0, &rollup_config, oracle.clone())
             .unwrap();
     }
