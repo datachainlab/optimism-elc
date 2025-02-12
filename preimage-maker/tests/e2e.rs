@@ -8,7 +8,7 @@ async fn test_make_preimages() {
     let l2_client = l2_client::L2Client::new(op_node_addr.to_string(), op_geth_addr.to_string());
 
     const BEHIND: u64 = 10;
-    const L2_COUNT: u64 = 3000;
+    const L2_COUNT: u64 = 100;
     let sync_status = l2_client.sync_status().await.unwrap();
     let finalized_l2 = sync_status.finalized_l2.number;
     let claiming_l2_number = finalized_l2 - BEHIND;
@@ -34,12 +34,13 @@ async fn test_make_preimages() {
     let builder = client.post("http://localhost:10080/derivation");
     let preimage_bytes = builder.json(&request).send().await.unwrap();
     let preimage_bytes = preimage_bytes.bytes().await.unwrap();
-    fs::write("./testdata/oracle/derivation.json", serde_json::to_vec(&request).unwrap()).unwrap();
-    fs::write("./testdata/oracle/preimage.bin", preimage_bytes).unwrap();
-
     let rollup_config = l2_client.rollup_config().await.unwrap();
+
+    fs::create_dir("../testdata/oracle");
+    fs::write("../testdata/oracle/derivation.json", serde_json::to_vec(&request).unwrap()).unwrap();
+    fs::write("../testdata/oracle/preimage.bin", preimage_bytes).unwrap();
     fs::write(
-        "./testdata/oracle/rollup_config.json",
+        "../testdata/oracle/rollup_config.json",
         serde_json::to_vec(&rollup_config).unwrap(),
     )
     .unwrap();

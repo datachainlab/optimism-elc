@@ -217,6 +217,7 @@ fn verify_blob_preimage(
 
 #[cfg(test)]
 mod test {
+    use alloc::format;
     use crate::oracle::MemoryOracleClient;
     use maili_genesis::RollupConfig;
     use optimism_derivation::derivation::Derivation;
@@ -225,23 +226,25 @@ mod test {
 
     extern crate std;
 
+    const TEST_DIR: &str = "../../testdata/oracle";
+
     #[test]
     pub fn test_try_from() {
-        let value = std::fs::read("../testdata/preimage.bin").unwrap();
+        let value = std::fs::read(format!("{TEST_DIR}/preimage.bin")).unwrap();
         let preimages = Preimages::decode(value.as_slice()).unwrap();
         let oracle = MemoryOracleClient::try_from(preimages.preimages).unwrap();
     }
 
     #[test]
     pub fn test_derivation() {
-        let value = std::fs::read("../testdata/preimage.bin").unwrap();
+        let value = std::fs::read(format!("{TEST_DIR}/preimage.bin")).unwrap();
         let preimages = Preimages::decode(value.as_slice()).unwrap();
         let oracle = MemoryOracleClient::try_from(preimages.preimages).unwrap();
 
-        let derivation = std::fs::read("../testdata/derivation.json").unwrap();
+        let derivation = std::fs::read(format!("{TEST_DIR}/derivation.json")).unwrap();
         let derivation: Derivation = serde_json::from_slice(&derivation).unwrap();
 
-        let rollup_config = std::fs::read("../testdata/rollup_config.json").unwrap();
+        let rollup_config = std::fs::read(format!("{TEST_DIR}/rollup_config.json")).unwrap();
         let rollup_config: RollupConfig = serde_json::from_slice(&rollup_config).unwrap();
 
         derivation

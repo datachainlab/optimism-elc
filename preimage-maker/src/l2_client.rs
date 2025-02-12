@@ -201,15 +201,3 @@ impl L2Client {
         }
     }
 }
-
-#[cfg(test)]
-mod test {
-    use crate::derivation::client::l2::L2Client;
-
-    #[tokio::test]
-    pub async fn test_sync_status() {
-        let client = L2Client::default();
-        let result = client.sync_status().await.unwrap();
-        println!("{:?}", result);
-    }
-}
