@@ -5,8 +5,8 @@ edition = "2021"
 
 [dependencies]
 thiserror = { workspace = true }
-anyhow = { workspace = true }
-prost       = { workspace = true }
+anyhow    = { workspace = true }
+prost     = { workspace = true }
 
 # kona
 kona-client = { workspace = true }
@@ -15,7 +15,6 @@ kona-executor = { workspace = true}
 kona-mpt.workspace = true
 kona-driver.workspace = true
 kona-proof.workspace = true
-kona-std-fpvm.workspace = true
 
 # Maili
 maili-genesis = { workspace = true, features = ["serde"] }
@@ -24,10 +23,6 @@ maili-genesis = { workspace = true, features = ["serde"] }
 revm = { workspace = true, features = ["optimism","c-kzg"] }
 alloy-primitives = { workspace = true }
 alloy-consensus = { workspace = true}
-
-# OP Alloy
-op-alloy-consensus.workspace = true
-op-alloy-rpc-types-engine = { workspace = true, features = ["serde"] }
 
 # misc
 tracing = "0.1.40"
