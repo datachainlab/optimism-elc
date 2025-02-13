@@ -37,7 +37,11 @@ async fn test_make_preimages() {
     let rollup_config = l2_client.rollup_config().await.unwrap();
 
     fs::create_dir("../testdata/oracle");
-    fs::write("../testdata/oracle/derivation.json", serde_json::to_vec(&request).unwrap()).unwrap();
+    fs::write(
+        "../testdata/oracle/derivation.json",
+        serde_json::to_vec(&request).unwrap(),
+    )
+    .unwrap();
     fs::write("../testdata/oracle/preimage.bin", preimage_bytes).unwrap();
     fs::write(
         "../testdata/oracle/rollup_config.json",

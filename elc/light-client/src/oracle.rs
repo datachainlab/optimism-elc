@@ -2,7 +2,6 @@ use crate::errors::Error;
 use crate::errors::Error::UnexpectedPreimageKeySize;
 use alloc::boxed::Box;
 use alloc::format;
-use alloc::string::ToString;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use alloy_eips::eip4844::{
@@ -13,9 +12,8 @@ use hashbrown::{HashMap, HashSet};
 use kona_preimage::errors::{PreimageOracleError, PreimageOracleResult};
 use kona_preimage::{HintWriterClient, PreimageKey, PreimageKeyType, PreimageOracleClient};
 use kona_proof::FlushableCache;
-use optimism_derivation::host::eth;
 use optimism_derivation::types::Preimage;
-use optimism_derivation::{host, POSITION_FIELD_ELEMENT};
+use optimism_derivation::POSITION_FIELD_ELEMENT;
 use sha2::{Digest, Sha256};
 
 #[derive(Clone, Debug)]
@@ -80,19 +78,21 @@ impl TryFrom<Vec<Preimage>> for MemoryOracleClient {
                     verify_keccak256_preimage(&preimage_key, &preimage.data)?
                 }
                 PreimageKeyType::Sha256 => verify_sha256_preimage(&preimage_key, &preimage.data)?,
+                PreimageKeyType::Precompile => {
+                    // Precomiles is needless because rerun the contract in derivation.
+                    continue;
+                }
                 _ => {}
             }
 
-            inner.insert(preimage_key.clone(), preimage.data);
+            inner.insert(preimage_key, preimage.data);
         }
 
         let mut kzg_cache = HashSet::<Vec<u8>>::new();
         // Ensure blob and precomile preimage is value
         for (key, data) in inner.iter() {
-            match key.key_type() {
-                PreimageKeyType::Precompile => verify_precomile_preimage(key, data, &inner)?,
-                PreimageKeyType::Blob => verify_blob_preimage(key, data, &inner, &mut kzg_cache)?,
-                _ => {}
+            if key.key_type() == PreimageKeyType::Blob {
+                verify_blob_preimage(key, data, &inner, &mut kzg_cache)?
             }
         }
         Ok(Self {
@@ -129,11 +129,11 @@ fn get_data_by_blob_key<'a>(
 fn verify_sha256_preimage(key: &PreimageKey, data: &[u8]) -> Result<(), Error> {
     let value_hash: [u8; 32] = Sha256::digest(data).into();
     let value_data = &value_hash[1..];
-    let value_data = U256::from_be_slice(&value_data);
+    let value_data = U256::from_be_slice(value_data);
     let key_data = key.key_value();
     if value_data != key_data {
         return Err(Error::UnexpectedPreimageValue {
-            key: key.clone(),
+            key: *key,
             value: data.to_vec(),
         });
     }
@@ -141,31 +141,17 @@ fn verify_sha256_preimage(key: &PreimageKey, data: &[u8]) -> Result<(), Error> {
 }
 fn verify_keccak256_preimage(key: &PreimageKey, data: &[u8]) -> Result<(), Error> {
     let value_data = &keccak256(data).0[1..];
-    let value_data = U256::from_be_slice(&value_data);
+    let value_data = U256::from_be_slice(value_data);
     let key_data = key.key_value();
     if value_data != key_data {
         return Err(Error::UnexpectedPreimageValue {
-            key: key.clone(),
+            key: *key,
             value: data.to_vec(),
         });
     }
     Ok(())
 }
-fn verify_precomile_preimage(
-    key: &PreimageKey,
-    data: &[u8],
-    preimages: &HashMap<PreimageKey, Vec<u8>>,
-) -> Result<(), Error> {
-    let actual = get_data_by_hash_key(key, preimages)?;
-    if !eth::verify(actual, data) {
-        return Err(Error::UnexpectedPrecompiledValue {
-            key: key.clone(),
-            actual: actual.to_vec(),
-            expected: data.to_vec(),
-        });
-    }
-    Ok(())
-}
+
 fn verify_blob_preimage(
     key: &PreimageKey,
     data: &[u8],
@@ -217,8 +203,8 @@ fn verify_blob_preimage(
 
 #[cfg(test)]
 mod test {
-    use alloc::format;
     use crate::oracle::MemoryOracleClient;
+    use alloc::format;
     use maili_genesis::RollupConfig;
     use optimism_derivation::derivation::Derivation;
     use optimism_derivation::types::Preimages;

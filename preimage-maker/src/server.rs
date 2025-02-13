@@ -1,20 +1,17 @@
 use crate::host::single::cli::SingleChainHostCli;
 use crate::host::single::orchestrator::DerivationRequest;
 use alloy_primitives::B256;
-use anyhow::{Chain, Context, Result};
+use anyhow::{Context, Result};
 use axum::extract::State;
 use axum::http::StatusCode;
-use axum::routing::{get, post};
+use axum::routing::post;
 use axum::Json;
-use kona_preimage::{CommsClient, HintWriterClient, PreimageOracleClient};
 use log::info;
 use maili_genesis::RollupConfig;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use std::sync::Arc;
 use tokio::net::TcpListener;
-use tokio::sync::mpsc::Sender;
-use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
 
 pub struct DerivationState {

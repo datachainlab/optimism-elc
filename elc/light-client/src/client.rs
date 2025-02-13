@@ -215,11 +215,11 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> OptimismLightClient<L1_SYNC_COMMITTEE_
         }
 
         let consensus_state = ConsensusState::try_from(
-            ctx.consensus_state(&client_id, &proof_height)
+            ctx.consensus_state(client_id, &proof_height)
                 .map_err(Error::LCPError)?,
         )?;
         let root = consensus_state.storage_root;
-        let proof = decode_eip1184_rlp_proof(proof.into()).map_err(Error::L1IBCError)?;
+        let proof = decode_eip1184_rlp_proof(proof).map_err(Error::L1IBCError)?;
         if root.is_zero() {
             return Err(Error::UnexpectedStorageRoot(
                 proof_height,

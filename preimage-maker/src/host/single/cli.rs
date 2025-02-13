@@ -2,7 +2,6 @@
 
 use clap::Parser;
 use serde::Serialize;
-use std::path::PathBuf;
 
 /// The host binary CLI application arguments.
 #[derive(Default, Parser, Serialize, Clone, Debug)]

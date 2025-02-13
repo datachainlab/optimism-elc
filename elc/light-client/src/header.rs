@@ -1,11 +1,10 @@
 use crate::errors::Error;
 use crate::l1::L1Header;
 use crate::oracle::MemoryOracleClient;
-use alloc::sync::Arc;
 use alloc::vec::Vec;
 use alloy_primitives::B256;
 use ethereum_ibc::types::AccountUpdateInfo;
-use light_client::types::{Any, Height, Time};
+use light_client::types::{Any, Height};
 use maili_genesis::RollupConfig;
 use optimism_derivation::derivation::Derivation;
 use optimism_derivation::types::Preimages;
@@ -53,7 +52,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> Header<L1_SYNC_COMMITTEE_SIZE> {
         let header = derivation
             .verify(chain_id, rollup_config, self.oracle.clone())
             .map_err(Error::DerivationError)?;
-        Ok((header, derivation.l2_output_root.clone()))
+        Ok((header, derivation.l2_output_root))
     }
 
     pub fn l1_header(&self) -> &L1Header<L1_SYNC_COMMITTEE_SIZE> {

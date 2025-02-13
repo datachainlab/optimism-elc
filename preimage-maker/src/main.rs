@@ -2,27 +2,10 @@
 extern crate core;
 
 use crate::host::single::cli::SingleChainHostCli;
-use crate::host::single::orchestrator::DerivationRequest;
 use crate::server::{start_http_server_task, DerivationState};
 use clap::Parser;
-use kona_client::single;
-use kona_host::{DetachedHostOrchestrator, HostOrchestrator, PreimageServer};
-use kona_preimage::{
-    BidirectionalChannel, CommsClient, HintReader, HintWriter, OracleReader, OracleServer,
-    PreimageKey,
-};
 use l2_client::L2Client;
-use log::error;
-use lru::LruCache;
-use maili_genesis::RollupConfig;
-use serde::Serialize;
-use std::fmt::Debug;
-use std::sync::Arc;
-use std::time::Duration;
-use tokio::sync::{mpsc, oneshot, RwLock};
-use tokio::task;
-use tracing::metadata::LevelFilter;
-use tracing::{info, Level};
+use tracing::info;
 use tracing_subscriber::filter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;

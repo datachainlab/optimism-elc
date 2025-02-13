@@ -69,7 +69,7 @@ mod test {
                 },
             ],
         };
-        let mut buf = expected.clone().into_vec().unwrap();
+        let buf = expected.clone().into_vec().unwrap();
         let actual = Preimages::decode(&*buf).unwrap();
         assert_eq!(expected, actual);
     }

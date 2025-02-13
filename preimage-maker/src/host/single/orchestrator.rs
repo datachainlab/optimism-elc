@@ -8,11 +8,10 @@ use alloy_primitives::B256;
 use alloy_provider::ReqwestProvider;
 use alloy_rpc_client::RpcClient;
 use alloy_transport_http::Http;
-use anyhow::{anyhow, Result};
-use async_trait::async_trait;
+use anyhow::Result;
 use kona_host::{
-    DetachedHostOrchestrator, DiskKeyValueStore, Fetcher, HostOrchestrator, KeyValueStore,
-    MemoryKeyValueStore, PreimageServer, SharedKeyValueStore, SplitKeyValueStore,
+    Fetcher, HostOrchestrator, MemoryKeyValueStore, PreimageServer, SharedKeyValueStore,
+    SplitKeyValueStore,
 };
 use kona_preimage::{
     BidirectionalChannel, HintReader, HintWriter, NativeChannel, OracleReader, OracleServer,

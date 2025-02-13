@@ -1,6 +1,6 @@
 use crate::consensus_state::ConsensusState;
 use crate::errors::Error;
-use crate::header::{Header, VerifyResult};
+use crate::header::Header;
 use crate::l1::L1Config;
 use crate::misc::{
     new_timestamp, validate_header_timestamp_not_future,
@@ -77,7 +77,7 @@ impl ClientState {
             header.l1_header().verify(
                 now.as_unix_timestamp_secs(),
                 &self.l1_config,
-                &trusted_consensus_state,
+                trusted_consensus_state,
             )?;
 
         // Update only L1 sync committee
@@ -108,7 +108,7 @@ impl ClientState {
             .ok_or(Error::MissingAccountUpdate)?;
         verify_account_storage(
             &self.ibc_store_address,
-            &ExecutionVerifier::default(),
+            &ExecutionVerifier,
             H256::from_slice(l2_header.state_root.0.as_slice()),
             account_update,
         )
@@ -125,10 +125,8 @@ impl ClientState {
         validate_header_timestamp_not_future(now, self.max_clock_drift, timestamp)?;
 
         let mut new_client_state = self.clone();
-        let header_height = Height::new(
-            header.trusted_height().revision_number(),
-            l2_header.number as u64,
-        );
+        let header_height =
+            Height::new(header.trusted_height().revision_number(), l2_header.number);
         if new_client_state.latest_height < header_height {
             new_client_state.latest_height = header_height;
         }
@@ -156,7 +154,7 @@ impl ClientState {
         value: &[u8],
         proof: Vec<Vec<u8>>,
     ) -> Result<(), Error> {
-        let execution_verifier = ExecutionVerifier::default();
+        let execution_verifier = ExecutionVerifier;
         execution_verifier
             .verify_membership(
                 root,
@@ -173,7 +171,7 @@ impl ClientState {
         key: H256,
         proof: Vec<Vec<u8>>,
     ) -> Result<(), Error> {
-        let execution_verifier = ExecutionVerifier::default();
+        let execution_verifier = ExecutionVerifier;
         execution_verifier
             .verify_non_membership(root, key.as_bytes(), proof)
             .map_err(Error::L1VerifyError)
@@ -255,8 +253,7 @@ impl TryFrom<RawL1Config> for L1Config {
             raw_fork_parameters
                 .forks
                 .into_iter()
-                .enumerate()
-                .map(|(_i, f)| -> Result<_, Error> {
+                .map(|f| -> Result<_, Error> {
                     Ok(ForkParameter::new(
                         bytes_to_version(f.version),
                         f.epoch.into(),

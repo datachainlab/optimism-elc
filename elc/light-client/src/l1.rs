@@ -269,9 +269,7 @@ mod tests {
     use alloy_primitives::{hex, B256};
     use ethereum_ibc::consensus::beacon::Root;
     use ethereum_ibc::consensus::bls::PublicKey;
-    use ethereum_ibc::consensus::compute::hash_tree_root;
-    use ethereum_ibc::consensus::merkle::is_valid_normalized_merkle_branch;
-    use ethereum_ibc::consensus::types::H256;
+
     use light_client::types::Time;
     use optimism_ibc_proto::ibc::lightclients::optimism::v1::L1Config as RawL1Config;
     use optimism_ibc_proto::ibc::lightclients::optimism::v1::L1Header as RawL1Header;

@@ -37,7 +37,7 @@ impl KeyValueStore for TracingKeyValueStore {
 pub fn encode_to_bytes(used: hashbrown::HashMap<PreimageKey, Vec<u8>>) -> Vec<u8> {
     let mut temp: Vec<Preimage> = Vec::with_capacity(used.len());
     for (k, v) in used.iter() {
-        temp.push(Preimage::new(k.clone(), v.clone()));
+        temp.push(Preimage::new(*k, v.clone()));
     }
     let data = Preimages { preimages: temp };
     data.into_vec().unwrap()

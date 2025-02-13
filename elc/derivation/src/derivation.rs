@@ -1,27 +1,21 @@
-use crate::client;
 use crate::client::precompiles::fpvm_handle_register;
-use alloc::format;
 use alloc::sync::Arc;
-use alloc::vec::Vec;
-use alloy_consensus::{BlockHeader, Header};
-use alloy_primitives::private::alloy_rlp::Decodable;
-use alloy_primitives::{Sealable, Sealed, B256};
-use anyhow::{anyhow, Context, Error, Result};
+use alloy_consensus::Header;
+use alloy_primitives::{Sealed, B256};
+use anyhow::Result;
 use core::fmt::Debug;
 use kona_client::single::{fetch_safe_head_hash, FaultProofProgramError};
 use kona_driver::Driver;
 use kona_executor::TrieDBProvider;
-use kona_preimage::{CommsClient, PreimageKey, PreimageKeyType};
+use kona_preimage::CommsClient;
 use kona_proof::{
-    errors::OracleProviderError,
     executor::KonaExecutor,
     l1::{OracleBlobProvider, OracleL1ChainProvider, OraclePipeline},
     l2::OracleL2ChainProvider,
     sync::new_pipeline_cursor,
-    BootInfo, CachingOracle, FlushableCache, HintType,
+    BootInfo, FlushableCache,
 };
 use maili_genesis::RollupConfig;
-use revm::precompile::secp256r1::precompiles;
 use serde::{Deserialize, Serialize};
 use tracing::{error, info};
 

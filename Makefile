@@ -22,4 +22,14 @@ devnet-clean:
 status:
 	curl -X POST localhost:7545 -d '{"method":"optimism_syncStatus", "jsonrpc": "2.0", "id":1, "params":[]}' -H "Content-Type: application/json" | jq .result.finalized_l2
 
+.PHONY: preimage-maker
+preimage-maker:
+	cargo build --release --manifest-path preimage-maker/Cargo.toml
+	./target/release/optimism-preimage-maker
+
+.PHONY: test
+test:
+	cargo test --manifest-path preimage-maker/Cargo.toml --test e2e
+	cargo test --manifest-path elc/light-client/Cargo.toml --lib oracle
+
 

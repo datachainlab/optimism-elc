@@ -1,7 +1,6 @@
 //! Contains a concrete implementation of the [KeyValueStore] trait that stores data on disk,
 //! using the [SingleChainHostCli] config.
 
-use crate::host::single::cli::SingleChainHostCli;
 use crate::host::single::orchestrator::DerivationRequest;
 use alloy_primitives::B256;
 use anyhow::Result;
