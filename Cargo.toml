@@ -37,9 +37,9 @@ kona-providers-alloy= { git="https://github.com/anton-rs/kona", rev= "kona-provi
 
 # Maili
 maili-consensus = { version = "0.1.6", default-features = false }
-maili-protocol = { version = "0.1.6", default-features = false, features = ["std", "serde"] }
+maili-protocol = { version = "0.1.6", default-features = false }
 maili-registry = { version = "0.1.6", default-features = false }
-maili-genesis = { version = "0.1.6", default-features = false, features = ["std", "serde"] }
+maili-genesis = { version = "0.1.6", default-features = false }
 
 # Alloy
 alloy-rlp = { version = "0.3.10", default-features = false }
