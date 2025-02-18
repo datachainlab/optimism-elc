@@ -11,7 +11,7 @@ exclude = [
 ]
 
 [workspace.dependencies]
-anyhow = "1.0"
+anyhow = { version="1.0", default-features = false }
 thiserror = "2.0"
 hashbrown = "0.15.1"
 serde = { version = "1.0.210", default-features = false, features = ["derive"] }
