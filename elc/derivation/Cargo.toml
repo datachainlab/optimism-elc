@@ -25,5 +25,5 @@ alloy-consensus = { workspace = true}
 
 # misc
 tracing = "0.1.40"
-serde = { version = "1.0.214", features = ["derive"] }
+serde = { workspace = true, features = ["derive"] }
 prost-derive = "0.11.9"
