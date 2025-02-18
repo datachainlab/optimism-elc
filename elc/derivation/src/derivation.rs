@@ -1,20 +1,15 @@
 use crate::client::precompiles::fpvm_handle_register;
+use crate::errors;
 use alloc::sync::Arc;
 use alloy_consensus::Header;
 use alloy_primitives::{Sealed, B256};
 use anyhow::Result;
 use core::fmt::Debug;
-use kona_client::single::{fetch_safe_head_hash, FaultProofProgramError};
 use kona_driver::Driver;
 use kona_executor::TrieDBProvider;
-use kona_preimage::CommsClient;
-use kona_proof::{
-    executor::KonaExecutor,
-    l1::{OracleBlobProvider, OracleL1ChainProvider, OraclePipeline},
-    l2::OracleL2ChainProvider,
-    sync::new_pipeline_cursor,
-    BootInfo, FlushableCache,
-};
+use kona_preimage::{CommsClient, PreimageKeyType};
+use kona_proof::{executor::KonaExecutor, l1::{OracleBlobProvider, OracleL1ChainProvider, OraclePipeline}, l2::OracleL2ChainProvider, sync::new_pipeline_cursor, BootInfo, FlushableCache, HintType};
+use kona_proof::errors::OracleProviderError;
 use maili_genesis::RollupConfig;
 use serde::{Deserialize, Serialize};
 use tracing::{error, info};
@@ -120,7 +115,7 @@ impl Derivation {
                 number = number,
                 output_root = output_root
             );
-            return Err(FaultProofProgramError::InvalidClaim(
+            return Err(errors::Error::InvalidClaim(
                 output_root,
                 boot.claimed_l2_output_root,
             )
@@ -137,4 +132,24 @@ impl Derivation {
         let header = read.l2_safe_head_header().clone().unseal();
         Ok(header)
     }
+}
+
+async fn fetch_safe_head_hash<O>(
+    caching_oracle: &O,
+    boot_info: &BootInfo,
+) -> core::result::Result<B256, OracleProviderError>
+where
+    O: CommsClient,
+{
+    let mut output_preimage = [0u8; 128];
+    HintType::StartingL2Output
+        .get_exact_preimage(
+            caching_oracle,
+            boot_info.agreed_l2_output_root,
+            PreimageKeyType::Keccak256,
+            &mut output_preimage,
+        )
+        .await?;
+
+    output_preimage[96..128].try_into().map_err(OracleProviderError::SliceConversion)
 }

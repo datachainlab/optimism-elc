@@ -9,7 +9,6 @@ anyhow    = { workspace = true }
 prost     = { workspace = true }
 
 # kona
-kona-client = { workspace = true }
 kona-preimage = { workspace = true}
 kona-executor = { workspace = true}
 kona-mpt.workspace = true
