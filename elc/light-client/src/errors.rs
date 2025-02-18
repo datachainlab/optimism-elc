@@ -1,7 +1,6 @@
 use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
-use alloy_eips::eip4844::BlobTransactionValidationError;
 use alloy_primitives::B256;
 use core::array::TryFromSliceError;
 use ethereum_ibc::consensus::bls::PublicKey;
@@ -21,11 +20,15 @@ pub enum Error {
     #[error("UnexpectedBlobFieldIndex: {0}")]
     UnexpectedBlobFieldIndex(TryFromSliceError),
     #[error("UnexpectedKZGCommitment: {0}")]
-    UnexpectedKZGCommitment(TryFromSliceError),
+    UnexpectedKZGCommitment(kzg_rs::enums::KzgError),
     #[error("UnexpectedKZGProof: {0}")]
-    UnexpectedKZGProof(TryFromSliceError),
+    UnexpectedKZGProof(kzg_rs::enums::KzgError),
+    #[error("UnexpectedKZGBlob: {0}")]
+    UnexpectedKZGBlob(kzg_rs::enums::KzgError),
     #[error("UnexpectedPreimageBlob: {0}")]
-    UnexpectedPreimageBlob(BlobTransactionValidationError),
+    UnexpectedPreimageBlob(kzg_rs::enums::KzgError),
+    #[error("UnexpectedPreimageBlobResult: {0}")]
+    UnexpectedPreimageBlobResult(PreimageKey),
     #[error("UnexpectedPreimageKey: {0}")]
     UnexpectedPreimageKeySize(usize),
     #[error("UnexpectedPreimageKey: {source:?} {key:?}")]

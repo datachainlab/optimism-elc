@@ -5,7 +5,7 @@ use alloc::format;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use alloy_eips::eip4844::{
-    BlobTransactionSidecarItem, Bytes48, BYTES_PER_COMMITMENT, FIELD_ELEMENTS_PER_BLOB,
+     BYTES_PER_COMMITMENT, FIELD_ELEMENTS_PER_BLOB,
 };
 use alloy_primitives::{keccak256, B256, U256};
 use hashbrown::{HashMap, HashSet};
@@ -181,23 +181,27 @@ fn verify_blob_preimage(
     };
 
     // Populate blob sidecar
-    let mut sidecar = BlobTransactionSidecarItem {
-        kzg_commitment: Bytes48::try_from(kzg_commitment)
-            .map_err(Error::UnexpectedKZGCommitment)?,
-        kzg_proof: Bytes48::try_from(kzg_proof).map_err(Error::UnexpectedKZGProof)?,
-        ..Default::default()
-    };
+    let mut blob = [0u8; kzg_rs::BYTES_PER_BLOB];
     for i in 0..FIELD_ELEMENTS_PER_BLOB {
         blob_key[POSITION_FIELD_ELEMENT..].copy_from_slice(i.to_be_bytes().as_ref());
         let sidecar_blob = get_data_by_blob_key(blob_key, preimages)?;
-        sidecar.blob[(i as usize) << 5..(i as usize + 1) << 5].copy_from_slice(sidecar_blob);
+        blob[(i as usize) << 5..(i as usize + 1) << 5].copy_from_slice(sidecar_blob);
     }
+    let kzg_blob = kzg_rs::Blob::from_slice(&blob) .map_err(Error::UnexpectedKZGBlob)?;
 
     // Ensure valida blob
-    sidecar
-        .verify_blob_kzg_proof()
-        .map_err(Error::UnexpectedPreimageBlob)?;
+    let settings = kzg_rs::get_kzg_settings();
+    let result = kzg_rs::kzg_proof::KzgProof::verify_blob_kzg_proof(
+        kzg_blob,
+        &kzg_rs::Bytes48::from_slice(kzg_commitment).map_err(Error::UnexpectedKZGCommitment)?,
+        &kzg_rs::Bytes48::from_slice(kzg_proof).map_err(Error::UnexpectedKZGProof)?,
+        &settings
+    ).map_err(Error::UnexpectedPreimageBlob)?;
+    if !result {
+        return Err(Error::UnexpectedPreimageBlobResult(key.clone()));
+    }
     kzg_cache.insert(kzg_commitment.to_vec());
+
     Ok(())
 }
 
