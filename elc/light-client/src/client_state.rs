@@ -11,7 +11,7 @@ use alloc::vec::Vec;
 use alloy_primitives::B256;
 use core::time::Duration;
 use ethereum_ibc::client_state::{trim_left_zero, verify_account_storage};
-use ethereum_ibc::consensus::beacon::Version;
+use ethereum_ibc::consensus::beacon::{Slot, Version};
 use ethereum_ibc::consensus::fork::{ForkParameter, ForkParameters, ForkSpec};
 use ethereum_ibc::consensus::types::{Address, H256, U64};
 use ethereum_ibc::light_client_verifier::context::Fraction;
@@ -44,6 +44,7 @@ pub struct ClientState {
     /// State
     pub latest_height: Height,
     pub frozen: bool,
+    pub l1_slot: Slot,
 
     /// RollupConfig
     pub rollup_config: RollupConfig,
@@ -58,6 +59,7 @@ impl ClientState {
     pub fn canonicalize(mut self) -> Self {
         self.latest_height = Height::new(0, 0);
         self.frozen = false;
+        self.l1_slot = Slot::default();
         self
     }
 
@@ -86,8 +88,10 @@ impl ClientState {
             new_consensus_state.l1_slot = l1_slot;
             new_consensus_state.l1_current_sync_committee = l1_current_sync_committee;
             new_consensus_state.l1_next_sync_committee = l1_next_sync_committee;
+            let mut new_client_state = self.clone();
+            new_client_state.l1_slot = l1_slot;
             return Ok((
-                self.clone(),
+                new_client_state,
                 new_consensus_state,
                 header.trusted_height(),
                 trusted_consensus_state.timestamp,
@@ -125,6 +129,7 @@ impl ClientState {
         validate_header_timestamp_not_future(now, self.max_clock_drift, timestamp)?;
 
         let mut new_client_state = self.clone();
+        new_client_state.l1_slot = l1_slot;
         let header_height =
             Height::new(header.trusted_height().revision_number(), l2_header.number);
         if new_client_state.latest_height < header_height {
@@ -331,6 +336,7 @@ impl TryFrom<RawClientState> for ClientState {
             frozen,
             rollup_config,
             l1_config,
+            l1_slot: value.l1_slot.into(),
         })
     }
 }
@@ -353,6 +359,7 @@ impl TryFrom<ClientState> for RawClientState {
             rollup_config_json: serde_json::to_vec(&value.rollup_config)
                 .map_err(Error::UnexpectedRollupConfig)?,
             l1_config: Some(value.l1_config.into()),
+            l1_slot: value.l1_slot.into(),
         })
     }
 }

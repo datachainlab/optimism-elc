@@ -37,6 +37,8 @@ message ClientState {
   bytes rollup_config_json = 8;
 
   L1Config l1_config = 9;
+
+  uint64 l1_slot = 10;
 }
 
 message L1Header {

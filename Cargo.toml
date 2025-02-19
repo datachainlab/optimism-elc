@@ -4,9 +4,9 @@ members = [
   "elc/light-client",
   "elc/proto",
   "elc/derivation",
+  "preimage-maker",
 ]
 exclude = [
-  "preimage-maker",
   "elc/proto-compiler"
 ]
 

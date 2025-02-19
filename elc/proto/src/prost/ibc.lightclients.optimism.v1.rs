@@ -47,6 +47,8 @@ pub struct ClientState {
     pub rollup_config_json: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, optional, tag = "9")]
     pub l1_config: ::core::option::Option<L1Config>,
+    #[prost(uint64, tag = "10")]
+    pub l1_slot: u64,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
