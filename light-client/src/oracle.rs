@@ -216,7 +216,7 @@ mod test {
 
     extern crate std;
 
-    const TEST_DIR: &str = "../../testdata/oracle";
+    const TEST_DIR: &str = "../testdata/oracle";
 
     #[test]
     pub fn test_try_from() {

@@ -1,13 +1,12 @@
 [workspace]
 resolver = "2"
 members = [
-  "elc/light-client",
-  "elc/proto",
-  "elc/derivation",
-  "preimage-maker",
+  "light-client",
+  "proto",
+  "derivation",
 ]
 exclude = [
-  "elc/proto-compiler"
+  "proto-compiler"
 ]
 
 [workspace.dependencies]
