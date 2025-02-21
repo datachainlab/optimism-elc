@@ -187,9 +187,9 @@ fn verify_blob_preimage(
         let sidecar_blob = get_data_by_blob_key(blob_key, preimages)?;
         blob[(i as usize) << 5..(i as usize + 1) << 5].copy_from_slice(sidecar_blob);
     }
-    let kzg_blob = kzg_rs::Blob::from_slice(&blob) .map_err(Error::UnexpectedKZGBlob)?;
-
+    /* TODO kzg_rs is not available in TEE . It causes Segmentation fault.
     // Ensure valida blob
+    let kzg_blob = kzg_rs::Blob::from_slice(&blob) .map_err(Error::UnexpectedKZGBlob)?;
     let settings = kzg_rs::get_kzg_settings();
     let result = kzg_rs::kzg_proof::KzgProof::verify_blob_kzg_proof(
         kzg_blob,
@@ -201,6 +201,7 @@ fn verify_blob_preimage(
         return Err(Error::UnexpectedPreimageBlobResult(key.clone()));
     }
     kzg_cache.insert(kzg_commitment.to_vec());
+     */
 
     Ok(())
 }

@@ -161,9 +161,9 @@ pub enum Error {
     L1ConsensusError(L1ConsensusError),
     #[error("DerivationError {0}")]
     DerivationError(optimism_derivation::Error),
-    #[error("InvalidCurrentSyncCommitteeKeys {0:?} {1:?}")]
+    #[error("UnexpectedCurrentSyncCommitteeKeys {0:?} {1:?}")]
     UnexpectedCurrentSyncCommitteeKeys(PublicKey, PublicKey),
-    #[error("InvalidNextSyncCommitteeKeys {0:?} {1:?}")]
+    #[error("UnexpectedNextSyncCommitteeKeys {0:?} {1:?}")]
     UnexpectedNextSyncCommitteeKeys(PublicKey, PublicKey),
     #[error("NoNextSyncCommitteeInConsensusUpdate {0:?} {1:?}")]
     NoNextSyncCommitteeInConsensusUpdate(SyncCommitteePeriod, SyncCommitteePeriod),
