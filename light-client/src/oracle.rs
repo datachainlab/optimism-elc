@@ -200,8 +200,8 @@ fn verify_blob_preimage(
     if !result {
         return Err(Error::UnexpectedPreimageBlobResult(key.clone()));
     }
-    kzg_cache.insert(kzg_commitment.to_vec());
      */
+    kzg_cache.insert(kzg_commitment.to_vec());
 
     Ok(())
 }

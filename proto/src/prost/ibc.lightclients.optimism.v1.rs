@@ -47,8 +47,6 @@ pub struct ClientState {
     pub rollup_config_json: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, optional, tag = "9")]
     pub l1_config: ::core::option::Option<L1Config>,
-    #[prost(uint64, tag = "10")]
-    pub l1_slot: u64,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -88,11 +86,11 @@ pub struct Header {
         super::super::ethereum::v1::AccountUpdate,
     >,
     #[prost(message, optional, tag = "3")]
-    pub l1_head: ::core::option::Option<L1Header>,
-    #[prost(message, optional, tag = "4")]
     pub derivation: ::core::option::Option<Derivation>,
-    #[prost(bytes = "vec", tag = "5")]
+    #[prost(bytes = "vec", tag = "4")]
     pub preimages: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, repeated, tag = "5")]
+    pub l1_headers: ::prost::alloc::vec::Vec<L1Header>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

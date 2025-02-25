@@ -22,9 +22,9 @@ pub struct VerifyResult {
 #[derive(Clone, Debug)]
 pub struct Header<const L1_SYNC_COMMITTEE_SIZE: usize> {
     trusted_height: Height,
-    l1_header: L1Header<L1_SYNC_COMMITTEE_SIZE>,
-    derivation: Option<Derivation>,
-    account_update: Option<AccountUpdateInfo>,
+    l1_headers: Vec<L1Header<L1_SYNC_COMMITTEE_SIZE>>,
+    derivation: Derivation,
+    account_update: AccountUpdateInfo,
     oracle: MemoryOracleClient,
 }
 
@@ -35,40 +35,32 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> Header<L1_SYNC_COMMITTEE_SIZE> {
         trusted_output_root: B256,
         rollup_config: &RollupConfig,
     ) -> Result<(alloy_consensus::Header, B256), Error> {
-        let derivation = self
-            .derivation
-            .as_ref()
-            .ok_or(Error::UnexpectedEmptyDerivations)?;
 
         // Ensure trusted
-        if derivation.agreed_l2_output_root != trusted_output_root {
+        if self.derivation.agreed_l2_output_root != trusted_output_root {
             return Err(Error::UnexpectedTrustedOutputRoot(
-                derivation.agreed_l2_output_root,
+                self.derivation.agreed_l2_output_root,
                 trusted_output_root,
             ));
         }
 
         // Ensure honest derivation
-        let header = derivation
+        let header = self.derivation
             .verify(chain_id, rollup_config, self.oracle.clone())
             .map_err(Error::DerivationError)?;
-        Ok((header, derivation.l2_output_root))
+        Ok((header, self.derivation.l2_output_root))
     }
 
-    pub fn l1_header(&self) -> &L1Header<L1_SYNC_COMMITTEE_SIZE> {
-        &self.l1_header
+    pub fn l1_headers(&self) -> &[L1Header<L1_SYNC_COMMITTEE_SIZE>] {
+        &self.l1_headers
     }
 
     pub fn trusted_height(&self) -> Height {
         self.trusted_height
     }
 
-    pub fn account_update_ref(&self) -> &Option<AccountUpdateInfo> {
+    pub fn account_update(&self) -> &AccountUpdateInfo {
         &self.account_update
-    }
-
-    pub fn is_empty_derivation(&self) -> bool {
-        self.derivation.is_none()
     }
 }
 
@@ -76,47 +68,34 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
     type Error = Error;
 
     fn try_from(header: RawHeader) -> Result<Self, Self::Error> {
-        let l1_header: L1Header<L1_SYNC_COMMITTEE_SIZE> =
-            header.l1_head.ok_or(Error::MissingL1Head)?.try_into()?;
+        let mut l1_headers: Vec<L1Header<L1_SYNC_COMMITTEE_SIZE>> = Vec::with_capacity(header.l1_headers.len());
+        for l1_header in header.l1_headers {
+            l1_headers.push(l1_header.try_into()?);
+        }
 
-        let derivation = match header.derivation {
-            Some(derivation) => {
-                let l1_head_hash = B256::from(&l1_header.execution_update.block_hash.0);
-                Some(Derivation::new(
-                    l1_head_hash,
-                    B256::try_from(derivation.agreed_l2_output_root.as_slice())
-                        .map_err(Error::UnexpectedAgreedL2HeadHash)?,
-                    B256::try_from(derivation.l2_output_root.as_slice())
-                        .map_err(Error::UnexpectedL2OutputRoot)?,
-                    derivation.l2_block_number,
-                ))
-            }
-            // L1 update
-            None => None,
-        };
+        let l1_head_hash = B256::from(&l1_headers.last().as_ref().ok_or(Error::MissingL1Head)?
+            .execution_update.block_hash.0);
+        let raw_derivation = header.derivation.ok_or(Error::UnexpectedEmptyDerivations)?;
+        let derivation = Derivation::new(
+            l1_head_hash,
+            B256::try_from(raw_derivation.agreed_l2_output_root.as_slice())
+                .map_err(Error::UnexpectedAgreedL2HeadHash)?,
+            B256::try_from(raw_derivation.l2_output_root.as_slice())
+                .map_err(Error::UnexpectedL2OutputRoot)?,
+            raw_derivation.l2_block_number
+        );
 
-        let preimages = match derivation {
-            None => Preimages {
-                preimages: Vec::new(),
-            },
-            Some(_) => {
-                Preimages::decode(header.preimages.as_slice()).map_err(Error::ProtoDecodeError)?
-            }
-        };
-        let account_update_info = match derivation {
-            None => None,
-            Some(_) => Some(
-                header
-                    .account_update
-                    .ok_or(Error::MissingAccountUpdate)?
-                    .try_into()
-                    .map_err(Error::L1IBCError)?,
-            ),
-        };
+        let preimages = Preimages::decode(header.preimages.as_slice()).map_err(Error::ProtoDecodeError)?;
+        let account_update_info = header
+            .account_update
+            .ok_or(Error::MissingAccountUpdate)?
+            .try_into()
+            .map_err(Error::L1IBCError)?;
+
         let oracle: MemoryOracleClient = preimages.preimages.try_into()?;
         let trusted_height = header.trusted_height.ok_or(Error::MissingTrustedHeight)?;
         Ok(Self {
-            l1_header,
+            l1_headers,
             trusted_height: Height::new(
                 trusted_height.revision_number,
                 trusted_height.revision_height,

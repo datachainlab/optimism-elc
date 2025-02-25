@@ -1,7 +1,7 @@
 use crate::consensus_state::ConsensusState;
 use crate::errors::Error;
 use crate::header::Header;
-use crate::l1::L1Config;
+use crate::l1::{L1Config, L1Consensus};
 use crate::misc::{
     new_timestamp, validate_header_timestamp_not_future,
     validate_state_timestamp_within_trusting_period,
@@ -12,6 +12,7 @@ use alloy_primitives::B256;
 use core::time::Duration;
 use ethereum_ibc::client_state::{trim_left_zero, verify_account_storage};
 use ethereum_ibc::consensus::beacon::{Slot, Version};
+use ethereum_ibc::consensus::bls::PublicKey;
 use ethereum_ibc::consensus::fork::{ForkParameter, ForkParameters, ForkSpec};
 use ethereum_ibc::consensus::types::{Address, H256, U64};
 use ethereum_ibc::light_client_verifier::context::Fraction;
@@ -44,7 +45,6 @@ pub struct ClientState {
     /// State
     pub latest_height: Height,
     pub frozen: bool,
-    pub l1_slot: Slot,
 
     /// RollupConfig
     pub rollup_config: RollupConfig,
@@ -59,7 +59,6 @@ impl ClientState {
     pub fn canonicalize(mut self) -> Self {
         self.latest_height = Height::new(0, 0);
         self.frozen = false;
-        self.l1_slot = Slot::default();
         self
     }
 
@@ -74,42 +73,26 @@ impl ClientState {
         trusted_consensus_state: &ConsensusState,
         header: Header<L1_SYNC_COMMITTEE_SIZE>,
     ) -> Result<(ClientState, ConsensusState, Height, Time), Error> {
-        // Ensure l1 finalized
-        let (l1_slot, l1_current_sync_committee, l1_next_sync_committee) =
-            header.l1_header().verify(
-                now.as_unix_timestamp_secs(),
-                &self.l1_config,
-                trusted_consensus_state,
-            )?;
 
-        // Update only L1 sync committee
-        if header.is_empty_derivation() {
-            let mut new_consensus_state = trusted_consensus_state.clone();
-            new_consensus_state.l1_slot = l1_slot;
-            new_consensus_state.l1_current_sync_committee = l1_current_sync_committee;
-            new_consensus_state.l1_next_sync_committee = l1_next_sync_committee;
-            let mut new_client_state = self.clone();
-            new_client_state.l1_slot = l1_slot;
-            return Ok((
-                new_client_state,
-                new_consensus_state,
-                header.trusted_height(),
-                trusted_consensus_state.timestamp,
-            ));
+        // Ensure l1 finalized
+        let mut l1_consensus = L1Consensus {
+            slot: trusted_consensus_state.l1_slot,
+            current_sync_committee: trusted_consensus_state.l1_current_sync_committee.clone(),
+            next_sync_committee: trusted_consensus_state.l1_next_sync_committee.clone(),
+        };
+        for l1_header in header.l1_headers() {
+            l1_consensus = l1_header.verify(now.as_unix_timestamp_secs(), &self.l1_config, &l1_consensus)?;
         }
 
         // Ensure header is valid
-        let (l2_header, l2_output_root) = header.verify(
+        let (mut l2_header, l2_output_root) = header.verify(
             self.chain_id,
             trusted_consensus_state.output_root,
             &self.rollup_config,
         )?;
 
         // Ensure world state is valid
-        let account_update = header
-            .account_update_ref()
-            .as_ref()
-            .ok_or(Error::MissingAccountUpdate)?;
+        let account_update = header.account_update();
         verify_account_storage(
             &self.ibc_store_address,
             &ExecutionVerifier,
@@ -129,7 +112,6 @@ impl ClientState {
         validate_header_timestamp_not_future(now, self.max_clock_drift, timestamp)?;
 
         let mut new_client_state = self.clone();
-        new_client_state.l1_slot = l1_slot;
         let header_height =
             Height::new(header.trusted_height().revision_number(), l2_header.number);
         if new_client_state.latest_height < header_height {
@@ -139,9 +121,9 @@ impl ClientState {
             storage_root: account_update.account_storage_root,
             timestamp: new_timestamp(l2_header.timestamp)?,
             output_root: l2_output_root,
-            l1_slot,
-            l1_current_sync_committee,
-            l1_next_sync_committee,
+            l1_slot: l1_consensus.slot,
+            l1_current_sync_committee: l1_consensus.current_sync_committee,
+            l1_next_sync_committee: l1_consensus.next_sync_committee,
         };
 
         Ok((
@@ -336,7 +318,6 @@ impl TryFrom<RawClientState> for ClientState {
             frozen,
             rollup_config,
             l1_config,
-            l1_slot: value.l1_slot.into(),
         })
     }
 }
@@ -359,7 +340,6 @@ impl TryFrom<ClientState> for RawClientState {
             rollup_config_json: serde_json::to_vec(&value.rollup_config)
                 .map_err(Error::UnexpectedRollupConfig)?,
             l1_config: Some(value.l1_config.into()),
-            l1_slot: value.l1_slot.into(),
         })
     }
 }

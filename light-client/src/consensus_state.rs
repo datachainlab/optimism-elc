@@ -41,14 +41,7 @@ impl ConsensusState {
     /// canonicalize canonicalizes some fields of specified client state
     /// target fields: nothing
     pub fn canonicalize(mut self) -> Self {
-        self.l1_slot = Slot::default();
-        self.l1_current_sync_committee = PublicKey::default();
-        self.l1_next_sync_committee = PublicKey::default();
         self
-    }
-
-    pub fn current_l1_period<C: ChainContext>(&self, ctx: &C) -> SyncCommitteePeriod {
-        compute_sync_committee_period_at_slot(ctx, self.l1_slot)
     }
 }
 
