@@ -57,6 +57,7 @@ impl L1Config {
     }
 }
 
+#[derive(Clone, Debug)]
 pub(crate) struct L1Consensus {
     pub slot: Slot,
     pub current_sync_committee: PublicKey,

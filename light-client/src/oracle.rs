@@ -22,6 +22,12 @@ pub struct MemoryOracleClient {
     preimages: Arc<HashMap<PreimageKey, Vec<u8>>>,
 }
 
+impl MemoryOracleClient {
+    pub fn len(&self) -> usize {
+        self.preimages.len()
+    }
+}
+
 impl FlushableCache for MemoryOracleClient {
     fn flush(&self) {}
 }

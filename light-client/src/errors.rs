@@ -13,6 +13,8 @@ use kona_preimage::errors::PreimageOracleError;
 use kona_preimage::PreimageKey;
 use light_client::commitments::Error as CommitmentError;
 use light_client::types::{ClientId, Height, Time, TimeError};
+use optimism_derivation::derivation::Derivation;
+use crate::l1::{L1Consensus, L1Header};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -159,8 +161,10 @@ pub enum Error {
     L1IBCError(L1IBCError),
     #[error("L1ConsensusError {0}")]
     L1ConsensusError(L1ConsensusError),
-    #[error("DerivationError {0} {1}")]
-    DerivationError(u64, optimism_derivation::Error),
+    #[error("L1VerifyError index={0}, root={1:?}, prev={2:?}, err={3}")]
+    L1HeaderVerifyError(usize, L1Consensus, L1Consensus, Box<Error>),
+    #[error("DerivationError preimage_size={0} preimage_entry={1} ,l1_hash={2}, agreed_l2_output={3}, l2={4}, l2_output={5}, err{6}")]
+    DerivationError(u64, usize, String, String, u64, String, optimism_derivation::Error),
     #[error("UnexpectedCurrentSyncCommitteeKeys {0:?} {1:?}")]
     UnexpectedCurrentSyncCommitteeKeys(PublicKey, PublicKey),
     #[error("UnexpectedNextSyncCommitteeKeys {0:?} {1:?}")]

@@ -7,6 +7,7 @@ use crate::misc::{
     validate_state_timestamp_within_trusting_period,
 };
 use alloc::borrow::ToOwned;
+use alloc::boxed::Box;
 use alloc::vec::Vec;
 use alloy_primitives::B256;
 use core::time::Duration;
@@ -80,8 +81,10 @@ impl ClientState {
             current_sync_committee: trusted_consensus_state.l1_current_sync_committee.clone(),
             next_sync_committee: trusted_consensus_state.l1_next_sync_committee.clone(),
         };
-        for l1_header in header.l1_headers() {
-            l1_consensus = l1_header.verify(now.as_unix_timestamp_secs(), &self.l1_config, &l1_consensus)?;
+        let root = l1_consensus.clone();
+        for (i, l1_header) in header.l1_headers().iter().enumerate() {
+            let result = l1_header.verify(now.as_unix_timestamp_secs(), &self.l1_config, &l1_consensus);
+            l1_consensus = result.map_err(|e| Error::L1HeaderVerifyError(i, root.clone(), l1_consensus, Box::new(e)))?;
         }
 
         // Ensure header is valid

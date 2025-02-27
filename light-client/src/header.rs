@@ -1,3 +1,4 @@
+use alloc::format;
 use crate::errors::Error;
 use crate::l1::L1Header;
 use crate::oracle::MemoryOracleClient;
@@ -48,7 +49,14 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> Header<L1_SYNC_COMMITTEE_SIZE> {
         // Ensure honest derivation
         let header = self.derivation
             .verify(chain_id, rollup_config, self.oracle.clone())
-            .map_err(|e| Error::DerivationError(self.preimage_size, e))?;
+            .map_err(|e| Error::DerivationError(
+                self.preimage_size,
+                self.oracle.len(),
+                format!("{:02X}", self.derivation.l1_head_hash),
+                format!("{:02X}", self.derivation.agreed_l2_output_root),
+                self.derivation.l2_block_number,
+                format!("{:02X}", self.derivation.l2_output_root),
+                e))?;
         Ok((header, self.derivation.l2_output_root))
     }
 
