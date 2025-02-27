@@ -159,8 +159,8 @@ pub enum Error {
     L1IBCError(L1IBCError),
     #[error("L1ConsensusError {0}")]
     L1ConsensusError(L1ConsensusError),
-    #[error("DerivationError {0}")]
-    DerivationError(optimism_derivation::Error),
+    #[error("DerivationError {0} {1}")]
+    DerivationError(u64, optimism_derivation::Error),
     #[error("UnexpectedCurrentSyncCommitteeKeys {0:?} {1:?}")]
     UnexpectedCurrentSyncCommitteeKeys(PublicKey, PublicKey),
     #[error("UnexpectedNextSyncCommitteeKeys {0:?} {1:?}")]

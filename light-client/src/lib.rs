@@ -13,7 +13,7 @@ mod l1;
 mod message;
 mod misc;
 mod oracle;
-
+mod testtool;
 
 pub fn register_implementations<const SYNC_COMMITTEE_SIZE: usize>(
     registry: &mut dyn light_client::LightClientRegistry,

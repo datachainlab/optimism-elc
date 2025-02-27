@@ -26,6 +26,7 @@ pub struct Header<const L1_SYNC_COMMITTEE_SIZE: usize> {
     derivation: Derivation,
     account_update: AccountUpdateInfo,
     oracle: MemoryOracleClient,
+    preimage_size: u64
 }
 
 impl<const L1_SYNC_COMMITTEE_SIZE: usize> Header<L1_SYNC_COMMITTEE_SIZE> {
@@ -47,7 +48,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> Header<L1_SYNC_COMMITTEE_SIZE> {
         // Ensure honest derivation
         let header = self.derivation
             .verify(chain_id, rollup_config, self.oracle.clone())
-            .map_err(Error::DerivationError)?;
+            .map_err(|e| Error::DerivationError(self.preimage_size, e))?;
         Ok((header, self.derivation.l2_output_root))
     }
 
@@ -85,6 +86,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
             raw_derivation.l2_block_number
         );
 
+        let preimage_size = header.preimages.len();
         let preimages = Preimages::decode(header.preimages.as_slice()).map_err(Error::ProtoDecodeError)?;
         let account_update_info = header
             .account_update
@@ -95,6 +97,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
         let oracle: MemoryOracleClient = preimages.preimages.try_into()?;
         let trusted_height = header.trusted_height.ok_or(Error::MissingTrustedHeight)?;
         Ok(Self {
+            preimage_size: preimage_size as u64,
             l1_headers,
             trusted_height: Height::new(
                 trusted_height.revision_number,

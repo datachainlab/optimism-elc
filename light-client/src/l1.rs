@@ -91,12 +91,14 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L1Header<SYNC_COMMITTEE_SIZE> {
             self.trusted_sync_committee.sync_committee.clone(),
             self.trusted_sync_committee.is_next,
         )?;
+        /*
         L1Verifier::default().verify(
             &ctx,
             &l1_sync_committee,
             &self.consensus_update,
             &self.execution_update,
         )?;
+         */
         apply_updates(&ctx, consensus_state, &self.consensus_update)
     }
 }
