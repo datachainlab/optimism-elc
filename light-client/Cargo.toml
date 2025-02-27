@@ -36,9 +36,9 @@ maili-genesis = { workspace = true, features = ["serde"] }
 alloy-eips = { workspace = true } # 'kzg' is unavailable in LCP because c-kzg requires std
 alloy-consensus = { workspace = true}
 alloy-primitives = { workspace = true }
-anyhow = "1.0.95"
 
 [dev-dependencies]
 store = { git = "https://github.com/datachainlab/lcp.git", rev = "v0.2.12", default-features = false, features = ['std'] }
 light-client = { git = "https://github.com/datachainlab/lcp", rev = "v0.2.12", default-features = false, features = ["ibc", "std"] }
 reqwest = { version="0.12", default-features = false, features=["blocking", "json"] }
+anyhow = { workspace = true}
