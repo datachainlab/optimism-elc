@@ -161,10 +161,10 @@ pub enum Error {
     L1IBCError(L1IBCError),
     #[error("L1ConsensusError {0}")]
     L1ConsensusError(L1ConsensusError),
-    #[error("L1VerifyError index={0}, root={1:?}, prev={2:?}, err={3}")]
-    L1HeaderVerifyError(usize, L1Consensus, L1Consensus, Box<Error>),
-    #[error("DerivationError preimage_size={0} preimage_entry={1} ,l1_hash={2}, agreed_l2_output={3}, l2={4}, l2_output={5}, err{6}")]
-    DerivationError(u64, usize, String, String, u64, String, optimism_derivation::Error),
+    #[error("L1VerifyError index={0}, prev_updated_as_next={1:?} root={2:?}, prev={3:?}, err={4}")]
+    L1HeaderVerifyError(usize, bool, L1Consensus, L1Consensus, Box<Error>),
+    #[error("DerivationError preimage_size={0}, preimage_hash={1}, preimage_entry={2} ,l1_hash={3}, agreed_l2_output={4}, l2={5}, l2_output={6}, err{7}")]
+    DerivationError(u64, B256, usize, String, String, u64, String, optimism_derivation::Error),
     #[error("UnexpectedCurrentSyncCommitteeKeys {0:?} {1:?}")]
     UnexpectedCurrentSyncCommitteeKeys(PublicKey, PublicKey),
     #[error("UnexpectedNextSyncCommitteeKeys {0:?} {1:?}")]

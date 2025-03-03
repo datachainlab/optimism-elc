@@ -5,7 +5,7 @@ use alloc::format;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use alloy_eips::eip4844::{
-     BYTES_PER_COMMITMENT, FIELD_ELEMENTS_PER_BLOB,
+    BlobTransactionSidecarItem, Bytes48, BYTES_PER_COMMITMENT, FIELD_ELEMENTS_PER_BLOB,
 };
 use alloy_primitives::{keccak256, B256, U256};
 use hashbrown::{HashMap, HashSet};

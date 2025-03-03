@@ -57,4 +57,3 @@ op-alloy-rpc-types-engine = { version = "0.9.5", default-features = false }
 [patch."crates-io"]
 # Avoid confliction between lcp and kona
 time = { git = "https://github.com/yoshidan/time", branch = "v0.3.19_patch", package = "time" }
-kzg-rs = { git = "https://github.com/yoshidan/kzg-rs", branch = "patch" }

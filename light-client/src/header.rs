@@ -3,7 +3,7 @@ use crate::errors::Error;
 use crate::l1::L1Header;
 use crate::oracle::MemoryOracleClient;
 use alloc::vec::Vec;
-use alloy_primitives::B256;
+use alloy_primitives::{keccak256, B256};
 use ethereum_ibc::types::AccountUpdateInfo;
 use light_client::types::{Any, Height};
 use maili_genesis::RollupConfig;
@@ -27,7 +27,8 @@ pub struct Header<const L1_SYNC_COMMITTEE_SIZE: usize> {
     derivation: Derivation,
     account_update: AccountUpdateInfo,
     oracle: MemoryOracleClient,
-    preimage_size: u64
+    preimage_size: u64,
+    preimage_hash: B256
 }
 
 impl<const L1_SYNC_COMMITTEE_SIZE: usize> Header<L1_SYNC_COMMITTEE_SIZE> {
@@ -51,6 +52,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> Header<L1_SYNC_COMMITTEE_SIZE> {
             .verify(chain_id, rollup_config, self.oracle.clone())
             .map_err(|e| Error::DerivationError(
                 self.preimage_size,
+                self.preimage_hash,
                 self.oracle.len(),
                 format!("{:02X}", self.derivation.l1_head_hash),
                 format!("{:02X}", self.derivation.agreed_l2_output_root),
@@ -95,6 +97,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
         );
 
         let preimage_size = header.preimages.len();
+        let preimage_hash : B256 = keccak256(&header.preimages);
         let preimages = Preimages::decode(header.preimages.as_slice()).map_err(Error::ProtoDecodeError)?;
         let account_update_info = header
             .account_update
@@ -106,6 +109,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
         let trusted_height = header.trusted_height.ok_or(Error::MissingTrustedHeight)?;
         Ok(Self {
             preimage_size: preimage_size as u64,
+            preimage_hash,
             l1_headers,
             trusted_height: Height::new(
                 trusted_height.revision_number,

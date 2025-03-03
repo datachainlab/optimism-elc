@@ -82,9 +82,14 @@ impl ClientState {
             next_sync_committee: trusted_consensus_state.l1_next_sync_committee.clone(),
         };
         let root = l1_consensus.clone();
+        let mut updated_as_next= false;
         for (i, l1_header) in header.l1_headers().iter().enumerate() {
             let result = l1_header.verify(now.as_unix_timestamp_secs(), &self.l1_config, &l1_consensus);
-            l1_consensus = result.map_err(|e| Error::L1HeaderVerifyError(i, root.clone(), l1_consensus, Box::new(e)))?;
+            let result = result.map_err(|e| {
+                Error::L1HeaderVerifyError(i, updated_as_next, root.clone(), l1_consensus, Box::new(e))
+            })?;
+            updated_as_next = result.0;
+            l1_consensus = result.1;
         }
 
         // Ensure header is valid
