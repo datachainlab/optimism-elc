@@ -1,7 +1,6 @@
 use alloc::format;
 use crate::errors::Error;
 use crate::l1::L1Header;
-use crate::oracle::MemoryOracleClient;
 use alloc::vec::Vec;
 use alloy_primitives::{keccak256, B256};
 use ethereum_ibc::types::AccountUpdateInfo;
@@ -12,6 +11,7 @@ use optimism_derivation::types::Preimages;
 use optimism_ibc_proto::google::protobuf::Any as IBCAny;
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::Header as RawHeader;
 use prost::Message;
+use optimism_derivation::oracle::MemoryOracleClient;
 
 pub const OPTIMISM_HEADER_TYPE_URL: &str = "/ibc.lightclients.optimism.v1.Header";
 
@@ -105,7 +105,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
             .try_into()
             .map_err(Error::L1IBCError)?;
 
-        let oracle: MemoryOracleClient = preimages.preimages.try_into()?;
+        let oracle: MemoryOracleClient = preimages.preimages.try_into().map_err(Error::OracleClientError)?;
         let trusted_height = header.trusted_height.ok_or(Error::MissingTrustedHeight)?;
         Ok(Self {
             preimage_size: preimage_size as u64,

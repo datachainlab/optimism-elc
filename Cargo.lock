@@ -2146,18 +2146,23 @@ name = "optimism-derivation"
 version = "0.1.0"
 dependencies = [
  "alloy-consensus",
+ "alloy-eips",
  "alloy-primitives",
  "anyhow",
+ "async-trait",
+ "hashbrown 0.15.2",
  "kona-driver",
  "kona-executor",
  "kona-mpt",
  "kona-preimage",
  "kona-proof",
+ "kzg-rs",
  "maili-genesis",
  "prost",
  "prost-derive",
  "revm",
  "serde",
+ "sha2 0.10.8",
  "thiserror 2.0.11",
  "tracing",
 ]
@@ -2167,16 +2172,12 @@ name = "optimism-elc"
 version = "0.1.0"
 dependencies = [
  "alloy-consensus",
- "alloy-eips",
  "alloy-primitives",
  "anyhow",
- "async-trait",
  "ethereum-ibc",
  "ethereum-ibc-proto",
- "hashbrown 0.15.2",
  "kona-preimage",
  "kona-proof",
- "kzg-rs",
  "light-client",
  "maili-genesis",
  "optimism-derivation",
@@ -2186,7 +2187,6 @@ dependencies = [
  "rlp",
  "serde",
  "serde_json",
- "sha2 0.10.8",
  "store",
  "thiserror 2.0.11",
 ]

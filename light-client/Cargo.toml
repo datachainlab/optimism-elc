@@ -4,15 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-hashbrown = { workspace = true }
 thiserror = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 rlp = { workspace = true }
 prost = { workspace = true }
-sha2 = { workspace = true}
-async-trait = "0.1"
-kzg-rs = { version = "0.2.3", default-features = false }
 
 # derivation
 optimism-derivation = { version = "0.1.0", path = "../derivation", default-features = false }
@@ -33,7 +29,6 @@ kona-proof = { workspace = true }
 maili-genesis = { workspace = true, features = ["serde"] }
 
 # Alloy
-alloy-eips = { workspace = true } # 'kzg' is unavailable in LCP because c-kzg requires std
 alloy-consensus = { workspace = true}
 alloy-primitives = { workspace = true }
 

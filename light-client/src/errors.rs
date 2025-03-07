@@ -19,18 +19,6 @@ use crate::l1::{L1Consensus, L1Header};
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     // Preimage
-    #[error("UnexpectedBlobFieldIndex: {0}")]
-    UnexpectedBlobFieldIndex(TryFromSliceError),
-    #[error("UnexpectedKZGCommitment: {0}")]
-    UnexpectedKZGCommitment(kzg_rs::enums::KzgError),
-    #[error("UnexpectedKZGProof: {0}")]
-    UnexpectedKZGProof(kzg_rs::enums::KzgError),
-    #[error("UnexpectedKZGBlob: {0}")]
-    UnexpectedKZGBlob(kzg_rs::enums::KzgError),
-    #[error("UnexpectedPreimageBlob: {0}")]
-    UnexpectedPreimageBlob(kzg_rs::enums::KzgError),
-    #[error("UnexpectedPreimageBlobResult: {0}")]
-    UnexpectedPreimageBlobResult(PreimageKey),
     #[error("UnexpectedPreimageKey: {0}")]
     UnexpectedPreimageKeySize(usize),
     #[error("UnexpectedPreimageKey: {source:?} {key:?}")]
@@ -54,6 +42,8 @@ pub enum Error {
     NoPreimageKeyFoundInVerifyBlob(Box<Error>),
     #[error("UnexpectedGlobalGlobalGeneric: {0}")]
     UnexpectedGlobalGlobalGeneric(PreimageKey),
+    #[error("OracleClientError: {0}")]
+    OracleClientError(#[from] optimism_derivation::errors::Error),
 
     // data conversion error
     #[error("TimestampOverflowError: {0}")]

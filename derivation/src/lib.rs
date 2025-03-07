@@ -9,6 +9,7 @@ mod client;
 pub mod derivation;
 pub mod errors;
 pub mod types;
+pub mod oracle;
 
 pub use anyhow::Error;
 

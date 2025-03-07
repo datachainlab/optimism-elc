@@ -93,7 +93,8 @@ impl Derivation {
             &cfg,
             l2_provider.clone(),
             l2_provider,
-            Some(fpvm_handle_register),
+            None,
+            //Some(fpvm_handle_register),
             None,
         );
         let mut driver = Driver::new(cursor, executor, pipeline);

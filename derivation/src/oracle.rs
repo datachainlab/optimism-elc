@@ -12,8 +12,8 @@ use hashbrown::{HashMap, HashSet};
 use kona_preimage::errors::{PreimageOracleError, PreimageOracleResult};
 use kona_preimage::{HintWriterClient, PreimageKey, PreimageKeyType, PreimageOracleClient};
 use kona_proof::FlushableCache;
-use optimism_derivation::types::Preimage;
-use optimism_derivation::POSITION_FIELD_ELEMENT;
+use crate::types::Preimage;
+use crate::POSITION_FIELD_ELEMENT;
 use sha2::{Digest, Sha256};
 
 #[derive(Clone, Debug)]
@@ -60,7 +60,8 @@ impl PreimageOracleClient for MemoryOracleClient {
 
 #[async_trait::async_trait]
 impl HintWriterClient for MemoryOracleClient {
-    async fn write(&self, _hint: &str) -> PreimageOracleResult<()> {
+    async fn write(&self, hint: &str) -> PreimageOracleResult<()> {
+     //   tracing::info!("hint {}", hint);
         Ok(())
     }
 }
@@ -208,72 +209,4 @@ fn verify_blob_preimage(
     kzg_cache.insert(kzg_commitment.to_vec());
 
     Ok(())
-}
-
-#[cfg(test)]
-mod test {
-    use crate::oracle::MemoryOracleClient;
-    use alloc::format;
-    use alloc::string::ToString;
-    use optimism_derivation::derivation::Derivation;
-    use optimism_derivation::types::Preimages;
-    use prost::Message;
-    use crate::testtool::testtool;
-
-    extern crate std;
-
-    #[test]
-    pub fn test_derivation() {
-        let l2_client = testtool::L2Client::default();
-        let chain_id = l2_client.chain_id().unwrap();
-        let l1_client = testtool::L2Client::new("".to_string(), "http://localhost:8545".to_string());
-
-        let initial_sync_status = l2_client.sync_status().unwrap();
-        let agreed_l2_number = initial_sync_status.finalized_l2.number - 50;
-        let agreed_l2_hash = l2_client
-            .get_block_by_number(agreed_l2_number)
-            .unwrap()
-            .hash;
-        let agreed_output = l2_client.output_root_at(agreed_l2_number).unwrap();
-        std::println!("agreed_l2_number {:?}", agreed_l2_number);
-
-        for i in 0..100 {
-            // Create preimage request
-            let sync_status = l2_client.sync_status().unwrap();
-            let claiming_l2_number = sync_status.finalized_l2.number;
-            let claiming_output = l2_client.output_root_at(claiming_l2_number).unwrap();
-
-            let l1_number = claiming_output.block_ref.l1_origin.number + 10;
-            let l1_header = l1_client.get_block_by_number(l1_number).unwrap();
-            let request = testtool::Request {
-                l1_head_hash: l1_header.hash,
-                agreed_l2_head_hash: agreed_l2_hash,
-                agreed_l2_output_root: agreed_output.output_root,
-                l2_output_root: claiming_output.output_root,
-                l2_block_number: claiming_l2_number,
-            };
-            let client = reqwest::blocking::ClientBuilder::new().timeout(std::time::Duration::from_secs(120)).build().unwrap();
-            let builder = client.post("http://localhost:10080/derivation");
-            let preimage_bytes = builder.json(&request).send().unwrap();
-            let preimage_bytes = preimage_bytes.bytes().unwrap();
-            let rollup_config = l2_client.rollup_config().unwrap();
-
-            let preimages = Preimages::decode(preimage_bytes).unwrap();
-            let oracle = MemoryOracleClient::try_from(preimages.preimages).unwrap();
-
-            let derivation: Derivation = Derivation {
-                l1_head_hash: request.l1_head_hash,
-                agreed_l2_output_root: request.agreed_l2_output_root,
-                l2_output_root: request.l2_output_root,
-                l2_block_number: request.l2_block_number,
-            };
-            std::println!("derivation = {:?}", derivation);
-
-            derivation
-                .verify(chain_id, &rollup_config, oracle.clone())
-                .unwrap();
-
-            std::thread::sleep( std::time::Duration::from_secs(i + 1));
-        }
-    }
 }

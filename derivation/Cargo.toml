@@ -23,6 +23,12 @@ revm = { workspace = true, features = ["optimism","c-kzg"] }
 alloy-primitives = { workspace = true }
 alloy-consensus = { workspace = true}
 
+hashbrown = { workspace = true }
+sha2 = { workspace = true}
+async-trait = "0.1"
+kzg-rs = { version = "0.2.3", default-features = false }
+alloy-eips = { workspace = true } # 'kzg' is unavailable in LCP because c-kzg requires std
+
 # misc
 tracing = { version="0.1.40", default-features = false }
 serde = { workspace = true, features = ["derive"] }
