@@ -2153,7 +2153,6 @@ dependencies = [
  "hashbrown 0.15.2",
  "kona-driver",
  "kona-executor",
- "kona-mpt",
  "kona-preimage",
  "kona-proof",
  "kzg-rs",
@@ -2164,7 +2163,6 @@ dependencies = [
  "serde",
  "sha2 0.10.8",
  "thiserror 2.0.11",
- "tracing",
 ]
 
 [[package]]

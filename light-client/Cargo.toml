@@ -23,7 +23,6 @@ ethereum-ibc-proto = { workspace = true }
 
 # Kona
 kona-preimage = { workspace = true}
-kona-proof = { workspace = true }
 
 # Maili
 maili-genesis = { workspace = true, features = ["serde"] }

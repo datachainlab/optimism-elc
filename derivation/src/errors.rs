@@ -1,7 +1,7 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
-use core::array::TryFromSliceError;
 use alloy_primitives::B256;
+use core::array::TryFromSliceError;
 use kona_preimage::errors::PreimageOracleError;
 use kona_preimage::PreimageKey;
 
@@ -30,6 +30,8 @@ pub enum Error {
         source: PreimageOracleError,
         key: [u8; 32],
     },
+    #[error("UnexpectedPrecompilePreimage: {0}")]
+    UnexpectedPrecompilePreimage(PreimageKey),
     #[error("UnexpectedPreimageValue: {value:?} {key:?}")]
     UnexpectedPreimageValue { value: Vec<u8>, key: PreimageKey },
     #[error("UnexpectedPrecompiledValue: {actual:?} {expected:?} {key:?}")]
@@ -46,5 +48,4 @@ pub enum Error {
     NoPreimageKeyFoundInVerifyBlob(Box<Error>),
     #[error("UnexpectedGlobalGlobalGeneric: {0}")]
     UnexpectedGlobalGlobalGeneric(PreimageKey),
-
 }

@@ -1,3 +1,4 @@
+use crate::l1::{L1Consensus, L1Header};
 use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -14,7 +15,6 @@ use kona_preimage::PreimageKey;
 use light_client::commitments::Error as CommitmentError;
 use light_client::types::{ClientId, Height, Time, TimeError};
 use optimism_derivation::derivation::Derivation;
-use crate::l1::{L1Consensus, L1Header};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -153,8 +153,8 @@ pub enum Error {
     L1ConsensusError(L1ConsensusError),
     #[error("L1VerifyError index={0}, prev_updated_as_next={1:?} root={2:?}, prev={3:?}, err={4}")]
     L1HeaderVerifyError(usize, bool, L1Consensus, L1Consensus, Box<Error>),
-    #[error("DerivationError preimage_size={0}, preimage_hash={1}, preimage_entry={2} ,l1_hash={3}, agreed_l2_output={4}, l2={5}, l2_output={6}, err{7}")]
-    DerivationError(u64, B256, usize, String, String, u64, String, optimism_derivation::Error),
+    #[error("DerivationError derivation={0:?}, preimage_size:{1:?} err{2:?}")]
+    DerivationError(Derivation, usize, optimism_derivation::Error),
     #[error("UnexpectedCurrentSyncCommitteeKeys {0:?} {1:?}")]
     UnexpectedCurrentSyncCommitteeKeys(PublicKey, PublicKey),
     #[error("UnexpectedNextSyncCommitteeKeys {0:?} {1:?}")]

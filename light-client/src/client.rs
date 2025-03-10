@@ -341,5 +341,4 @@ mod test {
         };
         client.update_state(&ctx, client_id, header).unwrap();
     }
-
 }

@@ -1,4 +1,3 @@
-use crate::client::precompiles::fpvm_handle_register;
 use crate::errors;
 use alloc::sync::Arc;
 use alloy_consensus::Header;
@@ -8,11 +7,16 @@ use core::fmt::Debug;
 use kona_driver::Driver;
 use kona_executor::TrieDBProvider;
 use kona_preimage::{CommsClient, PreimageKeyType};
-use kona_proof::{executor::KonaExecutor, l1::{OracleBlobProvider, OracleL1ChainProvider, OraclePipeline}, l2::OracleL2ChainProvider, sync::new_pipeline_cursor, BootInfo, FlushableCache, HintType};
 use kona_proof::errors::OracleProviderError;
+use kona_proof::{
+    executor::KonaExecutor,
+    l1::{OracleBlobProvider, OracleL1ChainProvider, OraclePipeline},
+    l2::OracleL2ChainProvider,
+    sync::new_pipeline_cursor,
+    BootInfo, FlushableCache, HintType,
+};
 use maili_genesis::RollupConfig;
 use serde::{Deserialize, Serialize};
-use tracing::{error, info};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Derivation {
@@ -93,8 +97,8 @@ impl Derivation {
             &cfg,
             l2_provider.clone(),
             l2_provider,
+            // https://github.com/op-rs/kona/blob/660d41d0e4100fb0a73363a5fa057287e6882dfd/bin/host/src/single/orchestrator.rs#L86
             None,
-            //Some(fpvm_handle_register),
             None,
         );
         let mut driver = Driver::new(cursor, executor, pipeline);
@@ -110,25 +114,11 @@ impl Derivation {
         ////////////////////////////////////////////////////////////////
 
         if output_root != boot.claimed_l2_output_root {
-            error!(
-                target: "client",
-                "Failed to validate L2 block #{number} with output root {output_root}",
-                number = number,
-                output_root = output_root
+            return Err(
+                errors::Error::InvalidClaim(output_root, boot.claimed_l2_output_root).into(),
             );
-            return Err(errors::Error::InvalidClaim(
-                output_root,
-                boot.claimed_l2_output_root,
-            )
-            .into());
         }
 
-        info!(
-            target: "client",
-            "Successfully validated L2 block #{number} with output root {output_root}",
-            number = number,
-            output_root = output_root
-        );
         let read = driver.cursor.read();
         let header = read.l2_safe_head_header().clone().unseal();
         Ok(header)
@@ -152,5 +142,7 @@ where
         )
         .await?;
 
-    output_preimage[96..128].try_into().map_err(OracleProviderError::SliceConversion)
+    output_preimage[96..128]
+        .try_into()
+        .map_err(OracleProviderError::SliceConversion)
 }

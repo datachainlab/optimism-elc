@@ -65,7 +65,6 @@ pub(crate) struct L1Consensus {
 }
 
 impl L1Consensus {
-
     pub fn current_l1_period<C: ChainContext>(&self, ctx: &C) -> SyncCommitteePeriod {
         compute_sync_committee_period_at_slot(ctx, self.slot)
     }
@@ -92,7 +91,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L1Header<SYNC_COMMITTEE_SIZE> {
             self.trusted_sync_committee.sync_committee.clone(),
             self.trusted_sync_committee.is_next,
         )?;
-        /*
+        /* TODO
         L1Verifier::default().verify(
             &ctx,
             &l1_sync_committee,
@@ -212,21 +211,27 @@ fn apply_updates<const SYNC_COMMITTEE_SIZE: usize, CC: ChainConsensusVerificatio
     //   and the next sync committee of the new consensus state will be the next sync committee of the update.
     if store_period == update_finalized_period {
         // store_period == finalized_period <= attested_period <= signature_period
-        Ok((false, L1Consensus {
-            slot: update_finalized_slot,
-            current_sync_committee: consensus_state.current_sync_committee.clone(),
-            next_sync_committee: consensus_state.next_sync_committee.clone(),
-        }))
+        Ok((
+            false,
+            L1Consensus {
+                slot: update_finalized_slot,
+                current_sync_committee: consensus_state.current_sync_committee.clone(),
+                next_sync_committee: consensus_state.next_sync_committee.clone(),
+            },
+        ))
     } else if store_period + 1 == update_finalized_period {
         // store_period + 1 == finalized_period == attested_period == signature_period
         // Why `finalized_period == attested_period == signature_period` here?
         // Because our store only have the current or next sync committee info, so the verified update's signature period must match the `store_period + 1` here.
         if let Some((update_next_sync_committee, _)) = &consensus_update.next_sync_committee {
-            Ok((true, L1Consensus {
-                slot: update_finalized_slot,
-                current_sync_committee: consensus_state.next_sync_committee.clone(),
-                next_sync_committee: update_next_sync_committee.aggregate_pubkey.clone(),
-            }))
+            Ok((
+                true,
+                L1Consensus {
+                    slot: update_finalized_slot,
+                    current_sync_committee: consensus_state.next_sync_committee.clone(),
+                    next_sync_committee: update_next_sync_committee.aggregate_pubkey.clone(),
+                },
+            ))
         } else {
             // Relayers must submit an update that contains the next sync committee if the update period is `store_period + 1`.
             Err(Error::NoNextSyncCommitteeInConsensusUpdate(
@@ -312,12 +317,18 @@ mod tests {
             .verify(1737027212, &l1_config, &cons_state)
             .unwrap();
         // same period : cons_state period == finalized_period
-        assert_eq!(l1_consensus.slot, l1_header.consensus_update.finalized_header.0.slot);
+        assert_eq!(
+            l1_consensus.slot,
+            l1_header.consensus_update.finalized_header.0.slot
+        );
         assert_eq!(
             l1_consensus.current_sync_committee,
             cons_state.current_sync_committee
         );
-        assert_eq!(l1_consensus.next_sync_committee, cons_state.next_sync_committee);
+        assert_eq!(
+            l1_consensus.next_sync_committee,
+            cons_state.next_sync_committee
+        );
     }
 
     struct TestCase {
@@ -366,10 +377,13 @@ mod tests {
                 current_sync_committee: case.cons_l1_current_sync_committee.clone(),
                 next_sync_committee: case.cons_l1_next_sync_committee.clone(),
             };
-            let (_, l1_consensus ) = l1_header
+            let (_, l1_consensus) = l1_header
                 .verify(1737033548, &l1_config, &cons_state)
                 .unwrap();
-            assert_eq!(l1_consensus.slot, l1_header.consensus_update.finalized_header.0.slot);
+            assert_eq!(
+                l1_consensus.slot,
+                l1_header.consensus_update.finalized_header.0.slot
+            );
             if i == cases.len() - 1 {
                 // last is same period( cons_state period == finalized_period )
                 assert_eq!(
@@ -382,12 +396,15 @@ mod tests {
                 );
 
                 // Verify exactly same slot
-                let (_,result )= l1_header
+                let (_, result) = l1_header
                     .verify(1737033548, &l1_config, &l1_consensus)
                     .unwrap();
-                assert_eq!(result.slot,l1_consensus.slot);
-                assert_eq!(result.current_sync_committee,l1_consensus.current_sync_committee);
-                assert_eq!(result.next_sync_committee,l1_consensus.next_sync_committee);
+                assert_eq!(result.slot, l1_consensus.slot);
+                assert_eq!(
+                    result.current_sync_committee,
+                    l1_consensus.current_sync_committee
+                );
+                assert_eq!(result.next_sync_committee, l1_consensus.next_sync_committee);
             } else {
                 assert_eq!(
                     l1_consensus.current_sync_committee, cons_state.next_sync_committee,

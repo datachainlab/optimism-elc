@@ -1,19 +1,17 @@
 use crate::errors::Error;
 use crate::errors::Error::UnexpectedPreimageKeySize;
+use crate::types::Preimage;
+use crate::POSITION_FIELD_ELEMENT;
 use alloc::boxed::Box;
 use alloc::format;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
-use alloy_eips::eip4844::{
-    BlobTransactionSidecarItem, Bytes48, BYTES_PER_COMMITMENT, FIELD_ELEMENTS_PER_BLOB,
-};
+use alloy_eips::eip4844::{BYTES_PER_COMMITMENT, FIELD_ELEMENTS_PER_BLOB};
 use alloy_primitives::{keccak256, B256, U256};
 use hashbrown::{HashMap, HashSet};
 use kona_preimage::errors::{PreimageOracleError, PreimageOracleResult};
 use kona_preimage::{HintWriterClient, PreimageKey, PreimageKeyType, PreimageOracleClient};
 use kona_proof::FlushableCache;
-use crate::types::Preimage;
-use crate::POSITION_FIELD_ELEMENT;
 use sha2::{Digest, Sha256};
 
 #[derive(Clone, Debug)]
@@ -60,8 +58,7 @@ impl PreimageOracleClient for MemoryOracleClient {
 
 #[async_trait::async_trait]
 impl HintWriterClient for MemoryOracleClient {
-    async fn write(&self, hint: &str) -> PreimageOracleResult<()> {
-     //   tracing::info!("hint {}", hint);
+    async fn write(&self, _hint: &str) -> PreimageOracleResult<()> {
         Ok(())
     }
 }
@@ -87,16 +84,15 @@ impl TryFrom<Vec<Preimage>> for MemoryOracleClient {
                 PreimageKeyType::Sha256 => verify_sha256_preimage(&preimage_key, &preimage.data)?,
                 PreimageKeyType::Precompile => {
                     // Precomiles is needless because rerun the contract in derivation.
-                    continue;
+                    return Err(Error::UnexpectedPrecompilePreimage(preimage_key));
                 }
                 _ => {}
             }
-
             inner.insert(preimage_key, preimage.data);
         }
 
+        // Ensure blob preimage is valid
         let mut kzg_cache = HashSet::<Vec<u8>>::new();
-        // Ensure blob and precomile preimage is value
         for (key, data) in inner.iter() {
             if key.key_type() == PreimageKeyType::Blob {
                 verify_blob_preimage(key, data, &inner, &mut kzg_cache)?
@@ -195,14 +191,15 @@ fn verify_blob_preimage(
         blob[(i as usize) << 5..(i as usize + 1) << 5].copy_from_slice(sidecar_blob);
     }
     // Ensure valida blob
-    let kzg_blob = kzg_rs::Blob::from_slice(&blob) .map_err(Error::UnexpectedKZGBlob)?;
+    let kzg_blob = kzg_rs::Blob::from_slice(&blob).map_err(Error::UnexpectedKZGBlob)?;
     let settings = kzg_rs::get_kzg_settings();
     let result = kzg_rs::kzg_proof::KzgProof::verify_blob_kzg_proof(
         kzg_blob,
         &kzg_rs::Bytes48::from_slice(kzg_commitment).map_err(Error::UnexpectedKZGCommitment)?,
         &kzg_rs::Bytes48::from_slice(kzg_proof).map_err(Error::UnexpectedKZGProof)?,
-        &settings
-    ).map_err(Error::UnexpectedPreimageBlob)?;
+        &settings,
+    )
+    .map_err(Error::UnexpectedPreimageBlob)?;
     if !result {
         return Err(Error::UnexpectedPreimageBlobResult(key.clone()));
     }

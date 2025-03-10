@@ -1,8 +1,8 @@
 #[cfg(test)]
 pub mod testtool {
     use alloc::string::String;
-    use alloc::{format, vec};
     use alloc::vec::Vec;
+    use alloc::{format, vec};
     use alloy_primitives::B256;
     use anyhow::Result;
     use maili_genesis::RollupConfig;
@@ -135,7 +135,7 @@ pub mod testtool {
             Ok(u64::from_str_radix(&result.result[2..], 16)?)
         }
 
-        pub  fn rollup_config(&self) -> Result<RollupConfig> {
+        pub fn rollup_config(&self) -> Result<RollupConfig> {
             let client = reqwest::blocking::Client::new();
             let body = RpcRequest {
                 method: "optimism_rollupConfig".into(),
@@ -207,14 +207,13 @@ pub mod testtool {
                 Ok(response)
             } else {
                 Err(anyhow::anyhow!(
-                "Request failed with status: {} body={:?}",
-                response.status(),
-                response.text()
-            ))
+                    "Request failed with status: {} body={:?}",
+                    response.status(),
+                    response.text()
+                ))
             }
         }
     }
-
 
     // preimage-maker-request
     #[derive(Clone, Debug, Deserialize, Serialize)]

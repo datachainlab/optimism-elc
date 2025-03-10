@@ -11,7 +11,6 @@ prost     = { workspace = true }
 # kona
 kona-preimage = { workspace = true}
 kona-executor = { workspace = true}
-kona-mpt.workspace = true
 kona-driver.workspace = true
 kona-proof.workspace = true
 
@@ -30,6 +29,5 @@ kzg-rs = { version = "0.2.3", default-features = false }
 alloy-eips = { workspace = true } # 'kzg' is unavailable in LCP because c-kzg requires std
 
 # misc
-tracing = { version="0.1.40", default-features = false }
 serde = { workspace = true, features = ["derive"] }
 prost-derive = "0.11.9"

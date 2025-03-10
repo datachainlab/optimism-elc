@@ -1,17 +1,16 @@
-use alloc::format;
 use crate::errors::Error;
 use crate::l1::L1Header;
 use alloc::vec::Vec;
-use alloy_primitives::{keccak256, B256};
+use alloy_primitives::B256;
 use ethereum_ibc::types::AccountUpdateInfo;
 use light_client::types::{Any, Height};
 use maili_genesis::RollupConfig;
 use optimism_derivation::derivation::Derivation;
+use optimism_derivation::oracle::MemoryOracleClient;
 use optimism_derivation::types::Preimages;
 use optimism_ibc_proto::google::protobuf::Any as IBCAny;
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::Header as RawHeader;
 use prost::Message;
-use optimism_derivation::oracle::MemoryOracleClient;
 
 pub const OPTIMISM_HEADER_TYPE_URL: &str = "/ibc.lightclients.optimism.v1.Header";
 
@@ -27,8 +26,6 @@ pub struct Header<const L1_SYNC_COMMITTEE_SIZE: usize> {
     derivation: Derivation,
     account_update: AccountUpdateInfo,
     oracle: MemoryOracleClient,
-    preimage_size: u64,
-    preimage_hash: B256
 }
 
 impl<const L1_SYNC_COMMITTEE_SIZE: usize> Header<L1_SYNC_COMMITTEE_SIZE> {
@@ -38,7 +35,6 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> Header<L1_SYNC_COMMITTEE_SIZE> {
         trusted_output_root: B256,
         rollup_config: &RollupConfig,
     ) -> Result<(alloy_consensus::Header, B256), Error> {
-
         // Ensure trusted
         if self.derivation.agreed_l2_output_root != trusted_output_root {
             return Err(Error::UnexpectedTrustedOutputRoot(
@@ -48,17 +44,10 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> Header<L1_SYNC_COMMITTEE_SIZE> {
         }
 
         // Ensure honest derivation
-        let header = self.derivation
+        let header = self
+            .derivation
             .verify(chain_id, rollup_config, self.oracle.clone())
-            .map_err(|e| Error::DerivationError(
-                self.preimage_size,
-                self.preimage_hash,
-                self.oracle.len(),
-                format!("{:02X}", self.derivation.l1_head_hash),
-                format!("{:02X}", self.derivation.agreed_l2_output_root),
-                self.derivation.l2_block_number,
-                format!("{:02X}", self.derivation.l2_output_root),
-                e))?;
+            .map_err(|e| Error::DerivationError(self.derivation.clone(), self.oracle.len(), e))?;
         Ok((header, self.derivation.l2_output_root))
     }
 
@@ -79,13 +68,21 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
     type Error = Error;
 
     fn try_from(header: RawHeader) -> Result<Self, Self::Error> {
-        let mut l1_headers: Vec<L1Header<L1_SYNC_COMMITTEE_SIZE>> = Vec::with_capacity(header.l1_headers.len());
+        let mut l1_headers: Vec<L1Header<L1_SYNC_COMMITTEE_SIZE>> =
+            Vec::with_capacity(header.l1_headers.len());
         for l1_header in header.l1_headers {
             l1_headers.push(l1_header.try_into()?);
         }
 
-        let l1_head_hash = B256::from(&l1_headers.last().as_ref().ok_or(Error::MissingL1Head)?
-            .execution_update.block_hash.0);
+        let l1_head_hash = B256::from(
+            &l1_headers
+                .last()
+                .as_ref()
+                .ok_or(Error::MissingL1Head)?
+                .execution_update
+                .block_hash
+                .0,
+        );
         let raw_derivation = header.derivation.ok_or(Error::UnexpectedEmptyDerivations)?;
         let derivation = Derivation::new(
             l1_head_hash,
@@ -93,23 +90,23 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
                 .map_err(Error::UnexpectedAgreedL2HeadHash)?,
             B256::try_from(raw_derivation.l2_output_root.as_slice())
                 .map_err(Error::UnexpectedL2OutputRoot)?,
-            raw_derivation.l2_block_number
+            raw_derivation.l2_block_number,
         );
 
-        let preimage_size = header.preimages.len();
-        let preimage_hash : B256 = keccak256(&header.preimages);
-        let preimages = Preimages::decode(header.preimages.as_slice()).map_err(Error::ProtoDecodeError)?;
+        let preimages =
+            Preimages::decode(header.preimages.as_slice()).map_err(Error::ProtoDecodeError)?;
         let account_update_info = header
             .account_update
             .ok_or(Error::MissingAccountUpdate)?
             .try_into()
             .map_err(Error::L1IBCError)?;
 
-        let oracle: MemoryOracleClient = preimages.preimages.try_into().map_err(Error::OracleClientError)?;
+        let oracle: MemoryOracleClient = preimages
+            .preimages
+            .try_into()
+            .map_err(Error::OracleClientError)?;
         let trusted_height = header.trusted_height.ok_or(Error::MissingTrustedHeight)?;
         Ok(Self {
-            preimage_size: preimage_size as u64,
-            preimage_hash,
             l1_headers,
             trusted_height: Height::new(
                 trusted_height.revision_number,

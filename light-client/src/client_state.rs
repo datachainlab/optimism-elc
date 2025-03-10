@@ -12,8 +12,7 @@ use alloc::vec::Vec;
 use alloy_primitives::B256;
 use core::time::Duration;
 use ethereum_ibc::client_state::{trim_left_zero, verify_account_storage};
-use ethereum_ibc::consensus::beacon::{Slot, Version};
-use ethereum_ibc::consensus::bls::PublicKey;
+use ethereum_ibc::consensus::beacon::Version;
 use ethereum_ibc::consensus::fork::{ForkParameter, ForkParameters, ForkSpec};
 use ethereum_ibc::consensus::types::{Address, H256, U64};
 use ethereum_ibc::light_client_verifier::context::Fraction;
@@ -74,7 +73,6 @@ impl ClientState {
         trusted_consensus_state: &ConsensusState,
         header: Header<L1_SYNC_COMMITTEE_SIZE>,
     ) -> Result<(ClientState, ConsensusState, Height, Time), Error> {
-
         // Ensure l1 finalized
         let mut l1_consensus = L1Consensus {
             slot: trusted_consensus_state.l1_slot,
@@ -82,11 +80,18 @@ impl ClientState {
             next_sync_committee: trusted_consensus_state.l1_next_sync_committee.clone(),
         };
         let root = l1_consensus.clone();
-        let mut updated_as_next= false;
+        let mut updated_as_next = false;
         for (i, l1_header) in header.l1_headers().iter().enumerate() {
-            let result = l1_header.verify(now.as_unix_timestamp_secs(), &self.l1_config, &l1_consensus);
+            let result =
+                l1_header.verify(now.as_unix_timestamp_secs(), &self.l1_config, &l1_consensus);
             let result = result.map_err(|e| {
-                Error::L1HeaderVerifyError(i, updated_as_next, root.clone(), l1_consensus, Box::new(e))
+                Error::L1HeaderVerifyError(
+                    i,
+                    updated_as_next,
+                    root.clone(),
+                    l1_consensus,
+                    Box::new(e),
+                )
             })?;
             updated_as_next = result.0;
             l1_consensus = result.1;
