@@ -4,8 +4,10 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use alloy_primitives::B256;
 use core::array::TryFromSliceError;
+use ethereum_ibc::consensus::beacon::Slot;
 use ethereum_ibc::consensus::bls::PublicKey;
 use ethereum_ibc::consensus::errors::Error as L1ConsensusError;
+use ethereum_ibc::consensus::fork::ForkSpec;
 use ethereum_ibc::consensus::sync_protocol::SyncCommitteePeriod;
 use ethereum_ibc::consensus::types::H256;
 use ethereum_ibc::errors::Error as L1IBCError;
@@ -145,7 +147,13 @@ pub enum Error {
     OutOfTrustingPeriod(Time, Time),
     #[error("HeaderFromFuture {0} {1:?} {2}")]
     HeaderFromFuture(Time, core::time::Duration, Time),
-    #[error("L1VerifyError {0}")]
+    #[error("L1ExecutionVerifyError {fork_spec:?} {slot:?} {err:?}")]
+    L1ExecutionVerifyError{
+        fork_spec: ForkSpec,
+        slot: Slot,
+        err: L1VerifyError
+    },
+    #[error("L1VerifyError {0:?}")]
     L1VerifyError(L1VerifyError),
     #[error("L1IBCError {0}")]
     L1IBCError(L1IBCError),

@@ -91,14 +91,12 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L1Header<SYNC_COMMITTEE_SIZE> {
             self.trusted_sync_committee.sync_committee.clone(),
             self.trusted_sync_committee.is_next,
         )?;
-        /* TODO
         L1Verifier::default().verify(
             &ctx,
             &l1_sync_committee,
             &self.consensus_update,
             &self.execution_update,
         )?;
-         */
         apply_updates(&ctx, consensus_state, &self.consensus_update)
     }
 }
@@ -190,9 +188,22 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L1Verifier<SYNC_COMMITTEE_SIZE> {
         consensus_update: &ConsensusUpdateInfo<SYNC_COMMITTEE_SIZE>,
         execution_update: &ExecutionUpdateInfo,
     ) -> Result<(), Error> {
-        self.consensus_verifier
-            .validate_updates(ctx, l1_sync_committee, consensus_update, execution_update)
-            .map_err(Error::L1VerifyError)
+        // TODO change devnet lighthouse
+        // self.consensus_verifier.validate_consensus_update(ctx, l1_sync_committee, consensus_update)
+        //  .map_err(Error::L1VerifyError)?;
+        let slot = consensus_update.finalized_beacon_header().slot;
+        let fork_spec = ctx.compute_fork_spec(slot);
+        self.consensus_verifier.validate_execution_update(
+            fork_spec.clone(),
+            consensus_update.finalized_execution_root(),
+            execution_update,
+        ).map_err(|e| Error::L1ExecutionVerifyError {
+            fork_spec,
+            slot,
+            err: e,
+        })?;
+
+        Ok(())
     }
 }
 
