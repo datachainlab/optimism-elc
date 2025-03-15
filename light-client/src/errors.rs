@@ -148,10 +148,10 @@ pub enum Error {
     #[error("HeaderFromFuture {0} {1:?} {2}")]
     HeaderFromFuture(Time, core::time::Duration, Time),
     #[error("L1ExecutionVerifyError {fork_spec:?} {slot:?} {err:?}")]
-    L1ExecutionVerifyError{
+    L1ExecutionVerifyError {
         fork_spec: ForkSpec,
         slot: Slot,
-        err: L1VerifyError
+        err: L1VerifyError,
     },
     #[error("L1VerifyError {0:?}")]
     L1VerifyError(L1VerifyError),
