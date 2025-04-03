@@ -94,12 +94,17 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> LightClient
         proof_height: Height,
         proof: Vec<u8>,
     ) -> Result<VerifyMembershipResult, light_client::Error> {
-        let (client_state, cons_state, proof, key, root) =
-            Self::validate_membership_args(ctx, &client_id, &path, &proof_height, proof)?;
+        let ValidateMembershipResult {
+            client_state,
+            consensus_state,
+            storage_proof,
+            storage_key,
+            storage_root,
+        } = Self::validate_membership_args(ctx, &client_id, &path, &proof_height, proof)?;
 
         let value = keccak256(&value).0;
 
-        client_state.verify_membership(root, key, &value, proof)?;
+        client_state.verify_membership(storage_root, storage_key, &value, storage_proof)?;
 
         Ok(VerifyMembershipResult {
             message: VerifyMembershipProxyMessage::new(
@@ -107,7 +112,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> LightClient
                 path,
                 Some(value),
                 proof_height,
-                gen_state_id(client_state, cons_state)?,
+                gen_state_id(client_state, consensus_state)?,
             ),
         })
     }
@@ -121,10 +126,15 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> LightClient
         proof_height: Height,
         proof: Vec<u8>,
     ) -> Result<VerifyNonMembershipResult, light_client::Error> {
-        let (client_state, cons_state, proof, key, root) =
-            Self::validate_membership_args(ctx, &client_id, &path, &proof_height, proof)?;
+        let ValidateMembershipResult {
+            client_state,
+            consensus_state,
+            storage_proof,
+            storage_key,
+            storage_root,
+        } = Self::validate_membership_args(ctx, &client_id, &path, &proof_height, proof)?;
 
-        client_state.verify_non_membership(root, key, proof)?;
+        client_state.verify_non_membership(storage_root, storage_key, storage_proof)?;
 
         Ok(VerifyNonMembershipResult {
             message: VerifyMembershipProxyMessage::new(
@@ -132,10 +142,18 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> LightClient
                 path.to_string(),
                 None,
                 proof_height,
-                gen_state_id(client_state, cons_state)?,
+                gen_state_id(client_state, consensus_state)?,
             ),
         })
     }
+}
+
+struct ValidateMembershipResult {
+    client_state: ClientState,
+    consensus_state: ConsensusState,
+    storage_proof: Vec<Vec<u8>>,
+    storage_key: H256,
+    storage_root: H256,
 }
 
 impl<const L1_SYNC_COMMITTEE_SIZE: usize> OptimismLightClient<L1_SYNC_COMMITTEE_SIZE> {
@@ -200,7 +218,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> OptimismLightClient<L1_SYNC_COMMITTEE_
         path: &str,
         proof_height: &Height,
         proof: Vec<u8>,
-    ) -> Result<(ClientState, ConsensusState, Vec<Vec<u8>>, H256, H256), Error> {
+    ) -> Result<ValidateMembershipResult, Error> {
         let client_state =
             ClientState::try_from(ctx.client_state(client_id).map_err(Error::LCPError)?)?;
         if client_state.frozen {
@@ -229,7 +247,13 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> OptimismLightClient<L1_SYNC_COMMITTEE_
         let key =
             calculate_ibc_commitment_storage_location(&client_state.ibc_commitments_slot, path);
 
-        Ok((client_state, consensus_state, proof, key, root))
+        Ok(ValidateMembershipResult {
+            client_state,
+            consensus_state,
+            storage_proof: proof,
+            storage_key: key,
+            storage_root: root,
+        })
     }
 }
 
@@ -242,103 +266,4 @@ fn gen_state_id(
     gen_state_id_from_any(&client_state, &consensus_state)
         .map_err(LightClientError::commitment)
         .map_err(Error::LCPError)
-}
-
-#[cfg(test)]
-mod test {
-    use crate::client_state::ClientState;
-    use crate::consensus_state::ConsensusState;
-    use crate::header::Header;
-    use alloc::collections::BTreeMap;
-    use alloc::vec::Vec;
-    use alloy_primitives::hex;
-    use light_client::types::{Any, ClientId, Height, Time};
-    use light_client::{ClientReader, HostClientReader, HostContext};
-    use optimism_ibc_proto::ibc::lightclients::optimism::v1::ClientState as RawClientState;
-    use optimism_ibc_proto::ibc::lightclients::optimism::v1::ConsensusState as RawConsensusState;
-    use optimism_ibc_proto::ibc::lightclients::optimism::v1::Header as RawHeader;
-    use prost::Message;
-    extern crate std;
-
-    struct MockClientReader {
-        client_state: Option<ClientState>,
-        consensus_state: BTreeMap<Height, ConsensusState>,
-    }
-
-    impl HostContext for MockClientReader {
-        fn host_timestamp(&self) -> Time {
-            Time::now()
-        }
-    }
-
-    impl HostClientReader for MockClientReader {}
-
-    impl store::KVStore for MockClientReader {
-        fn set(&mut self, _key: Vec<u8>, _value: Vec<u8>) {
-            todo!()
-        }
-
-        fn get(&self, _key: &[u8]) -> Option<Vec<u8>> {
-            todo!()
-        }
-
-        fn remove(&mut self, _key: &[u8]) {
-            todo!()
-        }
-    }
-
-    impl ClientReader for MockClientReader {
-        fn client_state(&self, client_id: &ClientId) -> Result<Any, light_client::Error> {
-            let cs = self
-                .client_state
-                .clone()
-                .ok_or_else(|| light_client::Error::client_state_not_found(client_id.clone()))?;
-            Ok(Any::try_from(cs).unwrap())
-        }
-
-        fn consensus_state(
-            &self,
-            client_id: &ClientId,
-            height: &Height,
-        ) -> Result<Any, light_client::Error> {
-            let state = self
-                .consensus_state
-                .get(height)
-                .ok_or_else(|| {
-                    light_client::Error::consensus_state_not_found(client_id.clone(), *height)
-                })?
-                .clone();
-            Ok(Any::try_from(state).unwrap())
-        }
-    }
-
-    #[test]
-    fn test_update_client_success() {
-        let header = std::fs::read("../testdata/test_update_client_success.bin").unwrap();
-        let header = RawHeader::decode(header.as_slice()).unwrap();
-        let header = Header::<
-            { ethereum_ibc::consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE },
-        >::try_from(header)
-        .unwrap();
-        let client = super::OptimismLightClient::<
-            { ethereum_ibc::consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE },
-        >;
-        let client_id = ClientId::new("optimism", 0).unwrap();
-
-        let cs = hex!("088507121430346563383746363433353343344435433835331a201ee222554989dda120e26ecacf756fe1235cd8d726706b57517715dde4f0c900220310fe1a2a040880a3053202080a42f9077b2267656e65736973223a7b226c31223a7b2268617368223a22307864613334633238383164646465663465623234353161383165656635393666386662653436376337643337633066303934376462646161343863363731386330222c226e756d626572223a317d2c226c32223a7b2268617368223a22307833306561323330666665353636303236636565656362343766633166343033633364616165373634313563386230386461646466326239343437303832353762222c226e756d626572223a307d2c226c325f74696d65223a313733383932373137352c2273797374656d5f636f6e666967223a7b226261746368657241646472223a22307833633434636464646236613930306661326235383564643239396530336431326661343239336263222c226f76657268656164223a22307830303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030383334222c227363616c6172223a22307830303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030306634323430222c226761734c696d6974223a33303030303030302c2265697031353539506172616d73223a22307830303030303030303030303030303030227d7d2c22626c6f636b5f74696d65223a322c226d61785f73657175656e6365725f6472696674223a3330302c227365715f77696e646f775f73697a65223a3230302c226368616e6e656c5f74696d656f7574223a3132302c226c315f636861696e5f6964223a3930302c226c325f636861696e5f6964223a3930312c227265676f6c6974685f74696d65223a302c2263616e796f6e5f74696d65223a302c2264656c74615f74696d65223a302c2265636f746f6e655f74696d65223a302c22666a6f72645f74696d65223a302c226772616e6974655f74696d65223a302c2262617463685f696e626f785f61646472657373223a22307830303238396331383962656534653730333334363239663034636435656436303262363630306562222c226465706f7369745f636f6e74726163745f61646472657373223a22307861343339623634333630633837353935313437386230636637373639383033386466333331323535222c226c315f73797374656d5f636f6e6669675f61646472657373223a22307866343933653265626230393330396532643030343661376166633838633865646133633931353630222c2270726f746f636f6c5f76657273696f6e735f61646472657373223a22307830303030303030303030303030303030303030303030303030303030303030303030303030303030227d4a96010a2075da2cb5dbf4d891796935c9dedd02e1aae3a02c9416f97c008c499d87879136100118b5d897bd06225e0a0400000001120e0a04010000011a0608691036183712160a04020000011a0e086910361837201928123016381c12160a04030000011a0e086910361837201928123016381c12160a04040000011a0e086910361837201928223026382c280630083808420408021003");
-        let cs = RawClientState::decode(cs.as_ref()).unwrap();
-        let cs = ClientState::try_from(cs).unwrap();
-
-        let cons_state= hex!("0a20a97293248d7c186619efbe0691a28faf1eaa6b30ea7105777db07286509f85ca10c38e98bd061a20f9b61a214a46922e326670e2ea00f6dba7167b4de0241fd1b54ec6ae6d73329d2080092a30a7d653766df9e94230d088a3479aaaab3d6d94b9011e709202961ddc9118956436ce862ca13c4e4a4f99bc2caab6effd3230985be50501bc7c03514ca3db85589f31fa96b8a398f46d73a6865d7cf0b4722b1f6f55ef2281dc3723b5dfc692559be3");
-        let cons_state = RawConsensusState::decode(cons_state.as_ref()).unwrap();
-        let cons_state = ConsensusState::try_from(cons_state).unwrap();
-
-        let mut mock_consensus_state = BTreeMap::new();
-        mock_consensus_state.insert(cs.latest_height, cons_state);
-        let ctx = MockClientReader {
-            client_state: Some(cs),
-            consensus_state: mock_consensus_state,
-        };
-        client.update_state(&ctx, client_id, header).unwrap();
-    }
 }

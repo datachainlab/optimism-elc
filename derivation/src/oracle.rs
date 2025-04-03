@@ -24,6 +24,9 @@ impl MemoryOracleClient {
     pub fn len(&self) -> usize {
         self.preimages.len()
     }
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
 impl FlushableCache for MemoryOracleClient {
@@ -201,7 +204,7 @@ fn verify_blob_preimage(
     )
     .map_err(Error::UnexpectedPreimageBlob)?;
     if !result {
-        return Err(Error::UnexpectedPreimageBlobResult(key.clone()));
+        return Err(Error::UnexpectedPreimageBlobResult(*key));
     }
     kzg_cache.insert(kzg_commitment.to_vec());
 

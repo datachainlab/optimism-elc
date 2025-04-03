@@ -98,7 +98,7 @@ impl ClientState {
         }
 
         // Ensure header is valid
-        let (mut l2_header, l2_output_root) = header.verify(
+        let (l2_header, l2_output_root) = header.verify(
             self.chain_id,
             trusted_consensus_state.output_root,
             &self.rollup_config,

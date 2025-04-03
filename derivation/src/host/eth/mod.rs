@@ -16,5 +16,5 @@ pub fn verify(hint_data: &[u8], expected: &[u8]) -> bool {
             res
         },
     );
-    &result == expected
+    result == expected
 }

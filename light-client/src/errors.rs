@@ -1,4 +1,4 @@
-use crate::l1::{L1Consensus, L1Header};
+use crate::l1::L1Consensus;
 use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec::Vec;

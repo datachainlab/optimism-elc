@@ -1,4 +1,3 @@
-use crate::consensus_state::ConsensusState;
 use crate::errors::Error;
 use alloc::string::ToString;
 use ethereum_ibc::consensus::beacon::{Epoch, Root, Slot};
@@ -58,7 +57,7 @@ impl L1Config {
 }
 
 #[derive(Clone, Debug)]
-pub(crate) struct L1Consensus {
+pub struct L1Consensus {
     pub slot: Slot,
     pub current_sync_committee: PublicKey,
     pub next_sync_committee: PublicKey,
@@ -148,7 +147,6 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L1SyncCommittee<SYNC_COMMITTEE_SIZE> {
                     slot: consensus_state.slot,
                     current_sync_committee: Some(sync_committee),
                     next_sync_committee: None,
-                    ..Default::default()
                 })
             } else {
                 Err(Error::UnexpectedCurrentSyncCommitteeKeys(
@@ -163,7 +161,6 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L1SyncCommittee<SYNC_COMMITTEE_SIZE> {
                 slot: consensus_state.slot,
                 current_sync_committee: None,
                 next_sync_committee: Some(sync_committee),
-                ..Default::default()
             })
         } else {
             Err(Error::UnexpectedNextSyncCommitteeKeys(
@@ -188,13 +185,9 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L1Verifier<SYNC_COMMITTEE_SIZE> {
         consensus_update: &ConsensusUpdateInfo<SYNC_COMMITTEE_SIZE>,
         execution_update: &ExecutionUpdateInfo,
     ) -> Result<(), Error> {
-
-        self.consensus_verifier.validate_updates(
-            ctx,
-            l1_sync_committee,
-            consensus_update,
-            execution_update,
-        ).map_err(Error::L1VerifyError)?;
+        self.consensus_verifier
+            .validate_updates(ctx, l1_sync_committee, consensus_update, execution_update)
+            .map_err(Error::L1VerifyError)?;
 
         Ok(())
     }
@@ -286,15 +279,14 @@ impl<const SYNC_COMMITTEE_SIZE: usize> LightClientStoreReader<SYNC_COMMITTEE_SIZ
 
 #[cfg(test)]
 mod tests {
-    use crate::consensus_state::ConsensusState;
+
     use crate::l1::{L1Config, L1Consensus, L1Header};
     use alloc::vec;
     use alloc::vec::Vec;
-    use alloy_primitives::{hex, B256};
-    use ethereum_ibc::consensus::beacon::Root;
+    use alloy_primitives::hex;
+
     use ethereum_ibc::consensus::bls::PublicKey;
 
-    use light_client::types::Time;
     use optimism_ibc_proto::ibc::lightclients::optimism::v1::L1Config as RawL1Config;
     use optimism_ibc_proto::ibc::lightclients::optimism::v1::L1Header as RawL1Header;
     use prost::Message;
@@ -376,7 +368,7 @@ mod tests {
                 { ethereum_ibc::consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE },
             >::try_from(raw_l1_header.clone())
             .unwrap();
-            let mut cons_state = L1Consensus {
+            let cons_state = L1Consensus {
                 slot: case.cons_slot.into(),
                 current_sync_committee: case.cons_l1_current_sync_committee.clone(),
                 next_sync_committee: case.cons_l1_next_sync_committee.clone(),

@@ -37,7 +37,7 @@ pub struct ConsensusState {
 impl ConsensusState {
     /// canonicalize canonicalizes some fields of specified client state
     /// target fields: nothing
-    pub fn canonicalize(mut self) -> Self {
+    pub fn canonicalize(self) -> Self {
         self
     }
 }
