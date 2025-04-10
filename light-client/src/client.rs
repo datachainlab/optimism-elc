@@ -163,7 +163,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> OptimismLightClient<L1_SYNC_COMMITTEE_
         client_id: ClientId,
         header: Header<L1_SYNC_COMMITTEE_SIZE>,
     ) -> Result<UpdateStateData, Error> {
-        let trusted_height = header.trusted_height();
+        let trusted_height = header.trusted_height;
         let any_client_state = ctx.client_state(&client_id).map_err(Error::LCPError)?;
         let any_consensus_state = ctx
             .consensus_state(&client_id, &trusted_height)

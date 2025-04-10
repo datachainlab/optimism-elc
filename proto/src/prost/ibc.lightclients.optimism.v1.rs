@@ -90,7 +90,9 @@ pub struct Header {
     #[prost(bytes = "vec", tag = "4")]
     pub preimages: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, repeated, tag = "5")]
-    pub l1_headers: ::prost::alloc::vec::Vec<L1Header>,
+    pub trusted_to_definitive: ::prost::alloc::vec::Vec<L1Header>,
+    #[prost(message, repeated, tag = "6")]
+    pub definitive_to_latest: ::prost::alloc::vec::Vec<L1Header>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

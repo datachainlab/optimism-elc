@@ -58,7 +58,8 @@ message Header {
 
   Derivation derivation = 3;
   bytes preimages = 4;
-  repeated L1Header l1_headers = 5;
+  repeated L1Header trusted_to_definitive = 5;
+  repeated L1Header definitive_to_latest = 6;
 }
 
 message ConsensusState {

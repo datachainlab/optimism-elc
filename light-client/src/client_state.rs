@@ -74,38 +74,21 @@ impl ClientState {
         header: Header<L1_SYNC_COMMITTEE_SIZE>,
     ) -> Result<(ClientState, ConsensusState, Height, Time), Error> {
         // Ensure l1 finalized
-        let mut l1_consensus = L1Consensus {
-            slot: trusted_consensus_state.l1_slot,
-            current_sync_committee: trusted_consensus_state.l1_current_sync_committee.clone(),
-            next_sync_committee: trusted_consensus_state.l1_next_sync_committee.clone(),
-        };
-        let root = l1_consensus.clone();
-        let mut updated_as_next = false;
-        for (i, l1_header) in header.l1_headers().iter().enumerate() {
-            let result =
-                l1_header.verify(now.as_unix_timestamp_secs(), &self.l1_config, &l1_consensus);
-            let result = result.map_err(|e| {
-                Error::L1HeaderVerifyError(
-                    i,
-                    updated_as_next,
-                    root.clone(),
-                    l1_consensus,
-                    Box::new(e),
-                )
-            })?;
-            updated_as_next = result.0;
-            l1_consensus = result.1;
-        }
+        let l1_consensus = header.verify_l1(
+            &self.l1_config,
+            now.as_unix_timestamp_secs(),
+            trusted_consensus_state,
+        )?;
 
         // Ensure header is valid
-        let (l2_header, l2_output_root) = header.verify(
+        let (l2_header, l2_output_root) = header.verify_l2(
             self.chain_id,
             trusted_consensus_state.output_root,
             &self.rollup_config,
         )?;
 
         // Ensure world state is valid
-        let account_update = header.account_update();
+        let account_update = &header.account_update;
         verify_account_storage(
             &self.ibc_store_address,
             &ExecutionVerifier,
@@ -125,8 +108,7 @@ impl ClientState {
         validate_header_timestamp_not_future(now, self.max_clock_drift, timestamp)?;
 
         let mut new_client_state = self.clone();
-        let header_height =
-            Height::new(header.trusted_height().revision_number(), l2_header.number);
+        let header_height = Height::new(header.trusted_height.revision_number(), l2_header.number);
         if new_client_state.latest_height < header_height {
             new_client_state.latest_height = header_height;
         }
