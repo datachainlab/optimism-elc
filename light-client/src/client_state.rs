@@ -1,13 +1,12 @@
 use crate::consensus_state::ConsensusState;
 use crate::errors::Error;
 use crate::header::Header;
-use crate::l1::{L1Config, L1Consensus};
+use crate::l1::L1Config;
 use crate::misc::{
     new_timestamp, validate_header_timestamp_not_future,
     validate_state_timestamp_within_trusting_period,
 };
 use alloc::borrow::ToOwned;
-use alloc::boxed::Box;
 use alloc::vec::Vec;
 use alloy_primitives::B256;
 use core::time::Duration;

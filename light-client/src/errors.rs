@@ -159,10 +159,10 @@ pub enum Error {
     L1IBCError(L1IBCError),
     #[error("L1ConsensusError {0}")]
     L1ConsensusError(L1ConsensusError),
-    #[error("L1VerifyError index={0}, prev_updated_as_next={1:?} root={2:?}, prev={3:?}, err={4}")]
-    L1HeaderVerifyError(usize, bool, L1Consensus, L1Consensus, Box<Error>),
-    #[error("L1VerifyError index={0}, prev_updated_as_next={1:?} root={2:?}, prev={3:?}, err={4}")]
-    L1HeaderForDerivationVerifyError(usize, bool, L1Consensus, L1Consensus, Box<Error>),
+    #[error("L1VerifyError index={0}, prev_updated_as_next={1:?} prev={2:?}, err={3}")]
+    L1HeaderVerifyError(usize, bool, L1Consensus, Box<Error>),
+    #[error("L1VerifyError index={0}, prev_updated_as_next={1:?} prev={2:?}, err={3}")]
+    L1HeaderForDerivationVerifyError(usize, bool, L1Consensus, Box<Error>),
     #[error("DerivationError derivation={0:?}, preimage_size:{1:?} err{2:?}")]
     DerivationError(Derivation, usize, optimism_derivation::Error),
     #[error("UnexpectedCurrentSyncCommitteeKeys {0:?} {1:?}")]
