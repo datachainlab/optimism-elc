@@ -30,7 +30,11 @@ pub mod ibc {
 
     pub mod lightclients {
 
-        pub use ethereum_ibc_proto::ibc::lightclients::ethereum;
+        pub mod ethereum {
+            pub mod v1 {
+                include_proto!("ibc.lightclients.ethereum.v1.rs");
+            }
+        }
 
         pub mod optimism {
             pub mod v1 {

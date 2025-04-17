@@ -1,9 +1,9 @@
 use alloc::borrow::ToOwned as _;
 use alloc::vec::Vec;
 use alloy_primitives::B256;
-use ethereum_ibc::consensus::beacon::Slot;
-use ethereum_ibc::consensus::bls::PublicKey;
-use ethereum_ibc::consensus::types::H256;
+use ethereum_consensus::beacon::Slot;
+use ethereum_consensus::bls::PublicKey;
+use ethereum_consensus::types::H256;
 use light_client::types::{Any, Time};
 use prost::Message as _;
 

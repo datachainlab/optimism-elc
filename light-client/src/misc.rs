@@ -1,7 +1,5 @@
 use crate::errors::Error;
-use alloy_primitives::keccak256;
 use core::time::Duration;
-use ethereum_ibc::consensus::types::H256;
 use light_client::types::Time;
 
 pub fn new_timestamp(second: u64) -> Result<Time, Error> {
@@ -38,16 +36,4 @@ pub fn validate_header_timestamp_not_future(
         ));
     }
     Ok(())
-}
-
-pub fn calculate_ibc_commitment_storage_location(ibc_commitments_slot: &H256, path: &str) -> H256 {
-    keccak256(
-        [
-            keccak256(path.as_bytes()).as_slice(),
-            ibc_commitments_slot.as_bytes(),
-        ]
-        .concat(),
-    )
-    .0
-    .into()
 }

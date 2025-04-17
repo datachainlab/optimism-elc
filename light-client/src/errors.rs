@@ -1,17 +1,16 @@
 use crate::l1::L1Consensus;
 use alloc::boxed::Box;
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use alloy_primitives::B256;
 use core::array::TryFromSliceError;
-use ethereum_ibc::consensus::beacon::Slot;
-use ethereum_ibc::consensus::bls::PublicKey;
-use ethereum_ibc::consensus::errors::Error as L1ConsensusError;
-use ethereum_ibc::consensus::fork::ForkSpec;
-use ethereum_ibc::consensus::sync_protocol::SyncCommitteePeriod;
-use ethereum_ibc::consensus::types::H256;
-use ethereum_ibc::errors::Error as L1IBCError;
-use ethereum_ibc::light_client_verifier::errors::Error as L1VerifyError;
+use ethereum_consensus::beacon::Slot;
+use ethereum_consensus::bls::PublicKey;
+use ethereum_consensus::errors::{Error as L1ConsensusError, MerkleError};
+use ethereum_consensus::fork::ForkSpec;
+use ethereum_consensus::sync_protocol::SyncCommitteePeriod;
+use ethereum_consensus::types::H256;
+use ethereum_light_client_verifier::errors::Error as L1VerifyError;
 use kona_preimage::errors::PreimageOracleError;
 use kona_preimage::PreimageKey;
 use light_client::commitments::Error as CommitmentError;
@@ -138,7 +137,7 @@ pub enum Error {
     AccountStorageRootMismatch(H256, H256, H256, String, Vec<String>),
     #[error("MPTVerificationError {0} {1} {2} {3:?}")]
     MPTVerificationError(
-        ethereum_ibc::light_client_verifier::errors::Error,
+        ethereum_light_client_verifier::errors::Error,
         H256,
         String,
         Vec<String>,
@@ -155,8 +154,6 @@ pub enum Error {
     },
     #[error("L1VerifyError {0:?}")]
     L1VerifyError(L1VerifyError),
-    #[error("L1IBCError {0}")]
-    L1IBCError(L1IBCError),
     #[error("L1ConsensusError {0}")]
     L1ConsensusError(L1ConsensusError),
     #[error("L1VerifyError index={0}, prev_updated_as_next={1:?} prev={2:?}, err={3}")]
@@ -173,10 +170,28 @@ pub enum Error {
     NoNextSyncCommitteeInConsensusUpdate(SyncCommitteePeriod, SyncCommitteePeriod),
     #[error("StoreNotSupportedFinalizedPeriod {0:?} {1:?}")]
     StoreNotSupportedFinalizedPeriod(SyncCommitteePeriod, SyncCommitteePeriod),
+    #[error("ProtoMissingFieldError {0}")]
+    ProtoMissingFieldError(String),
+    #[error("DeserializeSyncCommitteeBitsError {parent:?} {sync_committee_size} {sync_committee_bits:?}")]
+    DeserializeSyncCommitteeBitsError {
+        parent: ethereum_consensus::ssz_rs::DeserializeError,
+        sync_committee_size: usize,
+        sync_committee_bits: Vec<u8>,
+    },
+    #[error("InvalidProofFormatError {0}")]
+    InvalidProofFormatError(String),
+    #[error("InvalidExecutionBlockHashMerkleBranch {0:?}")]
+    InvalidExecutionBlockHashMerkleBranch(MerkleError),
 
     // Framework
     #[error("LCPError {0}")]
     LCPError(light_client::Error),
+}
+
+impl Error {
+    pub fn proto_missing(s: &str) -> Self {
+        Error::ProtoMissingFieldError(s.to_string())
+    }
 }
 
 impl light_client::LightClientSpecificError for Error {}

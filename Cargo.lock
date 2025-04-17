@@ -842,7 +842,7 @@ dependencies = [
 [[package]]
 name = "ethereum-consensus"
 version = "0.1.0"
-source = "git+https://github.com/yoshidan/ethereum-light-client-rs?branch=feature%2Fverify_block_hash#077665806fa79316e94835988f7125ba9eae0942"
+source = "git+https://github.com/datachainlab/ethereum-light-client-rs?rev=v0.2.0#51a10e62d7fec3b7ae5a796fdc1b838393ed3e2b"
 dependencies = [
  "displaydoc",
  "hex",
@@ -855,38 +855,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "ethereum-ibc"
-version = "0.1.0"
-source = "git+https://github.com/yoshidan/ethereum-ibc-rs?branch=feature%2Ffor_op_elc#5717246ec0f18df1adce5d4b0f948c7239992bf7"
-dependencies = [
- "bytes",
- "displaydoc",
- "ethereum-consensus",
- "ethereum-ibc-proto",
- "ethereum-light-client-verifier",
- "hex",
- "ibc",
- "ibc-proto",
- "prost",
- "rlp",
- "serde",
- "ssz-rs",
- "tiny-keccak",
-]
-
-[[package]]
-name = "ethereum-ibc-proto"
-version = "0.1.0"
-source = "git+https://github.com/yoshidan/ethereum-ibc-rs?branch=feature%2Ffor_op_elc#5717246ec0f18df1adce5d4b0f948c7239992bf7"
-dependencies = [
- "prost",
- "serde",
-]
-
-[[package]]
 name = "ethereum-light-client-verifier"
 version = "0.1.0"
-source = "git+https://github.com/yoshidan/ethereum-light-client-rs?branch=feature%2Fverify_block_hash#077665806fa79316e94835988f7125ba9eae0942"
+source = "git+https://github.com/datachainlab/ethereum-light-client-rs?rev=v0.2.0#51a10e62d7fec3b7ae5a796fdc1b838393ed3e2b"
 dependencies = [
  "displaydoc",
  "ethereum-consensus",
@@ -1852,8 +1823,8 @@ version = "0.1.0"
 dependencies = [
  "alloy-consensus",
  "alloy-primitives",
- "ethereum-ibc",
- "ethereum-ibc-proto",
+ "ethereum-consensus",
+ "ethereum-light-client-verifier",
  "kona-preimage",
  "light-client",
  "maili-genesis",
@@ -1871,7 +1842,6 @@ dependencies = [
 name = "optimism-ibc-proto"
 version = "0.1.0"
 dependencies = [
- "ethereum-ibc-proto",
  "ibc-proto",
  "prost",
  "schemars",

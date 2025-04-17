@@ -1,27 +1,30 @@
 use crate::errors::Error;
 use alloc::string::ToString;
-use ethereum_ibc::consensus::beacon::{Epoch, Root, Slot};
-use ethereum_ibc::consensus::bls::PublicKey;
-use ethereum_ibc::consensus::compute::compute_sync_committee_period_at_slot;
-use ethereum_ibc::consensus::context::ChainContext;
-use ethereum_ibc::consensus::fork::ForkParameters;
-use ethereum_ibc::consensus::sync_protocol::{SyncCommittee, SyncCommitteePeriod};
-use ethereum_ibc::consensus::types::U64;
-use ethereum_ibc::light_client_verifier::consensus::SyncProtocolVerifier;
-use ethereum_ibc::light_client_verifier::context::{
+use alloc::vec::Vec;
+use ethereum_consensus::beacon::{BeaconBlockHeader, Epoch, Root, Slot};
+use ethereum_consensus::bls::{PublicKey, Signature};
+use ethereum_consensus::compute::{compute_sync_committee_period_at_slot, hash_tree_root};
+use ethereum_consensus::context::ChainContext;
+use ethereum_consensus::fork::ForkParameters;
+use ethereum_consensus::merkle::is_valid_normalized_merkle_branch;
+use ethereum_consensus::ssz_rs::{Bitvector, Deserialize, Vector};
+use ethereum_consensus::sync_protocol::{SyncAggregate, SyncCommittee, SyncCommitteePeriod};
+use ethereum_consensus::types::{H256, U64};
+use ethereum_light_client_verifier::consensus::SyncProtocolVerifier;
+use ethereum_light_client_verifier::context::{
     ChainConsensusVerificationContext, Fraction, LightClientContext,
 };
-use ethereum_ibc::light_client_verifier::errors::Error::IrrelevantConsensusUpdates;
-use ethereum_ibc::light_client_verifier::state::LightClientStoreReader;
-use ethereum_ibc::light_client_verifier::updates::ConsensusUpdate;
-use ethereum_ibc::types::{
-    convert_proto_to_consensus_update, convert_proto_to_execution_update, ConsensusUpdateInfo,
-    ExecutionUpdateInfo, TrustedSyncCommittee,
+use ethereum_light_client_verifier::errors::Error::IrrelevantConsensusUpdates;
+use ethereum_light_client_verifier::state::LightClientStoreReader;
+use ethereum_light_client_verifier::updates::{ConsensusUpdate, ExecutionUpdate};
+use optimism_ibc_proto::ibc::lightclients::ethereum::v1::{
+    BeaconBlockHeader as ProtoBeaconBlockHeader, ConsensusUpdate as ProtoConsensusUpdate,
+    ExecutionUpdate as ProtoExecutionUpdate, SyncAggregate as ProtoSyncAggregate,
+    SyncCommittee as ProtoSyncCommittee,
 };
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::L1Header as RawL1Header;
-use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct L1Config {
     /// Chain Param
     pub genesis_validators_root: Root,
@@ -69,6 +72,100 @@ impl L1Consensus {
     }
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct ConsensusUpdateInfo<const SYNC_COMMITTEE_SIZE: usize> {
+    /// Header attested to by the sync committee
+    pub attested_header: BeaconBlockHeader,
+    /// Next sync committee contained in `attested_header.state_root`
+    /// 0: sync committee
+    /// 1: branch indicating the next sync committee in the tree corresponding to `attested_header.state_root`
+    pub next_sync_committee: Option<(SyncCommittee<SYNC_COMMITTEE_SIZE>, Vec<H256>)>,
+    /// Finalized header contained in `attested_header.state_root`
+    /// 0: header
+    /// 1. branch indicating the header in the tree corresponding to `attested_header.state_root`
+    pub finalized_header: (BeaconBlockHeader, Vec<H256>),
+    /// Sync committee aggregate signature
+    pub sync_aggregate: SyncAggregate<SYNC_COMMITTEE_SIZE>,
+    /// Slot at which the aggregate signature was created (untrusted)
+    pub signature_slot: Slot,
+    /// Execution payload contained in the finalized beacon block's body
+    pub finalized_execution_root: H256,
+    /// Execution payload branch indicating the payload in the tree corresponding to the finalized block's body
+    pub finalized_execution_branch: Vec<H256>,
+}
+
+impl<const SYNC_COMMITTEE_SIZE: usize> ConsensusUpdate<SYNC_COMMITTEE_SIZE>
+    for ConsensusUpdateInfo<SYNC_COMMITTEE_SIZE>
+{
+    fn attested_beacon_header(&self) -> &BeaconBlockHeader {
+        &self.attested_header
+    }
+    fn next_sync_committee(&self) -> Option<&SyncCommittee<SYNC_COMMITTEE_SIZE>> {
+        self.next_sync_committee.as_ref().map(|c| &c.0)
+    }
+    fn next_sync_committee_branch(&self) -> Option<Vec<H256>> {
+        self.next_sync_committee.as_ref().map(|c| c.1.to_vec())
+    }
+    fn finalized_beacon_header(&self) -> &BeaconBlockHeader {
+        &self.finalized_header.0
+    }
+    fn finalized_beacon_header_branch(&self) -> Vec<H256> {
+        self.finalized_header.1.to_vec()
+    }
+    fn finalized_execution_root(&self) -> H256 {
+        self.finalized_execution_root
+    }
+    fn finalized_execution_branch(&self) -> Vec<H256> {
+        self.finalized_execution_branch.to_vec()
+    }
+    fn sync_aggregate(&self) -> &SyncAggregate<SYNC_COMMITTEE_SIZE> {
+        &self.sync_aggregate
+    }
+    fn signature_slot(&self) -> Slot {
+        self.signature_slot
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct ExecutionUpdateInfo {
+    /// State root of the execution payload
+    pub state_root: H256,
+    /// Branch indicating the state root in the tree corresponding to the execution payload
+    pub state_root_branch: Vec<H256>,
+    /// Block number of the execution payload
+    pub block_number: U64,
+    /// Branch indicating the block number in the tree corresponding to the execution payload
+    pub block_number_branch: Vec<H256>,
+    /// Block hash of the execution payload
+    pub block_hash: H256,
+    /// Branch indicating the block hash in the tree corresponding to the execution payload
+    pub block_hash_branch: Vec<H256>,
+}
+
+impl ExecutionUpdate for ExecutionUpdateInfo {
+    fn state_root(&self) -> H256 {
+        self.state_root
+    }
+
+    fn state_root_branch(&self) -> Vec<H256> {
+        self.state_root_branch.clone()
+    }
+
+    fn block_number(&self) -> U64 {
+        self.block_number
+    }
+
+    fn block_number_branch(&self) -> Vec<H256> {
+        self.block_number_branch.clone()
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct TrustedSyncCommittee<const SYNC_COMMITTEE_SIZE: usize> {
+    pub sync_committee: SyncCommittee<SYNC_COMMITTEE_SIZE>,
+    pub is_next: bool,
+}
+
 #[derive(Clone, Debug)]
 pub struct L1Header<const SYNC_COMMITTEE_SIZE: usize> {
     pub trusted_sync_committee: TrustedSyncCommittee<SYNC_COMMITTEE_SIZE>,
@@ -110,17 +207,19 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL1Header> for L1Header<SYNC_CO
         let execution_update = value
             .execution_update
             .ok_or(Error::MissingL1ExecutionUpdate)?;
-        let consensus_update =
-            convert_proto_to_consensus_update(consensus_update).map_err(Error::L1IBCError)?;
+        let consensus_update = convert_proto_to_consensus_update(consensus_update)?;
         let execution_update = convert_proto_to_execution_update(execution_update);
         let trusted_sync_committee = value
             .trusted_sync_committee
-            .ok_or(Error::MissingTrustedSyncCommittee)?
-            .try_into()
-            .map_err(Error::L1IBCError)?;
+            .ok_or(Error::MissingTrustedSyncCommittee)?;
 
         Ok(Self {
-            trusted_sync_committee,
+            trusted_sync_committee: TrustedSyncCommittee {
+                sync_committee: convert_proto_to_sync_committee(
+                    trusted_sync_committee.sync_committee,
+                )?,
+                is_next: trusted_sync_committee.is_next,
+            },
             consensus_update,
             execution_update,
         })
@@ -185,12 +284,201 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L1Verifier<SYNC_COMMITTEE_SIZE> {
         consensus_update: &ConsensusUpdateInfo<SYNC_COMMITTEE_SIZE>,
         execution_update: &ExecutionUpdateInfo,
     ) -> Result<(), Error> {
+        // Same L1 validation as ethereum-ibc-rs
         self.consensus_verifier
-            .validate_updates(ctx, l1_sync_committee, consensus_update, execution_update)
+            .validate_consensus_update(ctx, l1_sync_committee, consensus_update)
             .map_err(Error::L1VerifyError)?;
+        let update_fork_spec =
+            ctx.compute_fork_spec(consensus_update.finalized_beacon_header().slot);
+        const BLOCK_NUMBER_TO_BLOCK_HASH_DIFF: u32 = 6;
+        let execution_payload_block_hash_gindex = update_fork_spec
+            .execution_payload_block_number_gindex
+            + BLOCK_NUMBER_TO_BLOCK_HASH_DIFF;
+        let trusted_execution_root = consensus_update.finalized_execution_root();
+        self.consensus_verifier
+            .validate_execution_update(update_fork_spec, trusted_execution_root, execution_update)
+            .map_err(Error::L1VerifyError)?;
+
+        // Ensure valid l1 block hash because L2 derivation requires it.
+        is_valid_normalized_merkle_branch(
+            hash_tree_root(execution_update.block_hash)
+                .unwrap()
+                .0
+                .into(),
+            &execution_update.block_hash_branch,
+            execution_payload_block_hash_gindex,
+            trusted_execution_root,
+        )
+        .map_err(Error::InvalidExecutionBlockHashMerkleBranch)?;
 
         Ok(())
     }
+}
+
+impl<const SYNC_COMMITTEE_SIZE: usize> LightClientStoreReader<SYNC_COMMITTEE_SIZE>
+    for L1SyncCommittee<SYNC_COMMITTEE_SIZE>
+{
+    fn current_period<CC: ChainContext>(&self, ctx: &CC) -> SyncCommitteePeriod {
+        compute_sync_committee_period_at_slot(ctx, self.slot)
+    }
+
+    fn current_sync_committee(&self) -> Option<SyncCommittee<SYNC_COMMITTEE_SIZE>> {
+        self.current_sync_committee.clone()
+    }
+
+    fn next_sync_committee(&self) -> Option<SyncCommittee<SYNC_COMMITTEE_SIZE>> {
+        self.next_sync_committee.clone()
+    }
+
+    fn ensure_relevant_update<CC: ChainContext, C: ConsensusUpdate<SYNC_COMMITTEE_SIZE>>(
+        &self,
+        _ctx: &CC,
+        update: &C,
+    ) -> Result<(), ethereum_light_client_verifier::errors::Error> {
+        // L2 is shorter than L1, so it is possible that only L2 is different and L1 is in the same slot.
+        if self.slot > update.finalized_beacon_header().slot {
+            Err(IrrelevantConsensusUpdates(
+                "finalized header slot is not greater than or equal to current slot".to_string(),
+            ))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+fn convert_proto_to_header(header: &ProtoBeaconBlockHeader) -> Result<BeaconBlockHeader, Error> {
+    Ok(BeaconBlockHeader {
+        slot: header.slot.into(),
+        proposer_index: header.proposer_index.into(),
+        parent_root: H256::from_slice(&header.parent_root),
+        state_root: H256::from_slice(&header.state_root),
+        body_root: H256::from_slice(&header.body_root),
+    })
+}
+
+pub fn convert_proto_to_execution_update(
+    execution_update: ProtoExecutionUpdate,
+) -> ExecutionUpdateInfo {
+    ExecutionUpdateInfo {
+        state_root: H256::from_slice(&execution_update.state_root),
+        state_root_branch: execution_update
+            .state_root_branch
+            .into_iter()
+            .map(|n| H256::from_slice(&n))
+            .collect(),
+        block_number: execution_update.block_number.into(),
+        block_number_branch: execution_update
+            .block_number_branch
+            .into_iter()
+            .map(|n| H256::from_slice(&n))
+            .collect(),
+        block_hash: H256::from_slice(&execution_update.block_hash),
+        block_hash_branch: execution_update
+            .block_hash_branch
+            .into_iter()
+            .map(|n| H256::from_slice(&n))
+            .collect(),
+    }
+}
+
+fn convert_proto_sync_aggregate<const SYNC_COMMITTEE_SIZE: usize>(
+    sync_aggregate: ProtoSyncAggregate,
+) -> Result<SyncAggregate<SYNC_COMMITTEE_SIZE>, Error> {
+    Ok(SyncAggregate {
+        sync_committee_bits: Bitvector::<SYNC_COMMITTEE_SIZE>::deserialize(
+            sync_aggregate.sync_committee_bits.as_slice(),
+        )
+        .map_err(|e| Error::DeserializeSyncCommitteeBitsError {
+            parent: e,
+            sync_committee_size: SYNC_COMMITTEE_SIZE,
+            sync_committee_bits: sync_aggregate.sync_committee_bits,
+        })?,
+        sync_committee_signature: Signature::try_from(sync_aggregate.sync_committee_signature)
+            .map_err(Error::L1ConsensusError)?,
+    })
+}
+
+fn convert_proto_to_consensus_update<const SYNC_COMMITTEE_SIZE: usize>(
+    consensus_update: ProtoConsensusUpdate,
+) -> Result<ConsensusUpdateInfo<SYNC_COMMITTEE_SIZE>, Error> {
+    let attested_header = convert_proto_to_header(
+        consensus_update
+            .attested_header
+            .as_ref()
+            .ok_or(Error::proto_missing("attested_header"))?,
+    )?;
+    let finalized_header = convert_proto_to_header(
+        consensus_update
+            .finalized_header
+            .as_ref()
+            .ok_or(Error::proto_missing("finalized_header"))?,
+    )?;
+
+    let finalized_execution_branch = consensus_update
+        .finalized_execution_branch
+        .into_iter()
+        .map(|b| H256::from_slice(&b))
+        .collect::<Vec<H256>>();
+    let consensus_update = ConsensusUpdateInfo {
+        attested_header,
+        next_sync_committee: if consensus_update.next_sync_committee.is_none()
+            || consensus_update
+                .next_sync_committee
+                .as_ref()
+                .ok_or(Error::proto_missing("next_sync_committee"))?
+                .pubkeys
+                .is_empty()
+            || consensus_update.next_sync_committee_branch.is_empty()
+        {
+            None
+        } else {
+            Some((
+                convert_proto_to_sync_committee(consensus_update.next_sync_committee)?,
+                decode_branch(consensus_update.next_sync_committee_branch),
+            ))
+        },
+        finalized_header: (
+            finalized_header,
+            decode_branch(consensus_update.finalized_header_branch),
+        ),
+        sync_aggregate: convert_proto_sync_aggregate(
+            consensus_update
+                .sync_aggregate
+                .ok_or(Error::proto_missing("sync_aggregate"))?,
+        )?,
+        signature_slot: consensus_update.signature_slot.into(),
+        finalized_execution_root: H256::from_slice(&consensus_update.finalized_execution_root),
+        finalized_execution_branch,
+    };
+    Ok(consensus_update)
+}
+
+fn decode_branch(bz: Vec<Vec<u8>>) -> Vec<H256> {
+    bz.into_iter().map(|b| H256::from_slice(&b)).collect()
+}
+
+fn convert_proto_to_sync_committee<const SYNC_COMMITTEE_SIZE: usize>(
+    sync_committee: Option<ProtoSyncCommittee>,
+) -> Result<SyncCommittee<SYNC_COMMITTEE_SIZE>, Error> {
+    let sync_committee = SyncCommittee {
+        pubkeys: Vector::<PublicKey, SYNC_COMMITTEE_SIZE>::from_iter(
+            sync_committee
+                .clone()
+                .ok_or(Error::proto_missing("next_sync_committee"))?
+                .pubkeys
+                .into_iter()
+                .map(|pk| pk.try_into())
+                .collect::<Result<Vec<PublicKey>, _>>()
+                .map_err(Error::L1ConsensusError)?,
+        ),
+        aggregate_pubkey: PublicKey::try_from(
+            sync_committee
+                .ok_or(Error::proto_missing("next_sync_committee"))?
+                .aggregate_pubkey,
+        )
+        .map_err(Error::L1ConsensusError)?,
+    };
+    Ok(sync_committee)
 }
 
 fn apply_updates<const SYNC_COMMITTEE_SIZE: usize, CC: ChainConsensusVerificationContext>(
@@ -246,37 +534,6 @@ fn apply_updates<const SYNC_COMMITTEE_SIZE: usize, CC: ChainConsensusVerificatio
     }
 }
 
-impl<const SYNC_COMMITTEE_SIZE: usize> LightClientStoreReader<SYNC_COMMITTEE_SIZE>
-    for L1SyncCommittee<SYNC_COMMITTEE_SIZE>
-{
-    fn current_period<CC: ChainContext>(&self, ctx: &CC) -> SyncCommitteePeriod {
-        compute_sync_committee_period_at_slot(ctx, self.slot)
-    }
-
-    fn current_sync_committee(&self) -> Option<SyncCommittee<SYNC_COMMITTEE_SIZE>> {
-        self.current_sync_committee.clone()
-    }
-
-    fn next_sync_committee(&self) -> Option<SyncCommittee<SYNC_COMMITTEE_SIZE>> {
-        self.next_sync_committee.clone()
-    }
-
-    fn ensure_relevant_update<CC: ChainContext, C: ConsensusUpdate<SYNC_COMMITTEE_SIZE>>(
-        &self,
-        _ctx: &CC,
-        update: &C,
-    ) -> Result<(), ethereum_ibc::light_client_verifier::errors::Error> {
-        // L2 is shorter than L1, so it is possible that only L2 is different and L1 is in the same slot.
-        if self.slot > update.finalized_beacon_header().slot {
-            Err(IrrelevantConsensusUpdates(
-                "finalized header slot is not greater than or equal to current slot".to_string(),
-            ))
-        } else {
-            Ok(())
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
 
@@ -285,7 +542,7 @@ mod tests {
     use alloc::vec::Vec;
     use alloy_primitives::hex;
 
-    use ethereum_ibc::consensus::bls::PublicKey;
+    use ethereum_consensus::bls::PublicKey;
 
     use optimism_ibc_proto::ibc::lightclients::optimism::v1::L1Config as RawL1Config;
     use optimism_ibc_proto::ibc::lightclients::optimism::v1::L1Header as RawL1Header;
@@ -301,7 +558,7 @@ mod tests {
         let raw_l1_header = hex!("0af90c0a02100112f20c0a3088c141df77cd9d8d7a71a75c826c41a9c9f03c6ee1b180f3e7852f6a280099ded351b58d66e653af8e42816a4d8f532e0a30b89bebc699769726a318c8e9971bd3171297c61aea4a6578a7a4f94b547dcba5bac16a89108b6b6a1fe3695d1a874a0b0a30a99a76ed7796f7be22d5b7e85deeb7c5677e88e511e0b337618f8c4eb61349b4bf2d153f649f7b53359fe8b94a38e44c0a30a3a32b0f8b4ddb83f1a0a853d81dd725dfe577d4f4c3db8ece52ce2b026eca84815c1a7e8e92a4de3d755733bf7e4a9b0a3088c141df77cd9d8d7a71a75c826c41a9c9f03c6ee1b180f3e7852f6a280099ded351b58d66e653af8e42816a4d8f532e0a30b89bebc699769726a318c8e9971bd3171297c61aea4a6578a7a4f94b547dcba5bac16a89108b6b6a1fe3695d1a874a0b0a30a99a76ed7796f7be22d5b7e85deeb7c5677e88e511e0b337618f8c4eb61349b4bf2d153f649f7b53359fe8b94a38e44c0a30a3a32b0f8b4ddb83f1a0a853d81dd725dfe577d4f4c3db8ece52ce2b026eca84815c1a7e8e92a4de3d755733bf7e4a9b0a3088c141df77cd9d8d7a71a75c826c41a9c9f03c6ee1b180f3e7852f6a280099ded351b58d66e653af8e42816a4d8f532e0a30b89bebc699769726a318c8e9971bd3171297c61aea4a6578a7a4f94b547dcba5bac16a89108b6b6a1fe3695d1a874a0b0a30a99a76ed7796f7be22d5b7e85deeb7c5677e88e511e0b337618f8c4eb61349b4bf2d153f649f7b53359fe8b94a38e44c0a30a3a32b0f8b4ddb83f1a0a853d81dd725dfe577d4f4c3db8ece52ce2b026eca84815c1a7e8e92a4de3d755733bf7e4a9b0a3088c141df77cd9d8d7a71a75c826c41a9c9f03c6ee1b180f3e7852f6a280099ded351b58d66e653af8e42816a4d8f532e0a30b89bebc699769726a318c8e9971bd3171297c61aea4a6578a7a4f94b547dcba5bac16a89108b6b6a1fe3695d1a874a0b0a30a99a76ed7796f7be22d5b7e85deeb7c5677e88e511e0b337618f8c4eb61349b4bf2d153f649f7b53359fe8b94a38e44c0a30a3a32b0f8b4ddb83f1a0a853d81dd725dfe577d4f4c3db8ece52ce2b026eca84815c1a7e8e92a4de3d755733bf7e4a9b0a3088c141df77cd9d8d7a71a75c826c41a9c9f03c6ee1b180f3e7852f6a280099ded351b58d66e653af8e42816a4d8f532e0a30b89bebc699769726a318c8e9971bd3171297c61aea4a6578a7a4f94b547dcba5bac16a89108b6b6a1fe3695d1a874a0b0a30a99a76ed7796f7be22d5b7e85deeb7c5677e88e511e0b337618f8c4eb61349b4bf2d153f649f7b53359fe8b94a38e44c0a30a3a32b0f8b4ddb83f1a0a853d81dd725dfe577d4f4c3db8ece52ce2b026eca84815c1a7e8e92a4de3d755733bf7e4a9b0a3088c141df77cd9d8d7a71a75c826c41a9c9f03c6ee1b180f3e7852f6a280099ded351b58d66e653af8e42816a4d8f532e0a30b89bebc699769726a318c8e9971bd3171297c61aea4a6578a7a4f94b547dcba5bac16a89108b6b6a1fe3695d1a874a0b0a30a99a76ed7796f7be22d5b7e85deeb7c5677e88e511e0b337618f8c4eb61349b4bf2d153f649f7b53359fe8b94a38e44c0a30a3a32b0f8b4ddb83f1a0a853d81dd725dfe577d4f4c3db8ece52ce2b026eca84815c1a7e8e92a4de3d755733bf7e4a9b0a3088c141df77cd9d8d7a71a75c826c41a9c9f03c6ee1b180f3e7852f6a280099ded351b58d66e653af8e42816a4d8f532e0a30b89bebc699769726a318c8e9971bd3171297c61aea4a6578a7a4f94b547dcba5bac16a89108b6b6a1fe3695d1a874a0b0a30a99a76ed7796f7be22d5b7e85deeb7c5677e88e511e0b337618f8c4eb61349b4bf2d153f649f7b53359fe8b94a38e44c0a30a3a32b0f8b4ddb83f1a0a853d81dd725dfe577d4f4c3db8ece52ce2b026eca84815c1a7e8e92a4de3d755733bf7e4a9b0a3088c141df77cd9d8d7a71a75c826c41a9c9f03c6ee1b180f3e7852f6a280099ded351b58d66e653af8e42816a4d8f532e0a30b89bebc699769726a318c8e9971bd3171297c61aea4a6578a7a4f94b547dcba5bac16a89108b6b6a1fe3695d1a874a0b0a30a99a76ed7796f7be22d5b7e85deeb7c5677e88e511e0b337618f8c4eb61349b4bf2d153f649f7b53359fe8b94a38e44c0a30a3a32b0f8b4ddb83f1a0a853d81dd725dfe577d4f4c3db8ece52ce2b026eca84815c1a7e8e92a4de3d755733bf7e4a9b123082c0c49d5142e3f5a7340864440c61787b6741271e4ce2a21114f137a693fc4484582aee2ebbb9c6d9f9ebdae7ff73f712b6050a6808381a20211f5aa7d922e93c1866f1c0cea8fc6a771de065e5bae671c1ae0c3bade1dfae222001a6be88c2c4b4b47674808d339d7a40e8328770a0ff2104bef5551653f85f9b2a20221bdee3a03565f7f3660799694a42d8bf2a0a77152d005f8cc1cdc9747a1292226808281a203e333f3e0377a391e944c0abb605355186f9e2dca1f072be784eb3b9561f0bac2220bc1834d65587e9ae23bb5fbadeaabfd7196fab3bc21f7fee3147e4bdedc048172a20348b6124434d34a85922c835eaad38e97a1e86cebadd1ba09307077a9ad8564c2a2005000000000000000000000000000000000000000000000000000000000000002a2086220a2d72000ffb901cf75bf2918181ffea3c6567a573566d8c826e9e5674932a20f4447f38c2291142c79b90629719f2ca6f899d72623a05551eb5731fccce6d272a201e3be659143306ea1af4e87a0ced83d21a93175380c0f106d71cdb41a27c8a442a206448f99e044fe7896fab91ebd5d2b51e0628af1ff7446c5f6de0f9b47fe869562a203943159d5221c2d92c003a4441f78b14a17f46777119116263db1e3f9d15b1cc3220a422efdd16d3379f8faa1a04617ddf4cb8112334bbbc148bda3116bea01f99943a2005d2733d4658d1b357176e6e3666046e7d0f326fff6c9967fdaaf8cbf628c83c3a206c6dd63656639d153a2e86a9cab291e7a26e957ad635fec872d2836e92340c233a20db56114e00fdd4c1f85c892bf35ac9a89289aaecb1ebd0a96cde606a748b5d713a2056802d0e20a661fab06aee2430b2d1f16e39090d6811137f2056d60323b1128242680a04ffffffff126092966f72e3b27c6a44d414c4d25ab5b60468cb0c41322377df21316d6829493dad6dedd05d21e3dc9eabf309c724ff2f0c432e6aa55b1712b8f186da84693da5d45a25019ab47db5ac7bdcff35749251d0f435423efea41d2649411f4cf8101c48391ac4040a2058fd4c8a5ddb802fc96d150aa2ae07d0b7cad4cdba820c240ef38f8923da59a9122056e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b42112206a3cd137c4f65bde80892d5961b88bb7fd65ab2772f1a5c5dc909cfb6344d46212201bff56a7614f088770cc2adfe4beedabb8f20d725c40f504f1f30519c162b6c312209b7307f296f6cfe8e150341ba34163c397e16bf3fb887a365529cd94cc7d669c1220536d98837f2dd165a55d5eeae91485954472d56f246df256bf3cae19352a123c18282220ccea95040000000000000000000000000000000000000000000000000000000022201d3dd666c554e0b19d1911c7da8b2de157e3f9863a85e3e89e01846a2be535272220f6d24b9fc4a2cad9cd9fcfb1824e28717e8a0856e5704a523c135fd64f08692f22209b7307f296f6cfe8e150341ba34163c397e16bf3fb887a365529cd94cc7d669c2220536d98837f2dd165a55d5eeae91485954472d56f246df256bf3cae19352a123c2a205c0374e27beeb58b392ff4d0f61dd52f9827a5de34a5cbb8118cd9b7b3de4dea32207ffe241ea60187fdb0187bfa22de35d1f9bed7ab061d9401fd47e34a54fbede132207d00409ac38e3a99bc86c045f570dea66e115ba1d767d89c9e7f82901dfcfd88322047b868e6a4896c7843750c34cfb5e9c7a3473d5ef4b8d4b3984e182d4077390d3220f5e2b63eaf1d0292bf32b428c539f64875393ed483d0b5ad73fea0c301900edb3220536d98837f2dd165a55d5eeae91485954472d56f246df256bf3cae19352a123c").to_vec();
         let raw_l1_header = RawL1Header::decode(&*raw_l1_header).unwrap();
         let l1_header = L1Header::<
-            { ethereum_ibc::consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE },
+            { ethereum_consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE },
         >::try_from(raw_l1_header.clone())
         .unwrap();
         let cons_state = L1Consensus {
@@ -365,7 +622,7 @@ mod tests {
         for (i, case) in cases.iter().enumerate() {
             let raw_l1_header = RawL1Header::decode(&*case.raw_l1_header.to_vec()).unwrap();
             let l1_header = L1Header::<
-                { ethereum_ibc::consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE },
+                { ethereum_consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE },
             >::try_from(raw_l1_header.clone())
             .unwrap();
             let cons_state = L1Consensus {

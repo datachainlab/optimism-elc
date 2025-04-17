@@ -1,10 +1,10 @@
+use crate::account::AccountUpdateInfo;
 use crate::consensus_state::ConsensusState;
 use crate::errors::Error;
 use crate::l1::{L1Config, L1Consensus, L1Header};
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use alloy_primitives::B256;
-use ethereum_ibc::types::AccountUpdateInfo;
 use light_client::types::{Any, Height};
 use maili_genesis::RollupConfig;
 use optimism_derivation::derivation::Derivation;
@@ -150,8 +150,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
         let account_update_info = header
             .account_update
             .ok_or(Error::MissingAccountUpdate)?
-            .try_into()
-            .map_err(Error::L1IBCError)?;
+            .try_into()?;
 
         let oracle: MemoryOracleClient = preimages
             .preimages

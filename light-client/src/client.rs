@@ -1,15 +1,14 @@
 use crate::client_state::ClientState;
+use crate::commitment::{calculate_ibc_commitment_storage_location, decode_eip1184_rlp_proof};
 use crate::consensus_state::ConsensusState;
 use crate::errors::Error;
 use crate::header::Header;
 use crate::message::ClientMessage;
-use crate::misc::calculate_ibc_commitment_storage_location;
 use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 use alloy_primitives::keccak256;
-use ethereum_ibc::commitment::decode_eip1184_rlp_proof;
-use ethereum_ibc::consensus::types::H256;
+use ethereum_consensus::types::H256;
 use light_client::commitments::{
     gen_state_id_from_any, CommitmentPrefix, EmittedState, StateID, TrustingPeriodContext,
     UpdateStateProxyMessage, ValidationContext, VerifyMembershipProxyMessage,
@@ -237,7 +236,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> OptimismLightClient<L1_SYNC_COMMITTEE_
                 .map_err(Error::LCPError)?,
         )?;
         let root = consensus_state.storage_root;
-        let proof = decode_eip1184_rlp_proof(proof).map_err(Error::L1IBCError)?;
+        let proof = decode_eip1184_rlp_proof(proof)?;
         if root.is_zero() {
             return Err(Error::UnexpectedStorageRoot(
                 proof_height,

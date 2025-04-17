@@ -3,12 +3,13 @@
 extern crate alloc;
 
 use alloc::string::ToString;
-pub use ethereum_ibc as l1_ibc;
 
 pub mod client;
 pub mod client_state;
 pub mod consensus_state;
 
+mod account;
+mod commitment;
 pub mod errors;
 pub mod header;
 mod l1;

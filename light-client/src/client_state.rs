@@ -1,3 +1,4 @@
+use crate::account::AccountUpdateInfo;
 use crate::consensus_state::ConsensusState;
 use crate::errors::Error;
 use crate::header::Header;
@@ -8,21 +9,20 @@ use crate::misc::{
 };
 use alloc::borrow::ToOwned;
 use alloc::vec::Vec;
-use alloy_primitives::B256;
+use alloy_primitives::{hex, B256};
 use core::time::Duration;
-use ethereum_ibc::client_state::{trim_left_zero, verify_account_storage};
-use ethereum_ibc::consensus::beacon::Version;
-use ethereum_ibc::consensus::fork::{ForkParameter, ForkParameters, ForkSpec};
-use ethereum_ibc::consensus::types::{Address, H256, U64};
-use ethereum_ibc::light_client_verifier::context::Fraction;
-use ethereum_ibc::light_client_verifier::execution::ExecutionVerifier;
-use ethereum_ibc_proto::ibc::lightclients::ethereum::v1::{
-    Fork as ProtoFork, ForkParameters as ProtoForkParameters, ForkSpec as ProtoForkSpec,
-    Fraction as ProtoFraction,
-};
+use ethereum_consensus::beacon::Version;
+use ethereum_consensus::fork::{ForkParameter, ForkParameters, ForkSpec};
+use ethereum_consensus::types::{Address, H256, U64};
+use ethereum_light_client_verifier::context::Fraction;
+use ethereum_light_client_verifier::execution::ExecutionVerifier;
 use light_client::types::{Any, Height, Time};
 use maili_genesis::RollupConfig;
 use optimism_ibc_proto::google::protobuf::Any as IBCAny;
+use optimism_ibc_proto::ibc::lightclients::ethereum::v1::{
+    Fork as ProtoFork, ForkParameters as ProtoForkParameters, ForkSpec as ProtoForkSpec,
+    Fraction as ProtoFraction,
+};
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::ClientState as RawClientState;
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::L1Config as RawL1Config;
 use prost::Message;
@@ -93,8 +93,7 @@ impl ClientState {
             &ExecutionVerifier,
             H256::from_slice(l2_header.state_root.0.as_slice()),
             account_update,
-        )
-        .map_err(Error::L1IBCError)?;
+        )?;
 
         // check if the current timestamp is within the trusting period
         validate_state_timestamp_within_trusting_period(
@@ -173,7 +172,6 @@ impl From<L1Config> for RawL1Config {
                     execution_payload_state_root_gindex: spec.execution_payload_state_root_gindex,
                     execution_payload_block_number_gindex: spec
                         .execution_payload_block_number_gindex,
-                    execution_payload_block_hash_gindex: spec.execution_payload_block_hash_gindex,
                 }),
             }
         }
@@ -209,7 +207,6 @@ impl TryFrom<RawL1Config> for L1Config {
     type Error = Error;
 
     fn try_from(value: RawL1Config) -> Result<Self, Self::Error> {
-        //TODO ethereum-ibc-rs refactor
         fn bytes_to_version(bz: Vec<u8>) -> Version {
             assert_eq!(bz.len(), 4);
             let mut version = Version::default();
@@ -225,7 +222,6 @@ impl TryFrom<RawL1Config> for L1Config {
                 execution_payload_gindex: spec.execution_payload_gindex,
                 execution_payload_state_root_gindex: spec.execution_payload_state_root_gindex,
                 execution_payload_block_number_gindex: spec.execution_payload_block_number_gindex,
-                execution_payload_block_hash_gindex: spec.execution_payload_block_hash_gindex,
             })
         }
         let raw_fork_parameters = value.fork_parameters.ok_or(Error::MissingForkParameters)?;
@@ -243,7 +239,7 @@ impl TryFrom<RawL1Config> for L1Config {
                 })
                 .collect::<Result<Vec<_>, _>>()?,
         )
-        .map_err(|e| Error::L1IBCError(ethereum_ibc::errors::Error::EthereumConsensusError(e)))?;
+        .map_err(Error::L1ConsensusError)?;
         let trust_level = value.trust_level.ok_or(Error::MissingTrustLevel)?;
 
         Ok(Self {
@@ -377,5 +373,77 @@ impl TryFrom<Any> for ClientState {
 
     fn try_from(any: Any) -> Result<Self, Self::Error> {
         IBCAny::from(any).try_into()
+    }
+}
+
+fn trim_left_zero(value: &[u8]) -> &[u8] {
+    let mut pos = 0;
+    for v in value {
+        if *v != 0 {
+            break;
+        }
+        pos += 1;
+    }
+    &value[pos..]
+}
+
+fn verify_account_storage(
+    ibc_address: &Address,
+    execution_verifier: &ExecutionVerifier,
+    state_root: H256,
+    account_update: &AccountUpdateInfo,
+) -> Result<(), Error> {
+    match execution_verifier
+        .verify_account(
+            state_root,
+            ibc_address,
+            account_update.account_proof.clone(),
+        )
+        .map_err(|e| {
+            Error::MPTVerificationError(
+                e,
+                state_root,
+                hex::encode(ibc_address.0),
+                account_update
+                    .account_proof
+                    .iter()
+                    .map(hex::encode)
+                    .collect(),
+            )
+        })? {
+        Some(account) => {
+            if account_update.account_storage_root == account.storage_root {
+                Ok(())
+            } else {
+                Err(Error::AccountStorageRootMismatch(
+                    account_update.account_storage_root,
+                    account.storage_root,
+                    state_root,
+                    hex::encode(ibc_address.0),
+                    account_update
+                        .account_proof
+                        .iter()
+                        .map(hex::encode)
+                        .collect(),
+                ))
+            }
+        }
+        None => {
+            if account_update.account_storage_root.is_zero() {
+                Ok(())
+            } else {
+                Err(Error::AccountStorageRootMismatch(
+                    account_update.account_storage_root,
+                    H256::default(),
+                    state_root,
+                    hex::encode(ibc_address.0),
+                    account_update
+                        .account_proof
+                        .iter()
+                        .map(hex::encode)
+                        .collect(),
+                ))
+            }
+        }
     }
 }
