@@ -1,6 +1,6 @@
 syntax = "proto3";
 package ibc.lightclients.ethereum.v1;
-option go_package = "github.com/datachainlab/optimism-ibc-relay-prover/module";
+option go_package = "github.com/datachainlab/optimism-ibc-relay-prover/module/types";
 
 message TrustedSyncCommittee {
   SyncCommittee sync_committee = 2;

@@ -23,8 +23,8 @@ pub struct VerifyResult {
 
 #[derive(Clone, Debug)]
 pub struct L1Headers<const L1_SYNC_COMMITTEE_SIZE: usize> {
-    trusted_to_definitive: Vec<L1Header<L1_SYNC_COMMITTEE_SIZE>>,
-    definitive_to_latest: Vec<L1Header<L1_SYNC_COMMITTEE_SIZE>>,
+    trusted_to_deterministic: Vec<L1Header<L1_SYNC_COMMITTEE_SIZE>>,
+    deterministic_to_latest: Vec<L1Header<L1_SYNC_COMMITTEE_SIZE>>,
 }
 
 impl<const L1_SYNC_COMMITTEE_SIZE: usize> L1Headers<L1_SYNC_COMMITTEE_SIZE> {
@@ -41,7 +41,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> L1Headers<L1_SYNC_COMMITTEE_SIZE> {
         };
 
         let mut updated_as_next = false;
-        for (i, l1_header) in self.trusted_to_definitive.iter().enumerate() {
+        for (i, l1_header) in self.trusted_to_deterministic.iter().enumerate() {
             let result = l1_header.verify(now_sec, l1_config, &l1_consensus);
             let result = result.map_err(|e| {
                 Error::L1HeaderVerifyError(i, updated_as_next, l1_consensus, Box::new(e))
@@ -52,7 +52,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> L1Headers<L1_SYNC_COMMITTEE_SIZE> {
 
         // Verify finalized l1 header by last l1 consensus for L2 derivation
         let mut l1_consensus_for_verify_only = l1_consensus.clone();
-        for (i, l1_header) in self.definitive_to_latest.iter().enumerate() {
+        for (i, l1_header) in self.deterministic_to_latest.iter().enumerate() {
             let result = l1_header.verify(now_sec, l1_config, &l1_consensus_for_verify_only);
             let result = result.map_err(|e| {
                 Error::L1HeaderForDerivationVerifyError(
@@ -117,21 +117,21 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
     type Error = Error;
 
     fn try_from(header: RawHeader) -> Result<Self, Self::Error> {
-        let mut trusted_to_definitive: Vec<L1Header<L1_SYNC_COMMITTEE_SIZE>> =
-            Vec::with_capacity(header.trusted_to_definitive.len());
-        for l1_header in header.trusted_to_definitive {
-            trusted_to_definitive.push(l1_header.try_into()?);
+        let mut trusted_to_deterministic: Vec<L1Header<L1_SYNC_COMMITTEE_SIZE>> =
+            Vec::with_capacity(header.trusted_to_deterministic.len());
+        for l1_header in header.trusted_to_deterministic {
+            trusted_to_deterministic.push(l1_header.try_into()?);
         }
-        let mut definitive_to_latest: Vec<L1Header<L1_SYNC_COMMITTEE_SIZE>> =
-            Vec::with_capacity(header.definitive_to_latest.len());
-        for l1_header in header.definitive_to_latest {
-            definitive_to_latest.push(l1_header.try_into()?);
+        let mut deterministic_to_latest: Vec<L1Header<L1_SYNC_COMMITTEE_SIZE>> =
+            Vec::with_capacity(header.deterministic_to_latest.len());
+        for l1_header in header.deterministic_to_latest {
+            deterministic_to_latest.push(l1_header.try_into()?);
         }
         let raw_derivation = header.derivation.ok_or(Error::UnexpectedEmptyDerivations)?;
 
         let derivation = Derivation::new(
             B256::from(
-                definitive_to_latest
+                deterministic_to_latest
                     .last()
                     .ok_or(Error::MissingL1Head)?
                     .execution_update
@@ -159,8 +159,8 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
         let trusted_height = header.trusted_height.ok_or(Error::MissingTrustedHeight)?;
         Ok(Self {
             l1_headers: L1Headers {
-                trusted_to_definitive,
-                definitive_to_latest,
+                trusted_to_deterministic,
+                deterministic_to_latest,
             },
             trusted_height: Height::new(
                 trusted_height.revision_number,
