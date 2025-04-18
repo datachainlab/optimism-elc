@@ -6,7 +6,7 @@ use alloc::boxed::Box;
 use alloc::vec::Vec;
 use alloy_primitives::B256;
 use light_client::types::{Any, Height};
-use maili_genesis::RollupConfig;
+use kona_genesis::RollupConfig;
 use optimism_derivation::derivation::Derivation;
 use optimism_derivation::oracle::MemoryOracleClient;
 use optimism_derivation::types::Preimages;

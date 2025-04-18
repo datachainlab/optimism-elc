@@ -23,9 +23,7 @@ ethereum-light-client-verifier = { workspace = true }
 
 # Kona
 kona-preimage = { workspace = true}
-
-# Maili
-maili-genesis = { workspace = true, features = ["serde"] }
+kona-genesis = { workspace = true}
 
 # Alloy
 alloy-consensus = { workspace = true}

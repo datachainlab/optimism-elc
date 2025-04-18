@@ -17,7 +17,7 @@ use ethereum_consensus::types::{Address, H256, U64};
 use ethereum_light_client_verifier::context::Fraction;
 use ethereum_light_client_verifier::execution::ExecutionVerifier;
 use light_client::types::{Any, Height, Time};
-use maili_genesis::RollupConfig;
+use kona_genesis::RollupConfig;
 use optimism_ibc_proto::google::protobuf::Any as IBCAny;
 use optimism_ibc_proto::ibc::lightclients::ethereum::v1::{
     Fork as ProtoFork, ForkParameters as ProtoForkParameters, ForkSpec as ProtoForkSpec,
