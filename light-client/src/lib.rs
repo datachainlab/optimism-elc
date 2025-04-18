@@ -4,6 +4,8 @@ extern crate alloc;
 
 use alloc::string::ToString;
 
+pub use ethereum_consensus::preset;
+
 pub mod client;
 pub mod client_state;
 pub mod consensus_state;
