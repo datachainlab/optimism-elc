@@ -6,6 +6,7 @@ use anyhow::Result;
 use core::fmt::Debug;
 use kona_driver::Driver;
 use kona_executor::TrieDBProvider;
+use kona_genesis::RollupConfig;
 use kona_preimage::{CommsClient, PreimageKey};
 use kona_proof::errors::OracleProviderError;
 use kona_proof::{
@@ -15,7 +16,6 @@ use kona_proof::{
     sync::new_pipeline_cursor,
     BootInfo, FlushableCache, HintType,
 };
-use kona_genesis::RollupConfig;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -92,7 +92,8 @@ impl Derivation {
             beacon,
             l1_provider.clone(),
             l2_provider.clone(),
-        ).await?;
+        )
+        .await?;
 
         let executor = KonaExecutor::new(
             rollup_config.as_ref(),
@@ -139,8 +140,13 @@ where
         .send(caching_oracle)
         .await?;
     caching_oracle
-        .get_exact(PreimageKey::new_keccak256(*agreed_l2_output_root), output_preimage.as_mut())
+        .get_exact(
+            PreimageKey::new_keccak256(*agreed_l2_output_root),
+            output_preimage.as_mut(),
+        )
         .await?;
 
-    output_preimage[96..128].try_into().map_err(OracleProviderError::SliceConversion)
+    output_preimage[96..128]
+        .try_into()
+        .map_err(OracleProviderError::SliceConversion)
 }
