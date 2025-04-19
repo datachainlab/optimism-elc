@@ -49,6 +49,3 @@ revm = { version = "19.7.0", default-features = false }
 # Avoid confliction between lcp and kona
 time = { git = "https://github.com/yoshidan/time", branch = "v0.3.19_patch", package = "time" }
 
-[patch."https://github.com/datachainlab/lcp"]
-light-client = { git = "https://github.com/yoshidan/lcp", rev = "v0.2.14-p1", package = "light-client" }
-store = { git = "https://github.com/yoshidan/lcp", rev = "v0.2.14-p1", package = "store" }
