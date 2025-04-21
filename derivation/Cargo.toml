@@ -11,23 +11,20 @@ prost     = { workspace = true }
 # kona
 kona-preimage = { workspace = true}
 kona-executor = { workspace = true}
-kona-driver.workspace = true
-kona-proof.workspace = true
-
-# Maili
-maili-genesis = { workspace = true, features = ["serde"] }
+kona-driver = { workspace = true }
+kona-proof = { workspace = true }
+kona-genesis = { workspace = true, features = ["serde"] }
 
 # Revm + Alloy
 revm = { workspace = true, features = ["optimism","c-kzg"] }
 alloy-primitives = { workspace = true }
 alloy-consensus = { workspace = true}
+alloy-eips = { workspace = true } # 'kzg' is unavailable in LCP because c-kzg requires std
 
+# misc
 hashbrown = { workspace = true }
 sha2 = { workspace = true}
 async-trait = "0.1"
 kzg-rs = { version = "0.2.3", default-features = false }
-alloy-eips = { workspace = true } # 'kzg' is unavailable in LCP because c-kzg requires std
-
-# misc
 serde = { workspace = true, features = ["derive"] }
 prost-derive = "0.11.9"

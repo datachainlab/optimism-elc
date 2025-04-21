@@ -6,7 +6,8 @@ use anyhow::Result;
 use core::fmt::Debug;
 use kona_driver::Driver;
 use kona_executor::TrieDBProvider;
-use kona_preimage::{CommsClient, PreimageKeyType};
+use kona_genesis::RollupConfig;
+use kona_preimage::{CommsClient, PreimageKey};
 use kona_proof::errors::OracleProviderError;
 use kona_proof::{
     executor::KonaExecutor,
@@ -15,7 +16,6 @@ use kona_proof::{
     sync::new_pipeline_cursor,
     BootInfo, FlushableCache, HintType,
 };
-use maili_genesis::RollupConfig;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -64,11 +64,12 @@ impl Derivation {
             chain_id,
             rollup_config: rollup_config.clone(),
         };
-        let safe_head_hash = fetch_safe_head_hash(&oracle, boot).await?;
+        let rollup_config = Arc::new(boot.rollup_config.clone());
+        let safe_head_hash = fetch_safe_head_hash(&oracle, boot.agreed_l2_output_root).await?;
         let oracle = Arc::new(oracle);
         let mut l1_provider = OracleL1ChainProvider::new(boot.l1_head, oracle.clone());
         let mut l2_provider =
-            OracleL2ChainProvider::new(safe_head_hash, boot.rollup_config.clone(), oracle.clone());
+            OracleL2ChainProvider::new(safe_head_hash, rollup_config.clone(), oracle.clone());
         let beacon = OracleBlobProvider::new(oracle.clone());
 
         let safe_head = l2_provider
@@ -76,7 +77,7 @@ impl Derivation {
             .map(|header| Sealed::new_unchecked(header, safe_head_hash))?;
 
         let cursor = new_pipeline_cursor(
-            &boot.rollup_config,
+            rollup_config.as_ref(),
             safe_head,
             &mut l1_provider,
             &mut l2_provider,
@@ -84,17 +85,18 @@ impl Derivation {
         .await?;
         l2_provider.set_cursor(cursor.clone());
 
-        let cfg = Arc::new(boot.rollup_config.clone());
         let pipeline = OraclePipeline::new(
-            cfg.clone(),
+            rollup_config.clone(),
             cursor.clone(),
             oracle.clone(),
             beacon,
             l1_provider.clone(),
             l2_provider.clone(),
-        );
+        )
+        .await?;
+
         let executor = KonaExecutor::new(
-            &cfg,
+            rollup_config.as_ref(),
             l2_provider.clone(),
             l2_provider,
             // https://github.com/op-rs/kona/blob/660d41d0e4100fb0a73363a5fa057287e6882dfd/bin/host/src/single/orchestrator.rs#L86
@@ -105,7 +107,7 @@ impl Derivation {
 
         // Run the derivation pipeline until we are able to produce the output root of the claimed
         // L2 block.
-        let (_, _, output_root) = driver
+        let (_, output_root) = driver
             .advance_to_target(&boot.rollup_config, Some(boot.claimed_l2_block_number))
             .await?;
 
@@ -125,20 +127,22 @@ impl Derivation {
     }
 }
 
-async fn fetch_safe_head_hash<O>(
+pub async fn fetch_safe_head_hash<O>(
     caching_oracle: &O,
-    boot_info: &BootInfo,
-) -> core::result::Result<B256, OracleProviderError>
+    agreed_l2_output_root: B256,
+) -> Result<B256, OracleProviderError>
 where
     O: CommsClient,
 {
     let mut output_preimage = [0u8; 128];
     HintType::StartingL2Output
-        .get_exact_preimage(
-            caching_oracle,
-            boot_info.agreed_l2_output_root,
-            PreimageKeyType::Keccak256,
-            &mut output_preimage,
+        .with_data(&[agreed_l2_output_root.as_ref()])
+        .send(caching_oracle)
+        .await?;
+    caching_oracle
+        .get_exact(
+            PreimageKey::new_keccak256(*agreed_l2_output_root),
+            output_preimage.as_mut(),
         )
         .await?;
 
