@@ -1970,6 +1970,7 @@ dependencies = [
  "rlp",
  "serde",
  "serde_json",
+ "store",
  "thiserror 2.0.12",
  "time",
 ]

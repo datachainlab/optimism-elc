@@ -31,3 +31,5 @@ alloy-primitives = { workspace = true }
 
 [dev-dependencies]
 time = { version = "0.3", default-features = false, features = ["macros", "parsing"] }
+light-client = { git = "https://github.com/datachainlab/lcp", rev = "v0.2.14", default-features = false, features = ["ibc", "std"] }
+store = { git = "https://github.com/datachainlab/lcp", rev = "v0.2.14", default-features = false }
