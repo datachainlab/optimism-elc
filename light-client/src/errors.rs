@@ -152,8 +152,12 @@ pub enum Error {
         slot: Slot,
         err: L1VerifyError,
     },
-    #[error("L1VerifyError {0:?}")]
-    L1VerifyError(L1VerifyError),
+    #[error("L1VerifyConsensusUpdateError {0:?}")]
+    L1VerifyMembershipError(L1VerifyError),
+    #[error("L1VerifyConsensusUpdateError {0:?}")]
+    L1VerifyConsensusUpdateError(L1VerifyError),
+    #[error("L1VerifyExecutionUpdateError {0:?}")]
+    L1VerifyExecutionUpdateError(L1VerifyError),
     #[error("L1ConsensusError {0}")]
     L1ConsensusError(L1ConsensusError),
     #[error("L1VerifyError index={0}, prev_updated_as_next={1:?} prev={2:?}, err={3}")]

@@ -142,7 +142,7 @@ impl ClientState {
                 rlp::encode(&trim_left_zero(value)).as_ref(),
                 proof,
             )
-            .map_err(Error::L1VerifyError)
+            .map_err(Error::L1VerifyMembershipError)
     }
 
     pub fn verify_non_membership(
@@ -154,7 +154,7 @@ impl ClientState {
         let execution_verifier = ExecutionVerifier;
         execution_verifier
             .verify_non_membership(root, key.as_bytes(), proof)
-            .map_err(Error::L1VerifyError)
+            .map_err(Error::L1VerifyMembershipError)
     }
 }
 
