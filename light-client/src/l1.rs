@@ -537,9 +537,7 @@ fn apply_updates<const SYNC_COMMITTEE_SIZE: usize, CC: ChainConsensusVerificatio
 #[cfg(test)]
 mod tests {
     use crate::errors::Error;
-    use crate::l1::{L1Config, L1Consensus, L1Header};
-    use alloc::fmt::format;
-    use alloc::string::ToString;
+    use crate::l1::{apply_updates, L1Config, L1Consensus, L1Header};
     use alloc::vec::Vec;
     use alloc::{format, vec};
     use alloy_primitives::hex;
@@ -667,6 +665,41 @@ mod tests {
             .unwrap_err();
         match err {
             Error::InvalidExecutionBlockHashMerkleBranch(_) => {}
+            _ => panic!("Unexpected error: {:?}", err),
+        }
+    }
+
+    #[test]
+    pub fn test_l1_header_apply_update_error_not_adjacent_period() {
+        let l1_config = get_l1_config();
+        let cons_state = get_l1_consensus();
+        let mut l1_header = get_l1_header();
+        l1_header.consensus_update.finalized_header.0.slot = 10000.into();
+
+        let err = apply_updates(
+            &l1_config.build_context(1737027212),
+            &cons_state,
+            &l1_header.consensus_update,
+        )
+        .unwrap_err();
+        match err {
+            Error::StoreNotSupportedFinalizedPeriod(_, _) => {}
+            _ => panic!("Unexpected error: {:?}", err),
+        }
+    }
+
+    #[test]
+    pub fn test_l1_header_apply_update_error_no_next_sync_committee() {
+        let ctx = get_l1_config().build_context(1737027212);
+        let cons_state = get_l1_consensus();
+        let mut l1_header = get_l1_header();
+        l1_header.consensus_update.finalized_header.0.slot =
+            (l1_header.consensus_update.finalized_header.0.slot + 32).into();
+        l1_header.consensus_update.next_sync_committee = None;
+
+        let err = apply_updates(&ctx, &cons_state, &l1_header.consensus_update).unwrap_err();
+        match err {
+            Error::NoNextSyncCommitteeInConsensusUpdate(_, _) => {}
             _ => panic!("Unexpected error: {:?}", err),
         }
     }
