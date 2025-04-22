@@ -164,8 +164,6 @@ pub enum Error {
     L1HeaderTrustedToDeterministicVerifyError(usize, bool, L1Consensus, Box<Error>),
     #[error("L1HeaderDeterministicToLatestVerifyError index={0}, prev_updated_as_next={1:?} prev={2:?}, err={3}")]
     L1HeaderDeterministicToLatestVerifyError(usize, bool, L1Consensus, Box<Error>),
-    #[error("UnexpectedL1HeaderDeterministicError trusted_to_deterministic_last={0}, deterministic_to_latest_first={1}")]
-    UnexpectedL1HeaderDeterministicError(u64, u64),
     #[error("DerivationError derivation={0:?}, preimage_size:{1:?} err{2:?}")]
     DerivationError(Derivation, usize, optimism_derivation::Error),
     #[error("UnexpectedCurrentSyncCommitteeKeys {0:?} {1:?}")]

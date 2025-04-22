@@ -34,17 +34,6 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> L1Headers<L1_SYNC_COMMITTEE_SIZE> {
         now_sec: u64,
         trusted_consensus_state: &ConsensusState,
     ) -> Result<L1Consensus, Error> {
-        // Ensure collect order
-        if let Some(last) = self.trusted_to_deterministic.last() {
-            let first = self.deterministic_to_latest.first().unwrap();
-            if first.execution_update.block_number != last.execution_update.block_number {
-                return Err(Error::UnexpectedL1HeaderDeterministicError(
-                    last.execution_update.block_number.0,
-                    first.execution_update.block_number.0,
-                ));
-            }
-        }
-
         let mut l1_consensus = L1Consensus {
             slot: trusted_consensus_state.l1_slot,
             current_sync_committee: trusted_consensus_state.l1_current_sync_committee.clone(),
@@ -428,35 +417,6 @@ mod test {
             .unwrap_err();
         match err {
             Error::L1HeaderDeterministicToLatestVerifyError(_, _, _, _) => {}
-            _ => panic!("Unexpected error: {:?}", err),
-        }
-    }
-
-    #[test]
-    fn test_l1_headers_verify_unexpected_deterministic_error() {
-        let mut l1_headers = L1Headers {
-            trusted_to_deterministic: vec![get_l1_header()],
-            deterministic_to_latest: vec![get_l1_header()],
-        };
-        l1_headers.deterministic_to_latest[0]
-            .execution_update
-            .block_number = l1_headers.trusted_to_deterministic[0]
-            .execution_update
-            .block_number
-            + 1;
-
-        let l1_cons_state = get_l1_consensus();
-        let cons_state = ConsensusState {
-            l1_slot: l1_cons_state.slot,
-            l1_current_sync_committee: l1_cons_state.current_sync_committee,
-            l1_next_sync_committee: l1_cons_state.next_sync_committee,
-            ..Default::default()
-        };
-        let err = l1_headers
-            .verify(&get_l1_config(), get_time(), &cons_state)
-            .unwrap_err();
-        match err {
-            Error::UnexpectedL1HeaderDeterministicError(_, _) => {}
             _ => panic!("Unexpected error: {:?}", err),
         }
     }
