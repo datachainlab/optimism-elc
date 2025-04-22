@@ -63,11 +63,6 @@ message ExecutionUpdate {
   repeated bytes block_hash_branch = 6;
 }
 
-message AccountUpdate {
-  bytes account_proof = 1;
-  bytes account_storage_root = 2;
-}
-
 message BeaconBlockHeader {
   uint64 slot = 1;
   uint64 proposer_index = 2;

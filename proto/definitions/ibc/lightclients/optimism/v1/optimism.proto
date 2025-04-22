@@ -54,7 +54,7 @@ message Derivation {
 
 message Header {
   ibc.core.client.v1.Height trusted_height = 1;
-  ibc.lightclients.ethereum.v1.AccountUpdate account_update = 2;
+  AccountUpdate account_update = 2;
 
   Derivation derivation = 3;
   bytes preimages = 4;
@@ -76,4 +76,9 @@ message Misbehaviour {
   string client_id = 1;
   Header header_1 = 2;
   Header header_2 = 3;
+}
+
+message AccountUpdate {
+  bytes account_proof = 1;
+  bytes account_storage_root = 2;
 }

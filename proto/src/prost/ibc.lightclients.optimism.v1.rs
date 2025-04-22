@@ -82,9 +82,7 @@ pub struct Header {
         super::super::super::core::client::v1::Height,
     >,
     #[prost(message, optional, tag = "2")]
-    pub account_update: ::core::option::Option<
-        super::super::ethereum::v1::AccountUpdate,
-    >,
+    pub account_update: ::core::option::Option<AccountUpdate>,
     #[prost(message, optional, tag = "3")]
     pub derivation: ::core::option::Option<Derivation>,
     #[prost(bytes = "vec", tag = "4")]
@@ -119,4 +117,12 @@ pub struct Misbehaviour {
     pub header_1: ::core::option::Option<Header>,
     #[prost(message, optional, tag = "3")]
     pub header_2: ::core::option::Option<Header>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AccountUpdate {
+    #[prost(bytes = "vec", tag = "1")]
+    pub account_proof: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "2")]
+    pub account_storage_root: ::prost::alloc::vec::Vec<u8>,
 }

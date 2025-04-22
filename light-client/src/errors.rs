@@ -125,8 +125,8 @@ pub enum Error {
     UnexpectedTrustedOutputRoot(B256, B256),
     #[error("UnexpectedL1HeadHash {0}")]
     UnexpectedL1HeadHash(TryFromSliceError),
-    #[error("UnexpectedAgreedL2HeadHash {0}")]
-    UnexpectedAgreedL2HeadHash(TryFromSliceError),
+    #[error("UnexpectedAgreedL2HeadOutput {0}")]
+    UnexpectedAgreedL2HeadOutput(TryFromSliceError),
     #[error("UnexpectedAgreedL2OutputRoot {0}")]
     UnexpectedAgreedL2OutputRoot(TryFromSliceError),
     #[error("UnexpectedL2HeadHash {0}")]

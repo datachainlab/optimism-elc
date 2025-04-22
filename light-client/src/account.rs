@@ -2,7 +2,7 @@ use crate::commitment::decode_eip1184_rlp_proof;
 use crate::errors::Error;
 use alloc::vec::Vec;
 use ethereum_consensus::types::H256;
-use optimism_ibc_proto::ibc::lightclients::ethereum::v1::AccountUpdate as ProtoAccountUpdate;
+use optimism_ibc_proto::ibc::lightclients::optimism::v1::AccountUpdate as ProtoAccountUpdate;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct AccountUpdateInfo {
