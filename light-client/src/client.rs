@@ -272,6 +272,7 @@ mod test {
     use crate::client::OptimismLightClient;
     use crate::client_state::ClientState;
     use crate::consensus_state::ConsensusState;
+    use crate::l1::tests::get_l1_config;
     use crate::l1::L1Config;
     use alloc::collections::BTreeMap;
     use alloc::string::{String, ToString};
@@ -339,10 +340,6 @@ mod test {
 
     impl Default for ClientState {
         fn default() -> Self {
-            let raw_l1_config = hex!("0a20acac7566fdf384a1ada45c01dcf9030d7eb0e1e5f5302659101d0b2a5bb590921001188edaa3bc06225e0a0400000001120e0a04010000011a0608691036183712160a04020000011a0e086910361837201928123016381c12160a04030000011a0e086910361837201928123016381c12160a04040000011a0e086910361837201928223026382c280630083808420408021003").to_vec();
-            let raw_l1_config = RawL1Config::decode(&*raw_l1_config).unwrap();
-            let l1_config = L1Config::try_from(raw_l1_config).unwrap();
-
             ClientState {
                 chain_id: 0,
                 ibc_store_address: Default::default(),
@@ -352,7 +349,7 @@ mod test {
                 latest_height: Default::default(),
                 frozen: false,
                 rollup_config: Default::default(),
-                l1_config,
+                l1_config: get_l1_config(),
             }
         }
     }
