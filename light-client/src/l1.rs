@@ -547,7 +547,7 @@ pub(crate) mod tests {
     use optimism_ibc_proto::ibc::lightclients::optimism::v1::L1Header as RawL1Header;
     use prost::Message;
 
-    fn get_l1_config() -> L1Config {
+    pub fn get_l1_config() -> L1Config {
         // created by optimism-ibc-relay-prover
         let raw_l1_config = hex!("0a20acac7566fdf384a1ada45c01dcf9030d7eb0e1e5f5302659101d0b2a5bb590921001188edaa3bc06225e0a0400000001120e0a04010000011a0608691036183712160a04020000011a0e086910361837201928123016381c12160a04030000011a0e086910361837201928123016381c12160a04040000011a0e086910361837201928223026382c280630083808420408021003").to_vec();
         let raw_l1_config = RawL1Config::decode(&*raw_l1_config).unwrap();
@@ -559,7 +559,7 @@ pub(crate) mod tests {
         RawL1Header::decode(&*raw_l1_header).unwrap()
     }
 
-    fn get_l1_header(
+    pub fn get_l1_header(
     ) -> L1Header<{ ethereum_consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE }> {
         // created by optimism-ibc-relay-prover
         let raw_l1_header = get_raw_l1_header();
@@ -570,13 +570,17 @@ pub(crate) mod tests {
         l1_header
     }
 
-    fn get_l1_consensus() -> L1Consensus {
+    pub fn get_l1_consensus() -> L1Consensus {
         // created by optimism-ibc-relay-prover
         L1Consensus {
             slot: 39.into(),
             current_sync_committee: PublicKey::try_from(hex!("82c0c49d5142e3f5a7340864440c61787b6741271e4ce2a21114f137a693fc4484582aee2ebbb9c6d9f9ebdae7ff73f7").to_vec()).unwrap(),
             next_sync_committee: PublicKey::default()
         }
+    }
+
+    pub fn get_time() -> u64 {
+        1737027212
     }
 
     #[test]
@@ -587,7 +591,7 @@ pub(crate) mod tests {
         cons_state.current_sync_committee = PublicKey::default();
 
         let err = l1_header
-            .verify(1737027212, &l1_config, &cons_state)
+            .verify(get_time(), &l1_config, &cons_state)
             .unwrap_err();
         match err {
             Error::UnexpectedCurrentSyncCommitteeKeys(_, _) => {}
@@ -605,7 +609,7 @@ pub(crate) mod tests {
         cons_state.next_sync_committee = PublicKey::default();
 
         let err = l1_header
-            .verify(1737027212, &l1_config, &cons_state)
+            .verify(get_time(), &l1_config, &cons_state)
             .unwrap_err();
         match err {
             Error::UnexpectedNextSyncCommitteeKeys(_, _) => {}
@@ -622,7 +626,7 @@ pub(crate) mod tests {
         l1_header.consensus_update.signature_slot = 10000.into();
 
         let err = l1_header
-            .verify(1737027212, &l1_config, &cons_state)
+            .verify(get_time(), &l1_config, &cons_state)
             .unwrap_err();
         match err {
             Error::L1VerifyConsensusUpdateError(e) => {
@@ -645,7 +649,7 @@ pub(crate) mod tests {
         l1_header.execution_update.state_root_branch[0] = H256([0; 32]);
 
         let err = l1_header
-            .verify(1737027212, &l1_config, &cons_state)
+            .verify(get_time(), &l1_config, &cons_state)
             .unwrap_err();
         match err {
             Error::L1VerifyExecutionUpdateError(e) => {
@@ -668,7 +672,7 @@ pub(crate) mod tests {
         l1_header.execution_update.block_hash_branch[0] = H256([0; 32]);
 
         let err = l1_header
-            .verify(1737027212, &l1_config, &cons_state)
+            .verify(get_time(), &l1_config, &cons_state)
             .unwrap_err();
         match err {
             Error::InvalidExecutionBlockHashMerkleBranch(_) => {}
@@ -684,7 +688,7 @@ pub(crate) mod tests {
         l1_header.consensus_update.finalized_header.0.slot = 10000.into();
 
         let err = apply_updates(
-            &l1_config.build_context(1737027212),
+            &l1_config.build_context(get_time()),
             &cons_state,
             &l1_header.consensus_update,
         )
@@ -697,7 +701,7 @@ pub(crate) mod tests {
 
     #[test]
     pub fn test_l1_header_apply_update_error_no_next_sync_committee() {
-        let ctx = get_l1_config().build_context(1737027212);
+        let ctx = get_l1_config().build_context(get_time());
         let cons_state = get_l1_consensus();
         let mut l1_header = get_l1_header();
         l1_header.consensus_update.finalized_header.0.slot =
@@ -717,7 +721,7 @@ pub(crate) mod tests {
         let l1_header = get_l1_header();
         let cons_state = get_l1_consensus();
         let (_, l1_consensus) = l1_header
-            .verify(1737027212, &l1_config, &cons_state)
+            .verify(get_time(), &l1_config, &cons_state)
             .unwrap();
         // same period : cons_state period == finalized_period
         assert_eq!(

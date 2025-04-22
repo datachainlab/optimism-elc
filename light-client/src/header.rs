@@ -34,6 +34,17 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> L1Headers<L1_SYNC_COMMITTEE_SIZE> {
         now_sec: u64,
         trusted_consensus_state: &ConsensusState,
     ) -> Result<L1Consensus, Error> {
+        // Ensure collect order
+        if let Some(last) = self.trusted_to_deterministic.last() {
+            let first = self.deterministic_to_latest.first().unwrap();
+            if first.execution_update.block_number != last.execution_update.block_number {
+                return Err(Error::UnexpectedL1HeaderDeterministicError(
+                    last.execution_update.block_number.0,
+                    first.execution_update.block_number.0,
+                ));
+            }
+        }
+
         let mut l1_consensus = L1Consensus {
             slot: trusted_consensus_state.l1_slot,
             current_sync_committee: trusted_consensus_state.l1_current_sync_committee.clone(),
@@ -44,7 +55,12 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> L1Headers<L1_SYNC_COMMITTEE_SIZE> {
         for (i, l1_header) in self.trusted_to_deterministic.iter().enumerate() {
             let result = l1_header.verify(now_sec, l1_config, &l1_consensus);
             let result = result.map_err(|e| {
-                Error::L1HeaderVerifyError(i, updated_as_next, l1_consensus, Box::new(e))
+                Error::L1HeaderTrustedToDeterministicVerifyError(
+                    i,
+                    updated_as_next,
+                    l1_consensus,
+                    Box::new(e),
+                )
             })?;
             updated_as_next = result.0;
             l1_consensus = result.1;
@@ -55,7 +71,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> L1Headers<L1_SYNC_COMMITTEE_SIZE> {
         for (i, l1_header) in self.deterministic_to_latest.iter().enumerate() {
             let result = l1_header.verify(now_sec, l1_config, &l1_consensus_for_verify_only);
             let result = result.map_err(|e| {
-                Error::L1HeaderForDerivationVerifyError(
+                Error::L1HeaderDeterministicToLatestVerifyError(
                     i,
                     updated_as_next,
                     l1_consensus_for_verify_only,
@@ -195,9 +211,12 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<Any> for Header<L1_SYNC_COMMIT
 
 #[cfg(test)]
 mod test {
+    use crate::consensus_state::ConsensusState;
     use crate::errors::Error;
-    use crate::header::Header;
-    use crate::l1::tests::get_raw_l1_header;
+    use crate::header::{Header, L1Headers};
+    use crate::l1::tests::{
+        get_l1_config, get_l1_consensus, get_l1_header, get_raw_l1_header, get_time,
+    };
     use alloc::vec;
     use alloy_primitives::hex;
     use optimism_derivation::types::{Preimage, Preimages};
@@ -357,6 +376,87 @@ mod test {
         let err = Header::<{ ethereum_consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE} >::try_from(raw_header).unwrap_err();
         match err {
             Error::OracleClientError(_) => {}
+            _ => panic!("Unexpected error: {:?}", err),
+        }
+    }
+
+    #[test]
+    fn test_l1_headers_verify_trusted_to_deterministic_error() {
+        let mut l1_headers = L1Headers {
+            trusted_to_deterministic: vec![get_l1_header()],
+            deterministic_to_latest: vec![get_l1_header()],
+        };
+        l1_headers.trusted_to_deterministic[0]
+            .execution_update
+            .block_hash_branch = vec![];
+
+        let l1_cons_state = get_l1_consensus();
+        let cons_state = ConsensusState {
+            l1_slot: l1_cons_state.slot,
+            l1_current_sync_committee: l1_cons_state.current_sync_committee,
+            l1_next_sync_committee: l1_cons_state.next_sync_committee,
+            ..Default::default()
+        };
+        let err = l1_headers
+            .verify(&get_l1_config(), get_time(), &cons_state)
+            .unwrap_err();
+        match err {
+            Error::L1HeaderTrustedToDeterministicVerifyError(_, _, _, _) => {}
+            _ => panic!("Unexpected error: {:?}", err),
+        }
+    }
+
+    #[test]
+    fn test_l1_headers_verify_deterministic_to_latest_error() {
+        let mut l1_headers = L1Headers {
+            trusted_to_deterministic: vec![get_l1_header()],
+            deterministic_to_latest: vec![get_l1_header()],
+        };
+        l1_headers.deterministic_to_latest[0]
+            .execution_update
+            .block_hash_branch = vec![];
+
+        let l1_cons_state = get_l1_consensus();
+        let cons_state = ConsensusState {
+            l1_slot: l1_cons_state.slot,
+            l1_current_sync_committee: l1_cons_state.current_sync_committee,
+            l1_next_sync_committee: l1_cons_state.next_sync_committee,
+            ..Default::default()
+        };
+        let err = l1_headers
+            .verify(&get_l1_config(), get_time(), &cons_state)
+            .unwrap_err();
+        match err {
+            Error::L1HeaderDeterministicToLatestVerifyError(_, _, _, _) => {}
+            _ => panic!("Unexpected error: {:?}", err),
+        }
+    }
+
+    #[test]
+    fn test_l1_headers_verify_unexpected_deterministic_error() {
+        let mut l1_headers = L1Headers {
+            trusted_to_deterministic: vec![get_l1_header()],
+            deterministic_to_latest: vec![get_l1_header()],
+        };
+        l1_headers.deterministic_to_latest[0]
+            .execution_update
+            .block_number = l1_headers.trusted_to_deterministic[0]
+            .execution_update
+            .block_number
+            + 1;
+
+        let l1_cons_state = get_l1_consensus();
+        let cons_state = ConsensusState {
+            l1_slot: l1_cons_state.slot,
+            l1_current_sync_committee: l1_cons_state.current_sync_committee,
+            l1_next_sync_committee: l1_cons_state.next_sync_committee,
+            ..Default::default()
+        };
+        let err = l1_headers
+            .verify(&get_l1_config(), get_time(), &cons_state)
+            .unwrap_err();
+        match err {
+            Error::UnexpectedL1HeaderDeterministicError(_, _) => {}
             _ => panic!("Unexpected error: {:?}", err),
         }
     }
