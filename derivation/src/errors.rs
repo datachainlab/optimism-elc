@@ -32,8 +32,10 @@ pub enum Error {
     },
     #[error("UnexpectedPrecompilePreimage: {0}")]
     UnexpectedPrecompilePreimage(PreimageKey),
-    #[error("UnexpectedPreimageValue: {value:?} {key:?}")]
-    UnexpectedPreimageValue { value: Vec<u8>, key: PreimageKey },
+    #[error("UnexpectedSha256PreimageValue: {value:?} {key:?}")]
+    UnexpectedSha256PreimageValue { value: Vec<u8>, key: PreimageKey },
+    #[error("UnexpectedKeccak256PreimageValue: {value:?} {key:?}")]
+    UnexpectedKeccak256PreimageValue { value: Vec<u8>, key: PreimageKey },
     #[error("UnexpectedPrecompiledValue: {actual:?} {expected:?} {key:?}")]
     UnexpectedPrecompiledValue {
         expected: Vec<u8>,
@@ -46,6 +48,8 @@ pub enum Error {
     NoPreimageKeyFound { key: PreimageKey },
     #[error("NoPreimageKeyFoundInVerifyBlob: {0:?}")]
     NoPreimageKeyFoundInVerifyBlob(Box<Error>),
+    #[error("NoPreimageDataFoundInVerifyBlob: {0:?}")]
+    NoPreimageDataFoundInVerifyBlob(Box<Error>),
     #[error("UnexpectedGlobalGlobalGeneric: {0}")]
     UnexpectedGlobalGlobalGeneric(PreimageKey),
 }

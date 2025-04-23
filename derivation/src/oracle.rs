@@ -124,11 +124,10 @@ fn get_data_by_blob_key<'a>(
     preimages: &'a HashMap<PreimageKey, Vec<u8>>,
 ) -> Result<&'a [u8], Error> {
     let blob_key_hash = keccak256(blob_key);
-    let blob = preimages
-        .get(&PreimageKey::new(*blob_key_hash, PreimageKeyType::Blob))
-        .ok_or(Error::NoPreimageKeyFound {
-            key: PreimageKey::new(*blob_key_hash, PreimageKeyType::Blob),
-        })?;
+    let key = PreimageKey::new(*blob_key_hash, PreimageKeyType::Blob);
+    let blob = preimages.get(&key).ok_or(Error::NoPreimageKeyFound {
+        key: PreimageKey::new(*blob_key_hash, PreimageKeyType::Blob),
+    })?;
     Ok(blob)
 }
 
@@ -138,7 +137,7 @@ fn verify_sha256_preimage(key: &PreimageKey, data: &[u8]) -> Result<(), Error> {
     let value_data = U256::from_be_slice(value_data);
     let key_data = key.key_value();
     if value_data != key_data {
-        return Err(Error::UnexpectedPreimageValue {
+        return Err(Error::UnexpectedSha256PreimageValue {
             key: *key,
             value: data.to_vec(),
         });
@@ -150,7 +149,7 @@ fn verify_keccak256_preimage(key: &PreimageKey, data: &[u8]) -> Result<(), Error
     let value_data = U256::from_be_slice(value_data);
     let key_data = key.key_value();
     if value_data != key_data {
-        return Err(Error::UnexpectedPreimageValue {
+        return Err(Error::UnexpectedKeccak256PreimageValue {
             key: *key,
             value: data.to_vec(),
         });
@@ -183,7 +182,8 @@ fn verify_blob_preimage(
         // Get by 4096 index
         blob_key[POSITION_FIELD_ELEMENT..]
             .copy_from_slice((FIELD_ELEMENTS_PER_BLOB).to_be_bytes().as_ref());
-        get_data_by_blob_key(blob_key, preimages)?
+        get_data_by_blob_key(blob_key, preimages)
+            .map_err(|e| Error::NoPreimageDataFoundInVerifyBlob(Box::new(e)))?
     };
 
     // Populate blob sidecar
@@ -209,4 +209,143 @@ fn verify_blob_preimage(
     kzg_cache.insert(kzg_commitment.to_vec());
 
     Ok(())
+}
+
+#[cfg(test)]
+mod test {
+    use crate::errors::Error;
+    use crate::oracle::{verify_blob_preimage, MemoryOracleClient};
+    use crate::types::Preimage;
+    use crate::POSITION_FIELD_ELEMENT;
+    use alloc::vec;
+    use alloy_eips::eip4844::{BYTES_PER_COMMITMENT, FIELD_ELEMENTS_PER_BLOB};
+    use alloy_primitives::keccak256;
+    use alloy_primitives::map::HashMap;
+    use hashbrown::HashSet;
+    use kona_preimage::{PreimageKey, PreimageKeyType};
+
+    #[test]
+    fn test_try_from_key_error() {
+        let preimage = vec![Preimage {
+            key: vec![0u8; 10],
+            data: vec![0u8; 10],
+        }];
+        let err = MemoryOracleClient::try_from(preimage).unwrap_err();
+        match err {
+            Error::UnexpectedPreimageKeySize(_) => {}
+            _ => panic!("Unexpected error, got: {:?}", err),
+        }
+    }
+
+    #[test]
+    fn test_try_from_sha256_error() {
+        let preimage = vec![Preimage::new(
+            PreimageKey::new([0u8; 32], PreimageKeyType::Sha256),
+            vec![0u8; 10],
+        )];
+        let err = MemoryOracleClient::try_from(preimage).unwrap_err();
+        match err {
+            Error::UnexpectedSha256PreimageValue { value: _, key: _ } => {}
+            _ => panic!("Unexpected error, got: {:?}", err),
+        }
+    }
+
+    #[test]
+    fn test_try_from_keccak256_error() {
+        let preimage = vec![Preimage::new(
+            PreimageKey::new([0u8; 32], PreimageKeyType::Keccak256),
+            vec![0u8; 10],
+        )];
+        let err = MemoryOracleClient::try_from(preimage).unwrap_err();
+        match err {
+            Error::UnexpectedKeccak256PreimageValue { value: _, key: _ } => {}
+            _ => panic!("Unexpected error, got: {:?}", err),
+        }
+    }
+
+    #[test]
+    fn test_try_from_precompile_error() {
+        let preimage = vec![Preimage::new(
+            PreimageKey::new([0u8; 32], PreimageKeyType::Precompile),
+            vec![0u8; 10],
+        )];
+        let err = MemoryOracleClient::try_from(preimage).unwrap_err();
+        match err {
+            Error::UnexpectedPrecompilePreimage(_) => {}
+            _ => panic!("Unexpected error, got: {:?}", err),
+        }
+    }
+
+    #[test]
+    fn test_try_from_blob_no_key_error() {
+        let preimage = vec![Preimage::new(
+            PreimageKey::new([0u8; 32], PreimageKeyType::Blob),
+            vec![0u8; 10],
+        )];
+        let err = MemoryOracleClient::try_from(preimage).unwrap_err();
+        match err {
+            Error::NoPreimageKeyFoundInVerifyBlob(_) => {}
+            _ => panic!("Unexpected error, got: {:?}", err),
+        }
+    }
+
+    #[test]
+    fn test_try_from_blob_no_kzg_proof_error() {
+        let blob_key = [0u8; POSITION_FIELD_ELEMENT + 8];
+        let blob_key_hash = keccak256(blob_key);
+        let preimage = vec![
+            Preimage::new(
+                PreimageKey::new(*blob_key_hash, PreimageKeyType::Keccak256),
+                blob_key.to_vec(),
+            ),
+            Preimage::new(
+                PreimageKey::new(*blob_key_hash, PreimageKeyType::Blob),
+                [0u8; 10].to_vec(),
+            ),
+        ];
+        let err = MemoryOracleClient::try_from(preimage).unwrap_err();
+        match err {
+            Error::NoPreimageDataFoundInVerifyBlob(_) => {}
+            _ => panic!("Unexpected error, got: {:?}", err),
+        }
+    }
+
+    #[test]
+    fn test_verify_blob_preimage_error() {
+        let mut blob_key = [0u8; POSITION_FIELD_ELEMENT + 8];
+        let blob_key_hash = keccak256(blob_key);
+        let mut final_kzg_proof_key = blob_key.clone();
+        final_kzg_proof_key[POSITION_FIELD_ELEMENT..]
+            .copy_from_slice((FIELD_ELEMENTS_PER_BLOB).to_be_bytes().as_ref());
+        let final_kzg_proof = [0u8; BYTES_PER_COMMITMENT];
+        let kzg_proof_key_hash = keccak256(final_kzg_proof_key);
+
+        let mut preimages = HashMap::new();
+        preimages.insert(
+            PreimageKey::new(*blob_key_hash, PreimageKeyType::Keccak256),
+            blob_key.to_vec(),
+        );
+        preimages.insert(
+            PreimageKey::new(*kzg_proof_key_hash, PreimageKeyType::Blob),
+            final_kzg_proof.to_vec(),
+        );
+
+        for i in 0..FIELD_ELEMENTS_PER_BLOB {
+            blob_key[POSITION_FIELD_ELEMENT..].copy_from_slice(i.to_be_bytes().as_ref());
+            let blob_per_index_key = keccak256(blob_key);
+            let sidecar_blob = [0u8; 32].to_vec();
+            preimages.insert(
+                PreimageKey::new(*blob_per_index_key, PreimageKeyType::Blob),
+                sidecar_blob,
+            );
+        }
+
+        let first_key = PreimageKey::new(*blob_key_hash, PreimageKeyType::Blob);
+        let mut cache = HashSet::new();
+        let err = verify_blob_preimage(&first_key, &[0u8; 10], &preimages, &mut cache).unwrap_err();
+        match err {
+            Error::UnexpectedPreimageBlob(_) => {}
+            _ => panic!("Unexpected error, got: {:?}", err),
+        }
+    }
 }

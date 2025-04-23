@@ -213,7 +213,6 @@ mod test {
     use optimism_ibc_proto::ibc::lightclients::optimism::v1::AccountUpdate as RawAccountUpdate;
     use optimism_ibc_proto::ibc::lightclients::optimism::v1::Derivation as RawDerivation;
     use optimism_ibc_proto::ibc::lightclients::optimism::v1::Header as RawHeader;
-    use prost::Message;
 
     fn get_empty_raw_header() -> RawHeader {
         RawHeader {
