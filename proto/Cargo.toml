@@ -13,8 +13,6 @@ all-features = true
 
 [dependencies]
 prost       = { workspace = true }
-serde       = { workspace = true }
-schemars    = { version = "0.8", optional = true }
 ibc-proto   = { version = "0.26.0", default-features = false }
 
 [features]

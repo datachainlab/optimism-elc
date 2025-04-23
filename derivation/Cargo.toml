@@ -16,7 +16,6 @@ kona-proof = { workspace = true }
 kona-genesis = { workspace = true, features = ["serde"] }
 
 # Revm + Alloy
-revm = { workspace = true, features = ["optimism","c-kzg"] }
 alloy-primitives = { workspace = true }
 alloy-consensus = { workspace = true}
 alloy-eips = { workspace = true } # 'kzg' is unavailable in LCP because c-kzg requires std
