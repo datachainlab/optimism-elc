@@ -47,5 +47,5 @@ revm = { version = "19.7.0", default-features = false }
 
 [patch."crates-io"]
 # Avoid confliction between lcp and kona
-time = { git = "https://github.com/yoshidan/time", branch = "v0.3.19_patch", package = "time" }
+time = { git = "https://github.com/yoshidan/time", rev= "v0.3.19-p2", package = "time" }
 

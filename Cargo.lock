@@ -3171,7 +3171,7 @@ dependencies = [
 [[package]]
 name = "time"
 version = "0.3.19"
-source = "git+https://github.com/yoshidan/time?branch=v0.3.19_patch#df7ecaf9063369d285ab5c812dddc803c3ea4eed"
+source = "git+https://github.com/yoshidan/time?rev=v0.3.19-p2#0f4697e69fae923fd54aa3d9939b33f8f2b140b9"
 dependencies = [
  "serde",
  "time-core",
@@ -3181,12 +3181,12 @@ dependencies = [
 [[package]]
 name = "time-core"
 version = "0.1.0"
-source = "git+https://github.com/yoshidan/time?branch=v0.3.19_patch#df7ecaf9063369d285ab5c812dddc803c3ea4eed"
+source = "git+https://github.com/yoshidan/time?rev=v0.3.19-p2#0f4697e69fae923fd54aa3d9939b33f8f2b140b9"
 
 [[package]]
 name = "time-macros"
 version = "0.2.7"
-source = "git+https://github.com/yoshidan/time?branch=v0.3.19_patch#df7ecaf9063369d285ab5c812dddc803c3ea4eed"
+source = "git+https://github.com/yoshidan/time?rev=v0.3.19-p2#0f4697e69fae923fd54aa3d9939b33f8f2b140b9"
 dependencies = [
  "time-core",
 ]

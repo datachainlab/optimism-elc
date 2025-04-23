@@ -1,9 +1,6 @@
 #![no_std]
 extern crate alloc;
 
-// see kona/host
-pub mod host;
-
 pub mod derivation;
 pub mod errors;
 pub mod oracle;
