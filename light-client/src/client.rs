@@ -269,7 +269,7 @@ fn gen_state_id(
 
 #[cfg(test)]
 mod test {
-    use crate::client::OptimismLightClient;
+    use crate::client::{OptimismLightClient, OPTIMISM_CLIENT_TYPE};
     use crate::client_state::ClientState;
     use crate::consensus_state::ConsensusState;
     use crate::l1::tests::get_l1_config;
@@ -378,6 +378,23 @@ mod test {
         let cs = ClientState::try_from(raw_cs).unwrap();
         let cons_state = ConsensusState::try_from(raw_cons_state).unwrap();
         (cs, cons_state)
+    }
+    #[test]
+    fn test_latest_height() {
+        let client = OptimismLightClient::<
+            { ethereum_consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE },
+        >;
+        assert_eq!(client.client_type(), OPTIMISM_CLIENT_TYPE);
+
+        let (cs, _) = get_initial_state();
+        let ctx = MockClientReader {
+            client_state: Some(cs.clone()),
+            consensus_state: BTreeMap::new(),
+            time: None,
+        };
+        let client_id = ClientId::from_str("optimism-1").unwrap();
+        let height = client.latest_height(&ctx, &client_id).unwrap();
+        assert_eq!(height, cs.latest_height);
     }
     #[test]
     fn test_create_client() {
@@ -530,6 +547,72 @@ mod test {
             proof,
         );
         assert!(res.is_ok(), "{:?}", res);
+    }
+
+    #[test]
+    fn test_verify_membership_frozen_error() {
+        let (path, proof, value) = get_membership_proof();
+        let proof_height = Height::new(0, 1);
+        let client = OptimismLightClient::<
+            { ethereum_consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE },
+        >;
+        let ctx = MockClientReader {
+            client_state: Some(ClientState {
+                frozen: true,
+                ..Default::default()
+            }),
+            consensus_state: Default::default(),
+            time: None,
+        };
+
+        let client_id = ClientId::from_str("optimism-1").unwrap();
+        let err = client
+            .verify_membership(
+                &ctx,
+                client_id,
+                CommitmentPrefix::new(),
+                path,
+                value,
+                proof_height,
+                proof,
+            )
+            .unwrap_err();
+        assert!(err.to_string().contains("ClientFrozen"), "{:?}", err);
+    }
+
+    #[test]
+    fn test_verify_membership_height_error() {
+        let (path, proof, value) = get_membership_proof();
+        let proof_height = Height::new(0, 1);
+        let client = OptimismLightClient::<
+            { ethereum_consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE },
+        >;
+        let ctx = MockClientReader {
+            client_state: Some(ClientState {
+                latest_height: Height::new(0, proof_height.revision_height() - 1),
+                ..Default::default()
+            }),
+            consensus_state: Default::default(),
+            time: None,
+        };
+
+        let client_id = ClientId::from_str("optimism-1").unwrap();
+        let err = client
+            .verify_membership(
+                &ctx,
+                client_id,
+                CommitmentPrefix::new(),
+                path,
+                value,
+                proof_height,
+                proof,
+            )
+            .unwrap_err();
+        assert!(
+            err.to_string().contains("UnexpectedProofHeight"),
+            "{:?}",
+            err
+        );
     }
 
     // returns: (path, proof, value)
