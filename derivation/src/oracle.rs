@@ -314,7 +314,7 @@ mod test {
     fn test_verify_blob_preimage_error() {
         let mut blob_key = [0u8; POSITION_FIELD_ELEMENT + 8];
         let blob_key_hash = keccak256(blob_key);
-        let mut final_kzg_proof_key = blob_key.clone();
+        let mut final_kzg_proof_key = blob_key;
         final_kzg_proof_key[POSITION_FIELD_ELEMENT..]
             .copy_from_slice((FIELD_ELEMENTS_PER_BLOB).to_be_bytes().as_ref());
         let final_kzg_proof = [0u8; BYTES_PER_COMMITMENT];

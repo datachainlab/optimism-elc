@@ -295,7 +295,7 @@ mod test {
 
     impl HostContext for MockClientReader {
         fn host_timestamp(&self) -> Time {
-            self.time.unwrap_or_else(|| Time::now())
+            self.time.unwrap_or_else(Time::now)
         }
     }
 
@@ -445,7 +445,7 @@ mod test {
         let (cs, cons_state) = get_initial_state();
 
         let mut cons_states = BTreeMap::new();
-        cons_states.insert(cs.latest_height.clone(), cons_state);
+        cons_states.insert(cs.latest_height, cons_state);
 
         let client_message =
             std::fs::read("../testdata/update_client_header.bin").expect("file not found");
@@ -473,7 +473,7 @@ mod test {
 
         let mut cons_states = BTreeMap::new();
         cons_states.insert(
-            proof_height.clone(),
+            proof_height,
             ConsensusState {
                 storage_root: H256(hex!(
                     "27cd08827e6bf1e435832f4b2660107beb562314287b3fa534f3b189574c0cca"
@@ -488,7 +488,7 @@ mod test {
                 ibc_commitments_slot: H256(hex!(
                     "1ee222554989dda120e26ecacf756fe1235cd8d726706b57517715dde4f0c900"
                 )),
-                latest_height: proof_height.clone(),
+                latest_height: proof_height,
                 ..Default::default()
             }),
             consensus_state: cons_states,
@@ -517,7 +517,7 @@ mod test {
 
         let mut cons_states = BTreeMap::new();
         cons_states.insert(
-            proof_height.clone(),
+            proof_height,
             ConsensusState {
                 storage_root: H256(hex!(
                     "27cd08827e6bf1e435832f4b2660107beb562314287b3fa534f3b189574c0cca"
@@ -532,7 +532,7 @@ mod test {
                 ibc_commitments_slot: H256(hex!(
                     "1ee222554989dda120e26ecacf756fe1235cd8d726706b57517715dde4f0c900"
                 )),
-                latest_height: proof_height.clone(),
+                latest_height: proof_height,
                 ..Default::default()
             }),
             consensus_state: cons_states,

@@ -563,11 +563,11 @@ pub(crate) mod tests {
     ) -> L1Header<{ ethereum_consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE }> {
         // created by optimism-ibc-relay-prover
         let raw_l1_header = get_raw_l1_header();
-        let l1_header = L1Header::<
-            { ethereum_consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE },
-        >::try_from(raw_l1_header.clone())
-        .unwrap();
-        l1_header
+
+        L1Header::<{ ethereum_consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE }>::try_from(
+            raw_l1_header.clone(),
+        )
+        .unwrap()
     }
 
     pub fn get_l1_consensus() -> L1Consensus {
@@ -705,7 +705,7 @@ pub(crate) mod tests {
         let cons_state = get_l1_consensus();
         let mut l1_header = get_l1_header();
         l1_header.consensus_update.finalized_header.0.slot =
-            (l1_header.consensus_update.finalized_header.0.slot + 32).into();
+            l1_header.consensus_update.finalized_header.0.slot + 32;
         l1_header.consensus_update.next_sync_committee = None;
 
         let err = apply_updates(&ctx, &cons_state, &l1_header.consensus_update).unwrap_err();
