@@ -31,17 +31,15 @@ pub fn register_implementations<const SYNC_COMMITTEE_SIZE: usize>(
 
 #[cfg(test)]
 mod test {
-    use light_client::LightClientResolver;
     use crate::client_state;
+    use light_client::LightClientResolver;
 
     #[test]
     fn test_register_implementation() {
         let mut registry = light_client::MapLightClientRegistry::new();
         super::register_implementations::<1>(&mut registry);
         assert!(registry
-            .get_light_client(
-                client_state::OPTIMISM_CLIENT_STATE_TYPE_URL
-            )
+            .get_light_client(client_state::OPTIMISM_CLIENT_STATE_TYPE_URL)
             .is_some());
     }
 }

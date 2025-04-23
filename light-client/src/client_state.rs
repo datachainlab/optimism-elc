@@ -8,7 +8,7 @@ use crate::misc::{
 };
 use alloc::borrow::ToOwned;
 use alloc::vec::Vec;
-use alloy_primitives::{B256};
+use alloy_primitives::B256;
 use core::time::Duration;
 use ethereum_consensus::beacon::Version;
 use ethereum_consensus::fork::{ForkParameter, ForkParameters, ForkSpec};
