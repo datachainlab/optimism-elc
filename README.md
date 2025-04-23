@@ -7,8 +7,8 @@
 NOTE: This project is currently under heavy development. Features may change or break.
 
 ## Supported Versions
-- [lcp v0.2.12](https://github.com/datachainlab/lcp/releases/tag/v0.2.12)
-- [optimism v1.11.2](https://github.com/ethereum-optimism/optimism/tree/v1.11.2)
+- [lcp v0.2.14](https://github.com/datachainlab/lcp/releases/tag/v0.2.14)
+- [optimism v1.13.1](https://github.com/ethereum-optimism/optimism/tree/v1.13.1)
 
 ## Related project
 
