@@ -6,7 +6,7 @@ use light_client::types::Any;
 #[allow(clippy::large_enum_variant)]
 pub enum ClientMessage<const L1_SYNC_COMMITTEE_SIZE: usize> {
     Header(Header<L1_SYNC_COMMITTEE_SIZE>),
-    Misbehaviour,
+    //Misbehaviour,
 }
 
 impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<Any> for ClientMessage<L1_SYNC_COMMITTEE_SIZE> {
