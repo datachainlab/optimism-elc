@@ -9,7 +9,6 @@
 use crate::fpvm_evm::precompiles::utils::{msm_required_gas, precompile_run};
 use crate::oracle::MemoryOracleClient;
 use alloc::string::ToString;
-use kona_preimage::{Channel, HintWriter, OracleReader};
 use revm::precompile::{
     bls12_381,
     bls12_381_const::{DISCOUNT_TABLE_G2_MSM, G2_MSM_BASE_GAS_FEE, G2_MSM_INPUT_LENGTH},

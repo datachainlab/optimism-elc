@@ -10,16 +10,14 @@ use core::fmt::Debug;
 use kona_driver::Driver;
 use kona_executor::TrieDBProvider;
 use kona_genesis::RollupConfig;
-use kona_preimage::{
-    CommsClient, HintWriter, HintWriterClient, OracleReader, PreimageKey, PreimageOracleClient,
-};
+use kona_preimage::{CommsClient, PreimageKey};
 use kona_proof::errors::OracleProviderError;
 use kona_proof::{
     executor::KonaExecutor,
     l1::{OracleBlobProvider, OracleL1ChainProvider, OraclePipeline},
     l2::OracleL2ChainProvider,
     sync::new_pipeline_cursor,
-    BootInfo, FlushableCache, HintType,
+    BootInfo, HintType,
 };
 use serde::{Deserialize, Serialize};
 

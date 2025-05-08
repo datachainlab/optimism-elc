@@ -33,7 +33,7 @@ macro_rules! precompile_run {
             use kona_preimage::{
                 errors::PreimageOracleError, PreimageKey, PreimageKeyType, PreimageOracleClient,
             };
-            use kona_proof::{errors::OracleProviderError, HintType};
+            use kona_proof::errors::OracleProviderError;
 
             // Write the hint for the precompile run.
             let hint_data = $hint_data;

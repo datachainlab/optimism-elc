@@ -9,7 +9,6 @@
 use crate::fpvm_evm::precompiles::utils::precompile_run;
 use crate::oracle::MemoryOracleClient;
 use alloc::string::ToString;
-use kona_preimage::{Channel, HintWriter, OracleReader};
 use revm::precompile::{
     bls12_381,
     bls12_381_const::{MAP_FP_TO_G1_BASE_GAS_FEE, PADDED_FP_LENGTH},

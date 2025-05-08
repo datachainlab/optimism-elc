@@ -4,7 +4,6 @@ use super::precompiles::OpFpvmPrecompiles;
 use crate::oracle::MemoryOracleClient;
 use alloy_evm::{Database, EvmEnv, EvmFactory};
 use alloy_op_evm::OpEvm;
-use kona_preimage::{Channel, HintWriter, OracleReader};
 use op_revm::{
     DefaultOp, OpContext, OpEvm as RevmOpEvm, OpHaltReason, OpSpecId, OpTransaction,
     OpTransactionError,

@@ -4,7 +4,6 @@ use crate::fpvm_evm::precompiles::utils::precompile_run;
 use crate::oracle::MemoryOracleClient;
 use alloc::string::ToString;
 use alloy_primitives::Address;
-use kona_preimage::{Channel, HintWriter, OracleReader};
 use revm::precompile::{PrecompileError, PrecompileOutput, PrecompileResult};
 
 /// Address of the KZG point evaluation precompile.

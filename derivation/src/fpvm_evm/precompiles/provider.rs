@@ -6,7 +6,6 @@ use crate::fpvm_evm::precompiles::{
 use crate::oracle::MemoryOracleClient;
 use alloc::{boxed::Box, string::String, vec, vec::Vec};
 use alloy_primitives::{Address, Bytes};
-use kona_preimage::{Channel, HintWriter, OracleReader};
 use op_revm::{
     precompiles::{fjord, granite, isthmus},
     OpSpecId,

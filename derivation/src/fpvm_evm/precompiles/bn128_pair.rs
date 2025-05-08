@@ -3,7 +3,6 @@
 use crate::fpvm_evm::precompiles::utils::precompile_run;
 use crate::oracle::MemoryOracleClient;
 use alloc::string::ToString;
-use kona_preimage::{Channel, HintWriter, OracleReader};
 use revm::precompile::{
     bn128::{
         pair::{self, ISTANBUL_PAIR_BASE, ISTANBUL_PAIR_PER_POINT},
