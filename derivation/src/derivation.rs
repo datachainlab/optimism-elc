@@ -1,15 +1,18 @@
 use crate::errors;
+use crate::fpvm_evm::FpvmOpEvmFactory;
+use crate::oracle::MemoryOracleClient;
 use alloc::sync::Arc;
-use core::clone::Clone;
 use alloy_consensus::Header;
 use alloy_primitives::{Sealed, B256};
 use anyhow::Result;
+use core::clone::Clone;
 use core::fmt::Debug;
-use kona_client::fpvm_evm::FpvmOpEvmFactory;
 use kona_driver::Driver;
 use kona_executor::TrieDBProvider;
 use kona_genesis::RollupConfig;
-use kona_preimage::{CommsClient, HintWriter, HintWriterClient, OracleReader, PreimageKey, PreimageOracleClient};
+use kona_preimage::{
+    CommsClient, HintWriter, HintWriterClient, OracleReader, PreimageKey, PreimageOracleClient,
+};
 use kona_proof::errors::OracleProviderError;
 use kona_proof::{
     executor::KonaExecutor,
@@ -19,9 +22,6 @@ use kona_proof::{
     BootInfo, FlushableCache, HintType,
 };
 use serde::{Deserialize, Serialize};
-use crate::channel::MemoryChannel;
-use crate::oracle::MemoryOracleClient;
-
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Derivation {
@@ -103,11 +103,7 @@ impl Derivation {
         )
         .await?;
 
-        let evm_factory = {
-            let oracle_reader = OracleReader::new(MemoryChannel::from(oracle_for_preimage.clone()));
-            let hint_writer = HintWriter::new(MemoryChannel::from(oracle_for_preimage));
-            FpvmOpEvmFactory::new(hint_writer, oracle_reader)
-        };
+        let evm_factory = FpvmOpEvmFactory::new(oracle_for_preimage);
         let executor = KonaExecutor::new(
             rollup_config.as_ref(),
             l2_provider.clone(),

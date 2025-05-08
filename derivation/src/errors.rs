@@ -30,8 +30,6 @@ pub enum Error {
         source: PreimageOracleError,
         key: [u8; 32],
     },
-    #[error("UnexpectedPrecompilePreimage: {0}")]
-    UnexpectedPrecompilePreimage(PreimageKey),
     #[error("UnexpectedSha256PreimageValue: {value:?} {key:?}")]
     UnexpectedSha256PreimageValue { value: Vec<u8>, key: PreimageKey },
     #[error("UnexpectedKeccak256PreimageValue: {value:?} {key:?}")]
@@ -52,4 +50,6 @@ pub enum Error {
     NoPreimageDataFoundInVerifyBlob(Box<Error>),
     #[error("UnexpectedGlobalGlobalGeneric: {0}")]
     UnexpectedGlobalGlobalGeneric(PreimageKey),
+    #[error("NoPreimageKeyFoundInPrecompile: {0:?}")]
+    NoPreimageKeyFoundInPrecompile(Box<Error>),
 }

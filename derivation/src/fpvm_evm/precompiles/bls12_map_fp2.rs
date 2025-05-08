@@ -1,0 +1,49 @@
+//! Contains the accelerated precompile for the BLS12-381 curve FP2 to G2 Mapping.
+//!
+//! BLS12-381 is introduced in [EIP-2537](https://eips.ethereum.org/EIPS/eip-2537).
+//!
+//! For constants and logic, see the [revm implementation].
+//!
+//! [revm implementation]: https://github.com/bluealloy/revm/blob/main/crates/precompile/src/bls12_381/map_fp_to_g1.rs
+
+use crate::fpvm_evm::precompiles::utils::precompile_run;
+use crate::oracle::MemoryOracleClient;
+use alloc::string::ToString;
+use kona_preimage::{Channel, HintWriter, OracleReader};
+use revm::precompile::{
+    bls12_381,
+    bls12_381_const::{MAP_FP2_TO_G2_BASE_GAS_FEE, PADDED_FP2_LENGTH},
+    PrecompileError, PrecompileOutput, PrecompileResult,
+};
+
+/// Performs an FPVM-accelerated BLS12-381 map fp2 check.
+///
+/// Notice, there is no input size limit for this precompile.
+/// See: <https://specs.optimism.io/protocol/isthmus/exec-engine.html#evm-changes>
+pub(crate) fn fpvm_bls12_map_fp2(
+    input: &[u8],
+    gas_limit: u64,
+    oracle_reader: &MemoryOracleClient,
+) -> PrecompileResult {
+    if MAP_FP2_TO_G2_BASE_GAS_FEE > gas_limit {
+        return Err(PrecompileError::OutOfGas);
+    }
+
+    if input.len() != PADDED_FP2_LENGTH {
+        return Err(PrecompileError::Other(alloc::format!(
+            "MAP_FP2_TO_G2 input should be {PADDED_FP2_LENGTH} bytes, was {}",
+            input.len()
+        )));
+    }
+
+    let result_data = kona_proof::block_on(precompile_run! {
+        oracle_reader,
+        &[bls12_381::map_fp2_to_g2::PRECOMPILE.address().as_slice(), &MAP_FP2_TO_G2_BASE_GAS_FEE.to_be_bytes(), input]
+    })
+    .map_err(|e| PrecompileError::Other(e.to_string()))?;
+
+    Ok(PrecompileOutput::new(
+        MAP_FP2_TO_G2_BASE_GAS_FEE,
+        result_data.into(),
+    ))
+}

@@ -95,6 +95,8 @@ impl TryFrom<Vec<Preimage>> for MemoryOracleClient {
         for (key, data) in inner.iter() {
             if key.key_type() == PreimageKeyType::Blob {
                 verify_blob_preimage(key, data, &inner, &mut kzg_cache)?
+            } else if key.key_type() == PreimageKeyType::Precompile {
+                verify_precompile(key, &inner)?
             }
         }
         Ok(Self {
@@ -207,6 +209,15 @@ fn verify_blob_preimage(
     Ok(())
 }
 
+fn verify_precompile(
+    key: &PreimageKey,
+    preimages: &HashMap<PreimageKey, Vec<u8>>,
+) -> Result<(), Error> {
+    get_data_by_hash_key(key, preimages)
+        .map_err(|e| Error::NoPreimageKeyFoundInPrecompile(Box::new(e)))?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod test {
     use crate::errors::Error;
@@ -267,7 +278,7 @@ mod test {
         )];
         let err = MemoryOracleClient::try_from(preimage).unwrap_err();
         match err {
-            Error::UnexpectedPrecompilePreimage(_) => {}
+            Error::NoPreimageKeyFoundInPrecompile(_) => {}
             _ => panic!("Unexpected error, got: {:?}", err),
         }
     }
