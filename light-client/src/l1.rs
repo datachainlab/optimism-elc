@@ -301,7 +301,9 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L1Verifier<SYNC_COMMITTEE_SIZE> {
             .validate_execution_update(update_fork_spec, trusted_execution_root, execution_update)
             .map_err(Error::L1VerifyExecutionUpdateError)?;
 
-        // Ensure valid l1 block hash because L2 derivation requires it.
+        // Ensure valid l1 block hash
+        // This is not required for ethereum-elc but is required for optimism-elc.
+        // Because L2 derivation requires l1 block hash.
         is_valid_normalized_merkle_branch(
             hash_tree_root(execution_update.block_hash)
                 .unwrap()

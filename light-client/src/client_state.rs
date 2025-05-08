@@ -71,7 +71,7 @@ impl ClientState {
         trusted_consensus_state: &ConsensusState,
         header: Header<L1_SYNC_COMMITTEE_SIZE>,
     ) -> Result<(ClientState, ConsensusState, Height, Time), Error> {
-        // Use L1 head for L2 derivation. Therefore, the validity of L1 must be verified.
+        // Since the L1 block hash is used for L2 derivation, the validity of L1 must be verified.
         let l1_consensus = header.verify_l1(
             &self.l1_config,
             now.as_unix_timestamp_secs(),
@@ -85,7 +85,7 @@ impl ClientState {
             &self.rollup_config,
         )?;
 
-        // Ensure account strogae is valid
+        // Ensure account storage is valid
         header.account_update.verify_account_storage(
             &self.ibc_store_address,
             H256::from_slice(l2_header.state_root.0.as_slice()),
