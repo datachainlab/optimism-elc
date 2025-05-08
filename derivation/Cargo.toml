@@ -9,16 +9,31 @@ anyhow    = { workspace = true }
 prost     = { workspace = true }
 
 # kona
+kona-client = { workspace = true }
+kona-mpt = { workspace = true}
 kona-preimage = { workspace = true}
 kona-executor = { workspace = true}
 kona-driver = { workspace = true }
 kona-proof = { workspace = true }
 kona-genesis = { workspace = true, features = ["serde"] }
+kona-protocol = { workspace = true }
 
-# Revm + Alloy
+# Alloy
 alloy-primitives = { workspace = true }
 alloy-consensus = { workspace = true}
-alloy-eips = { workspace = true } # 'kzg' is unavailable in LCP because c-kzg requires std
+alloy-eips = { workspace = true }
+alloy-trie = { workspace = true }
+
+# Revm
+revm = { workspace = true }
+op-revm = { workspace = true }
+alloy-evm = { workspace = true }
+alloy-op-evm = { workspace = true }
+
+op-alloy-consensus = { workspace = true }
+op-alloy-rpc-types-engine = { workspace = true }
+
+ark-ff = { workspace = true }
 
 # misc
 hashbrown = { workspace = true }
@@ -27,3 +42,7 @@ async-trait = "0.1"
 kzg-rs = { version = "0.2.3", default-features = false }
 serde = { workspace = true, features = ["derive"] }
 prost-derive = "0.11.9"
+spin = { version = "0.9", default-features = false }
+log = { version = "0.4.27", features = [] }
+
+tracing = "0.1.41"

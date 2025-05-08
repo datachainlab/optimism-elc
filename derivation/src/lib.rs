@@ -5,6 +5,7 @@ pub mod derivation;
 pub mod errors;
 pub mod oracle;
 pub mod types;
+mod channel;
 
 pub use anyhow::Error;
 

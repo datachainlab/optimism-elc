@@ -1,13 +1,15 @@
 use crate::errors;
 use alloc::sync::Arc;
+use core::clone::Clone;
 use alloy_consensus::Header;
 use alloy_primitives::{Sealed, B256};
 use anyhow::Result;
 use core::fmt::Debug;
+use kona_client::fpvm_evm::FpvmOpEvmFactory;
 use kona_driver::Driver;
 use kona_executor::TrieDBProvider;
 use kona_genesis::RollupConfig;
-use kona_preimage::{CommsClient, PreimageKey};
+use kona_preimage::{CommsClient, HintWriter, HintWriterClient, OracleReader, PreimageKey, PreimageOracleClient};
 use kona_proof::errors::OracleProviderError;
 use kona_proof::{
     executor::KonaExecutor,
@@ -17,6 +19,11 @@ use kona_proof::{
     BootInfo, FlushableCache, HintType,
 };
 use serde::{Deserialize, Serialize};
+use log::info;
+use crate::channel::MemoryChannel;
+use crate::errors::Error;
+use crate::oracle::MemoryOracleClient;
+
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Derivation {
@@ -41,22 +48,22 @@ impl Derivation {
         }
     }
 
-    pub fn verify<T: CommsClient + Send + Sync + FlushableCache + Debug>(
+    pub fn verify(
         &self,
         chain_id: u64,
         rollup_config: &RollupConfig,
-        oracle: T,
+        oracle: MemoryOracleClient,
     ) -> Result<Header> {
         kona_proof::block_on(self.run(chain_id, rollup_config, oracle))
     }
 
     /// Run the derivation pipeline to verify the claimed L2 output root.
     /// This is almost the same as kona-client.
-    async fn run<T: CommsClient + Send + Sync + FlushableCache + Debug>(
+    async fn run(
         &self,
         chain_id: u64,
         rollup_config: &RollupConfig,
-        oracle: T,
+        oracle: MemoryOracleClient,
     ) -> Result<Header> {
         let boot = &BootInfo {
             l1_head: self.l1_head_hash,
@@ -68,6 +75,7 @@ impl Derivation {
         };
         let rollup_config = Arc::new(boot.rollup_config.clone());
         let safe_head_hash = fetch_safe_head_hash(&oracle, boot.agreed_l2_output_root).await?;
+        let oracle_for_preimage = oracle.clone();
         let oracle = Arc::new(oracle);
         let mut l1_provider = OracleL1ChainProvider::new(boot.l1_head, oracle.clone());
         let mut l2_provider =
@@ -97,12 +105,16 @@ impl Derivation {
         )
         .await?;
 
+        let evm_factory = {
+            let oracle_reader = OracleReader::new(MemoryChannel::from(oracle_for_preimage.clone()));
+            let hint_writer = HintWriter::new(MemoryChannel::from(oracle_for_preimage));
+            FpvmOpEvmFactory::new(hint_writer, oracle_reader)
+        };
         let executor = KonaExecutor::new(
             rollup_config.as_ref(),
             l2_provider.clone(),
             l2_provider,
-            // https://github.com/op-rs/kona/blob/660d41d0e4100fb0a73363a5fa057287e6882dfd/bin/host/src/single/orchestrator.rs#L86
-            None,
+            evm_factory,
             None,
         );
         let mut driver = Driver::new(cursor, executor, pipeline);

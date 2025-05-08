@@ -12,9 +12,11 @@ use hashbrown::{HashMap, HashSet};
 use kona_preimage::errors::{PreimageOracleError, PreimageOracleResult};
 use kona_preimage::{HintWriterClient, PreimageKey, PreimageKeyType, PreimageOracleClient};
 use kona_proof::FlushableCache;
+use kona_proof::l1::ROOTS_OF_UNITY;
 use sha2::{Digest, Sha256};
+use ark_ff::{BigInteger, PrimeField};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct MemoryOracleClient {
     /// Avoid deepcopy by clone operation because the preimage size is so big.
     preimages: Arc<HashMap<PreimageKey, Vec<u8>>>,
@@ -36,6 +38,7 @@ impl FlushableCache for MemoryOracleClient {
 #[async_trait::async_trait]
 impl PreimageOracleClient for MemoryOracleClient {
     async fn get(&self, key: PreimageKey) -> PreimageOracleResult<Vec<u8>> {
+        tracing::info!("get ");
         if let Some(value) = self.preimages.get(&key) {
             Ok(value.clone())
         } else {
@@ -47,6 +50,7 @@ impl PreimageOracleClient for MemoryOracleClient {
     }
 
     async fn get_exact(&self, key: PreimageKey, buf: &mut [u8]) -> PreimageOracleResult<()> {
+        tracing::info!("get exact");
         if let Some(value) = self.preimages.get(&key) {
             buf.copy_from_slice(value.as_slice());
             Ok(())
@@ -189,7 +193,9 @@ fn verify_blob_preimage(
     // Populate blob sidecar
     let mut blob = [0u8; kzg_rs::BYTES_PER_BLOB];
     for i in 0..FIELD_ELEMENTS_PER_BLOB {
-        blob_key[POSITION_FIELD_ELEMENT..].copy_from_slice(i.to_be_bytes().as_ref());
+        blob_key[48..].copy_from_slice(
+            ROOTS_OF_UNITY[i as usize].into_bigint().to_bytes_be().as_ref(),
+        );
         let sidecar_blob = get_data_by_blob_key(blob_key, preimages)?;
         blob[(i as usize) << 5..(i as usize + 1) << 5].copy_from_slice(sidecar_blob);
     }
