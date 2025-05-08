@@ -1,20 +1,22 @@
 use kona_preimage::{Channel, PreimageKey, PreimageOracleClient};
 use kona_preimage::errors::ChannelResult;
-use alloc::boxed::Box;
-use core::cell::UnsafeCell;
 use crate::oracle::MemoryOracleClient;
+use alloc::boxed::Box;
+use alloc::vec;
+use alloc::vec::Vec;
+use core::slice::SlicePattern;
 
 #[derive(Debug)]
 pub struct MemoryChannel {
     oracle: MemoryOracleClient,
-    key: spin::RwLock<PreimageKey>,
+    current: spin::RwLock<Vec<u8>>,
 }
 
 impl Clone for MemoryChannel {
     fn clone(&self) -> Self {
         MemoryChannel {
             oracle: self.oracle.clone(),
-            key: spin::RwLock::new(PreimageKey::default())
+            current: spin::RwLock::new(vec![])
         }
     }
 }
@@ -22,23 +24,17 @@ impl Clone for MemoryChannel {
 #[async_trait::async_trait]
 impl Channel for MemoryChannel {
     async fn read(&self, buf: &mut [u8]) -> ChannelResult<usize> {
-        tracing::info!("read");
-        let key = self.key.read();
-        let data = self.oracle.get(*key).await.unwrap();
-        buf.copy_from_slice(data.as_slice());
-        Ok(data.len())
+        self.read_exact(buf).await
     }
 
     async fn read_exact(&self, buf: &mut [u8]) ->ChannelResult<usize>  {
-        tracing::info!("read exact");
-        let key = self.key.read();
-        let data = self.oracle.get(*key).await.unwrap();
-        buf.copy_from_slice(data.as_slice());
+        //TODO adjust OracleReader behavior
+        let data = self.current.read().as_slice();
+        buf.copy_from_slice(data);
         Ok(data.len())
     }
 
     async fn write(&self, buf: &[u8]) -> ChannelResult<usize> {
-        tracing::info!("write");
         let key : [u8; 32] = buf.try_into().unwrap();
         let key : PreimageKey = key.try_into().unwrap();
         let data = self.oracle.get(key).await.unwrap();

@@ -19,9 +19,7 @@ use kona_proof::{
     BootInfo, FlushableCache, HintType,
 };
 use serde::{Deserialize, Serialize};
-use log::info;
 use crate::channel::MemoryChannel;
-use crate::errors::Error;
 use crate::oracle::MemoryOracleClient;
 
 
