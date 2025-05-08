@@ -44,7 +44,7 @@ pub struct ClientState {
     pub latest_height: Height,
     pub frozen: bool,
 
-    /// RollupConfig
+    /// L2 RollupConfig
     pub rollup_config: RollupConfig,
 
     /// L1 Config
@@ -71,21 +71,21 @@ impl ClientState {
         trusted_consensus_state: &ConsensusState,
         header: Header<L1_SYNC_COMMITTEE_SIZE>,
     ) -> Result<(ClientState, ConsensusState, Height, Time), Error> {
-        // Ensure l1 finalized
+        // Use L1 head for L2 derivation. Therefore, the validity of L1 must be verified.
         let l1_consensus = header.verify_l1(
             &self.l1_config,
             now.as_unix_timestamp_secs(),
             trusted_consensus_state,
         )?;
 
-        // Ensure header is valid
+        // Ensure L2 header is valid
         let (l2_header, l2_output_root) = header.verify_l2(
             self.chain_id,
             trusted_consensus_state.output_root,
             &self.rollup_config,
         )?;
 
-        // Ensure world state is valid
+        // Ensure account strogae is valid
         header.account_update.verify_account_storage(
             &self.ibc_store_address,
             H256::from_slice(l2_header.state_root.0.as_slice()),

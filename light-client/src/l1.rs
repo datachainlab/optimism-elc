@@ -24,6 +24,8 @@ use optimism_ibc_proto::ibc::lightclients::ethereum::v1::{
 };
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::L1Header as RawL1Header;
 
+/// This file is almost the same as ethereum-ibc-rs. Because the L1 verification is same.
+
 #[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct L1Config {
     /// Chain Param
@@ -335,7 +337,6 @@ impl<const SYNC_COMMITTEE_SIZE: usize> LightClientStoreReader<SYNC_COMMITTEE_SIZ
         _ctx: &CC,
         update: &C,
     ) -> Result<(), ethereum_light_client_verifier::errors::Error> {
-        // L2 is shorter than L1, so it is possible that only L2 is different and L1 is in the same slot.
         if self.slot > update.finalized_beacon_header().slot {
             Err(IrrelevantConsensusUpdates(
                 "finalized header slot is not greater than or equal to current slot".to_string(),

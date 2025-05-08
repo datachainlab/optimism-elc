@@ -23,7 +23,15 @@ pub struct VerifyResult {
 
 #[derive(Clone, Debug)]
 pub struct L1Headers<const L1_SYNC_COMMITTEE_SIZE: usize> {
+    /// L1 headers from trusted to deterministic
+    /// The final element in this list must be an L1 header that can be derived deterministically from the L2 header.
+    /// And it must be stored in ConsensusState.
     trusted_to_deterministic: Vec<L1Header<L1_SYNC_COMMITTEE_SIZE>>,
+    /// L1 headers from deterministic to latest
+    /// Since the header is already finalized in L1, the latest is not necessarily deterministic from the L2 header.
+    ///
+    /// Consider the case where the LATEST is stored in ConsensusState.
+    /// The prover cannot retrieve information held in ConsensusState. Therefore, if the latest is stored in ConsensusState, the trusted state cannot be restored by prover and update_client cannot be executed.
     deterministic_to_latest: Vec<L1Header<L1_SYNC_COMMITTEE_SIZE>>,
 }
 

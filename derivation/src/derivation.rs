@@ -50,6 +50,8 @@ impl Derivation {
         kona_proof::block_on(self.run(chain_id, rollup_config, oracle))
     }
 
+    /// Run the derivation pipeline to verify the claimed L2 output root.
+    /// This is almost the same as kona-client.
     async fn run<T: CommsClient + Send + Sync + FlushableCache + Debug>(
         &self,
         chain_id: u64,
