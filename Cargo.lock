@@ -1764,45 +1764,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "kona-client"
-version = "0.1.0"
-source = "git+https://github.com/anton-rs/kona?rev=kona-client%2Fv0.1.0-beta.17#365333752ba5eab8e81e9721e88be4d4c5089449"
-dependencies = [
- "alloy-consensus",
- "alloy-eips",
- "alloy-evm",
- "alloy-op-evm",
- "alloy-primitives 1.1.0",
- "alloy-rlp",
- "alloy-rpc-types-engine",
- "async-trait",
- "cfg-if",
- "kona-derive",
- "kona-driver",
- "kona-executor",
- "kona-genesis",
- "kona-interop",
- "kona-mpt",
- "kona-preimage",
- "kona-proof",
- "kona-proof-interop",
- "kona-protocol",
- "kona-registry",
- "kona-std-fpvm",
- "kona-std-fpvm-proc",
- "lru",
- "op-alloy-consensus",
- "op-alloy-rpc-types-engine",
- "op-revm",
- "revm",
- "serde",
- "serde_json",
- "spin 0.10.0",
- "thiserror 2.0.12",
- "tracing",
-]
-
-[[package]]
 name = "kona-derive"
 version = "0.3.0"
 source = "git+https://github.com/anton-rs/kona?rev=kona-client%2Fv0.1.0-beta.17#365333752ba5eab8e81e9721e88be4d4c5089449"
@@ -1897,26 +1858,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "kona-interop"
-version = "0.3.0"
-source = "git+https://github.com/anton-rs/kona?rev=kona-client%2Fv0.1.0-beta.17#365333752ba5eab8e81e9721e88be4d4c5089449"
-dependencies = [
- "alloy-consensus",
- "alloy-eips",
- "alloy-primitives 1.1.0",
- "alloy-rlp",
- "alloy-sol-types 1.1.0",
- "async-trait",
- "derive_more 2.0.1",
- "kona-genesis",
- "kona-registry",
- "op-alloy-consensus",
- "serde",
- "thiserror 2.0.12",
- "tracing",
-]
-
-[[package]]
 name = "kona-mpt"
 version = "0.2.0"
 source = "git+https://github.com/anton-rs/kona?rev=kona-client%2Fv0.1.0-beta.17#365333752ba5eab8e81e9721e88be4d4c5089449"
@@ -1965,34 +1906,6 @@ dependencies = [
  "op-alloy-consensus",
  "op-alloy-rpc-types-engine",
  "op-revm",
- "serde",
- "serde_json",
- "spin 0.10.0",
- "thiserror 2.0.12",
- "tracing",
-]
-
-[[package]]
-name = "kona-proof-interop"
-version = "0.2.0"
-source = "git+https://github.com/anton-rs/kona?rev=kona-client%2Fv0.1.0-beta.17#365333752ba5eab8e81e9721e88be4d4c5089449"
-dependencies = [
- "alloy-consensus",
- "alloy-eips",
- "alloy-op-evm",
- "alloy-primitives 1.1.0",
- "alloy-rlp",
- "alloy-rpc-types-engine",
- "async-trait",
- "kona-executor",
- "kona-genesis",
- "kona-interop",
- "kona-mpt",
- "kona-preimage",
- "kona-proof",
- "kona-registry",
- "op-alloy-consensus",
- "op-alloy-rpc-types-engine",
  "serde",
  "serde_json",
  "spin 0.10.0",
@@ -2060,30 +1973,6 @@ dependencies = [
  "alloy-primitives 1.1.0",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "kona-std-fpvm"
-version = "0.2.0"
-source = "git+https://github.com/anton-rs/kona?rev=kona-client%2Fv0.1.0-beta.17#365333752ba5eab8e81e9721e88be4d4c5089449"
-dependencies = [
- "async-trait",
- "cfg-if",
- "kona-preimage",
- "linked_list_allocator",
- "thiserror 2.0.12",
-]
-
-[[package]]
-name = "kona-std-fpvm-proc"
-version = "0.2.0"
-source = "git+https://github.com/anton-rs/kona?rev=kona-client%2Fv0.1.0-beta.17#365333752ba5eab8e81e9721e88be4d4c5089449"
-dependencies = [
- "cfg-if",
- "kona-std-fpvm",
- "proc-macro2",
- "quote",
- "syn 2.0.100",
 ]
 
 [[package]]
@@ -2203,15 +2092,6 @@ dependencies = [
  "ibc",
  "lcp-types",
  "store",
-]
-
-[[package]]
-name = "linked_list_allocator"
-version = "0.10.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9afa463f5405ee81cdb9cc2baf37e08ec7e4c8209442b5d72c04cfb2cd6e6286"
-dependencies = [
- "spinning_top",
 ]
 
 [[package]]
@@ -2509,27 +2389,20 @@ dependencies = [
  "alloy-primitives 1.1.0",
  "alloy-trie",
  "anyhow",
- "ark-ff",
  "async-trait",
  "hashbrown 0.15.2",
- "kona-client",
  "kona-driver",
  "kona-executor",
  "kona-genesis",
- "kona-mpt",
  "kona-preimage",
  "kona-proof",
- "kona-protocol",
  "kzg-rs",
- "op-alloy-consensus",
- "op-alloy-rpc-types-engine",
  "op-revm",
  "prost",
  "prost-derive",
  "revm",
  "serde",
  "sha2 0.10.8",
- "spin 0.10.0",
  "thiserror 2.0.12",
 ]
 
@@ -3551,15 +3424,6 @@ name = "spin"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d5fe4ccb98d9c292d56fec89a5e07da7fc4cf0dc11e156b41793132775d3e591"
-dependencies = [
- "lock_api",
-]
-
-[[package]]
-name = "spinning_top"
-version = "0.2.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b9eb1a2f4c41445a3a0ff9abc5221c5fcd28e1f13cd7c0397706f9ac938ddb0"
 dependencies = [
  "lock_api",
 ]
