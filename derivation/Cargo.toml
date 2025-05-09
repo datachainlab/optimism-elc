@@ -15,10 +15,16 @@ kona-driver = { workspace = true }
 kona-proof = { workspace = true }
 kona-genesis = { workspace = true, features = ["serde"] }
 
-# Revm + Alloy
+# Alloy
 alloy-primitives = { workspace = true }
 alloy-consensus = { workspace = true}
-alloy-eips = { workspace = true } # 'kzg' is unavailable in LCP because c-kzg requires std
+alloy-eips = { workspace = true }
+
+# Revm
+revm = { workspace = true }
+op-revm = { workspace = true }
+alloy-evm = { workspace = true }
+alloy-op-evm = { workspace = true }
 
 # misc
 hashbrown = { workspace = true }

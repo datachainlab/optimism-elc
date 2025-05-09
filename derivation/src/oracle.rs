@@ -14,7 +14,7 @@ use kona_preimage::{HintWriterClient, PreimageKey, PreimageKeyType, PreimageOrac
 use kona_proof::FlushableCache;
 use sha2::{Digest, Sha256};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct MemoryOracleClient {
     /// Avoid deepcopy by clone operation because the preimage size is so big.
     preimages: Arc<HashMap<PreimageKey, Vec<u8>>>,
@@ -85,10 +85,6 @@ impl TryFrom<Vec<Preimage>> for MemoryOracleClient {
                     verify_keccak256_preimage(&preimage_key, &preimage.data)?
                 }
                 PreimageKeyType::Sha256 => verify_sha256_preimage(&preimage_key, &preimage.data)?,
-                PreimageKeyType::Precompile => {
-                    // Precomiles is needless because rerun the contract in derivation.
-                    return Err(Error::UnexpectedPrecompilePreimage(preimage_key));
-                }
                 _ => {}
             }
             inner.insert(preimage_key, preimage.data);
@@ -99,6 +95,8 @@ impl TryFrom<Vec<Preimage>> for MemoryOracleClient {
         for (key, data) in inner.iter() {
             if key.key_type() == PreimageKeyType::Blob {
                 verify_blob_preimage(key, data, &inner, &mut kzg_cache)?
+            } else if key.key_type() == PreimageKeyType::Precompile {
+                verify_precompile(key, &inner)?
             }
         }
         Ok(Self {
@@ -211,6 +209,15 @@ fn verify_blob_preimage(
     Ok(())
 }
 
+fn verify_precompile(
+    key: &PreimageKey,
+    preimages: &HashMap<PreimageKey, Vec<u8>>,
+) -> Result<(), Error> {
+    get_data_by_hash_key(key, preimages)
+        .map_err(|e| Error::NoPreimageKeyFoundInPrecompile(Box::new(e)))?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod test {
     use crate::errors::Error;
@@ -271,7 +278,7 @@ mod test {
         )];
         let err = MemoryOracleClient::try_from(preimage).unwrap_err();
         match err {
-            Error::UnexpectedPrecompilePreimage(_) => {}
+            Error::NoPreimageKeyFoundInPrecompile(_) => {}
             _ => panic!("Unexpected error, got: {:?}", err),
         }
     }
