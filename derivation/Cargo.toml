@@ -19,7 +19,6 @@ kona-genesis = { workspace = true, features = ["serde"] }
 alloy-primitives = { workspace = true }
 alloy-consensus = { workspace = true}
 alloy-eips = { workspace = true }
-alloy-trie = { workspace = true }
 
 # Revm
 revm = { workspace = true }
