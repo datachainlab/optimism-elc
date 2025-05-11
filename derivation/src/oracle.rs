@@ -8,14 +8,14 @@ use alloc::sync::Arc;
 use alloc::vec::Vec;
 use alloy_eips::eip4844::{BYTES_PER_COMMITMENT, FIELD_ELEMENTS_PER_BLOB};
 use alloy_primitives::{keccak256, B256, U256};
+use ark_ff::fields::PrimeField;
 use ark_ff::BigInteger;
 use hashbrown::{HashMap, HashSet};
 use kona_preimage::errors::{PreimageOracleError, PreimageOracleResult};
 use kona_preimage::{HintWriterClient, PreimageKey, PreimageKeyType, PreimageOracleClient};
-use kona_proof::FlushableCache;
 use kona_proof::l1::ROOTS_OF_UNITY;
+use kona_proof::FlushableCache;
 use sha2::{Digest, Sha256};
-use ark_ff::fields::PrimeField;
 
 #[derive(Clone, Debug, Default)]
 pub struct MemoryOracleClient {
@@ -175,8 +175,11 @@ fn verify_blob_preimage(
     // Populate blob sidecar
     let mut blob = [0u8; kzg_rs::BYTES_PER_BLOB];
     for i in 0..FIELD_ELEMENTS_PER_BLOB {
-        blob_key[48..].copy_from_slice(
-            ROOTS_OF_UNITY[i as usize].into_bigint().to_bytes_be().as_ref(),
+        blob_key[BYTES_PER_COMMITMENT..].copy_from_slice(
+            ROOTS_OF_UNITY[i as usize]
+                .into_bigint()
+                .to_bytes_be()
+                .as_ref(),
         );
         let sidecar_blob = get_data_by_blob_key(blob_key, preimages)?;
         blob[(i as usize) << 5..(i as usize + 1) << 5].copy_from_slice(sidecar_blob);
@@ -193,8 +196,9 @@ fn verify_blob_preimage(
             // Get by 4096 index
             blob_key[POSITION_FIELD_ELEMENT..]
                 .copy_from_slice((FIELD_ELEMENTS_PER_BLOB).to_be_bytes().as_ref());
-            get_data_by_blob_key(blob_key, preimages)
-                .map_err(|e| Error::NoPreimageDataFoundInVerifyBlob(blob_key.to_vec(), Box::new(e)))?
+            get_data_by_blob_key(blob_key, preimages).map_err(|e| {
+                Error::NoPreimageDataFoundInVerifyBlob(blob_key.to_vec(), Box::new(e))
+            })?
         }
     };
     // Ensure valida blob
@@ -234,8 +238,10 @@ mod test {
     use alloy_eips::eip4844::{BYTES_PER_COMMITMENT, FIELD_ELEMENTS_PER_BLOB};
     use alloy_primitives::keccak256;
     use alloy_primitives::map::HashMap;
+    use ark_ff::{BigInteger, PrimeField};
     use hashbrown::HashSet;
     use kona_preimage::{PreimageKey, PreimageKeyType};
+    use kona_proof::l1::ROOTS_OF_UNITY;
 
     #[test]
     fn test_try_from_key_error() {
@@ -304,21 +310,40 @@ mod test {
 
     #[test]
     fn test_try_from_blob_no_kzg_proof_error() {
-        let blob_key = [0u8; POSITION_FIELD_ELEMENT + 8];
+        let mut blob_key = [0u8; POSITION_FIELD_ELEMENT + 8];
+        let mut preimages = HashMap::new();
+
+        for i in 0..FIELD_ELEMENTS_PER_BLOB {
+            blob_key[BYTES_PER_COMMITMENT..].copy_from_slice(
+                ROOTS_OF_UNITY[i as usize]
+                    .into_bigint()
+                    .to_bytes_be()
+                    .as_ref(),
+            );
+            let blob_per_index_key = keccak256(blob_key);
+            let sidecar_blob = [0u8; 32].to_vec();
+            preimages.insert(
+                PreimageKey::new(*blob_per_index_key, PreimageKeyType::Blob),
+                sidecar_blob,
+            );
+        }
+
         let blob_key_hash = keccak256(blob_key);
-        let preimage = vec![
-            Preimage::new(
-                PreimageKey::new(*blob_key_hash, PreimageKeyType::Keccak256),
-                blob_key.to_vec(),
-            ),
-            Preimage::new(
-                PreimageKey::new(*blob_key_hash, PreimageKeyType::Blob),
-                [0u8; 10].to_vec(),
-            ),
-        ];
-        let err = MemoryOracleClient::try_from(preimage).unwrap_err();
+        let mut final_kzg_proof_key = blob_key;
+        final_kzg_proof_key[POSITION_FIELD_ELEMENT..]
+            .copy_from_slice(FIELD_ELEMENTS_PER_BLOB.to_be_bytes().as_ref());
+        let final_kzg_proof = [0u8; BYTES_PER_COMMITMENT];
+        let kzg_proof_key_hash = keccak256(final_kzg_proof_key);
+        preimages.insert(
+            PreimageKey::new(*blob_key_hash, PreimageKeyType::Keccak256),
+            blob_key.to_vec(),
+        );
+
+        let first_key = PreimageKey::new(*blob_key_hash, PreimageKeyType::Blob);
+        let mut cache = HashSet::new();
+        let err = verify_blob_preimage(&first_key, &[0u8; 10], &preimages, &mut cache).unwrap_err();
         match err {
-            Error::NoPreimageDataFoundInVerifyBlob(_,_) => {}
+            Error::NoPreimageDataFoundInVerifyBlob(_, _) => {}
             _ => panic!("Unexpected error, got: {:?}", err),
         }
     }
@@ -326,14 +351,29 @@ mod test {
     #[test]
     fn test_verify_blob_preimage_error() {
         let mut blob_key = [0u8; POSITION_FIELD_ELEMENT + 8];
+        let mut preimages = HashMap::new();
+
+        for i in 0..FIELD_ELEMENTS_PER_BLOB {
+            blob_key[BYTES_PER_COMMITMENT..].copy_from_slice(
+                ROOTS_OF_UNITY[i as usize]
+                    .into_bigint()
+                    .to_bytes_be()
+                    .as_ref(),
+            );
+            let blob_per_index_key = keccak256(blob_key);
+            let sidecar_blob = [0u8; 32].to_vec();
+            preimages.insert(
+                PreimageKey::new(*blob_per_index_key, PreimageKeyType::Blob),
+                sidecar_blob,
+            );
+        }
+
         let blob_key_hash = keccak256(blob_key);
         let mut final_kzg_proof_key = blob_key;
         final_kzg_proof_key[POSITION_FIELD_ELEMENT..]
             .copy_from_slice((FIELD_ELEMENTS_PER_BLOB).to_be_bytes().as_ref());
         let final_kzg_proof = [0u8; BYTES_PER_COMMITMENT];
         let kzg_proof_key_hash = keccak256(final_kzg_proof_key);
-
-        let mut preimages = HashMap::new();
         preimages.insert(
             PreimageKey::new(*blob_key_hash, PreimageKeyType::Keccak256),
             blob_key.to_vec(),
@@ -342,16 +382,6 @@ mod test {
             PreimageKey::new(*kzg_proof_key_hash, PreimageKeyType::Blob),
             final_kzg_proof.to_vec(),
         );
-
-        for i in 0..FIELD_ELEMENTS_PER_BLOB {
-            blob_key[POSITION_FIELD_ELEMENT..].copy_from_slice(i.to_be_bytes().as_ref());
-            let blob_per_index_key = keccak256(blob_key);
-            let sidecar_blob = [0u8; 32].to_vec();
-            preimages.insert(
-                PreimageKey::new(*blob_per_index_key, PreimageKeyType::Blob),
-                sidecar_blob,
-            );
-        }
 
         let first_key = PreimageKey::new(*blob_key_hash, PreimageKeyType::Blob);
         let mut cache = HashSet::new();
