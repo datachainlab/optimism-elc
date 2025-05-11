@@ -175,12 +175,14 @@ fn verify_blob_preimage(
     // Populate blob sidecar
     let mut blob = [0u8; kzg_rs::BYTES_PER_BLOB];
     for i in 0..FIELD_ELEMENTS_PER_BLOB {
-        blob_key[BYTES_PER_COMMITMENT..].copy_from_slice(
+        let slice = &mut blob_key[BYTES_PER_COMMITMENT..];
+        try_copy_slice(
+            slice,
             ROOTS_OF_UNITY[i as usize]
                 .into_bigint()
                 .to_bytes_be()
                 .as_ref(),
-        );
+        )?;
         let sidecar_blob = get_data_by_blob_key(blob_key, preimages)?;
         blob[(i as usize) << 5..(i as usize + 1) << 5].copy_from_slice(sidecar_blob);
     }
@@ -194,8 +196,8 @@ fn verify_blob_preimage(
             data
         } else {
             // Get by 4096 index
-            blob_key[POSITION_FIELD_ELEMENT..]
-                .copy_from_slice((FIELD_ELEMENTS_PER_BLOB).to_be_bytes().as_ref());
+            let slice = &mut blob_key[POSITION_FIELD_ELEMENT..];
+            try_copy_slice(slice, FIELD_ELEMENTS_PER_BLOB.to_be_bytes().as_ref())?;
             get_data_by_blob_key(blob_key, preimages).map_err(|e| {
                 Error::NoPreimageDataFoundInVerifyBlob(blob_key.to_vec(), Box::new(e))
             })?
@@ -228,10 +230,19 @@ fn verify_precompile(
     Ok(())
 }
 
+fn try_copy_slice(slice: &mut [u8], value: &[u8]) -> Result<(), Error> {
+    if slice.len() == value.len() {
+        slice.copy_from_slice(&value);
+        Ok(())
+    } else {
+        Err(Error::UnexpectedSliceLength(slice.len(), value.len()))
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crate::errors::Error;
-    use crate::oracle::{verify_blob_preimage, MemoryOracleClient};
+    use crate::oracle::{try_copy_slice, verify_blob_preimage, MemoryOracleClient};
     use crate::types::Preimage;
     use crate::POSITION_FIELD_ELEMENT;
     use alloc::vec;
@@ -388,6 +399,17 @@ mod test {
         let err = verify_blob_preimage(&first_key, &[0u8; 10], &preimages, &mut cache).unwrap_err();
         match err {
             Error::UnexpectedPreimageBlob(_) => {}
+            _ => panic!("Unexpected error, got: {:?}", err),
+        }
+    }
+
+    #[test]
+    fn test_copy_slice_error() {
+        let mut slice = [0u8; 4];
+        let value = [0u8; 5];
+        let err = try_copy_slice(&mut slice, &value).unwrap_err();
+        match err {
+            Error::UnexpectedSliceLength(4, 5) => {}
             _ => panic!("Unexpected error, got: {:?}", err),
         }
     }

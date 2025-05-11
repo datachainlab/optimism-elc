@@ -52,4 +52,6 @@ pub enum Error {
     UnexpectedGlobalGlobalGeneric(PreimageKey),
     #[error("NoPreimageKeyFoundInPrecompile: {0:?}")]
     NoPreimageKeyFoundInPrecompile(Box<Error>),
+    #[error("UnexpectedSliceLength: {0:?} {1:?}")]
+    UnexpectedSliceLength(usize, usize),
 }
