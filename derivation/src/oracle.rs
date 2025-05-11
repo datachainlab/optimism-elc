@@ -232,7 +232,7 @@ fn verify_precompile(
 
 fn try_copy_slice(slice: &mut [u8], value: &[u8]) -> Result<(), Error> {
     if slice.len() == value.len() {
-        slice.copy_from_slice(&value);
+        slice.copy_from_slice(value);
         Ok(())
     } else {
         Err(Error::UnexpectedSliceLength(slice.len(), value.len()))
@@ -340,11 +340,6 @@ mod test {
         }
 
         let blob_key_hash = keccak256(blob_key);
-        let mut final_kzg_proof_key = blob_key;
-        final_kzg_proof_key[POSITION_FIELD_ELEMENT..]
-            .copy_from_slice(FIELD_ELEMENTS_PER_BLOB.to_be_bytes().as_ref());
-        let final_kzg_proof = [0u8; BYTES_PER_COMMITMENT];
-        let kzg_proof_key_hash = keccak256(final_kzg_proof_key);
         preimages.insert(
             PreimageKey::new(*blob_key_hash, PreimageKeyType::Keccak256),
             blob_key.to_vec(),
