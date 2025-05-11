@@ -1792,7 +1792,7 @@ dependencies = [
 [[package]]
 name = "kona-derive"
 version = "0.3.0"
-source = "git+https://github.com/anton-rs/kona?rev=kona-client%2Fv0.1.0-beta.18#f9c03f220640d89a0019066c36ff620fd6f3112b"
+source = "git+https://github.com/anton-rs/kona?rev=kona-client%2Fv1.0.0#a1172e46a743c63c9f0a0f13a444144e38d29355"
 dependencies = [
  "alloy-consensus",
  "alloy-eips",
@@ -1812,7 +1812,7 @@ dependencies = [
 [[package]]
 name = "kona-driver"
 version = "0.3.0"
-source = "git+https://github.com/anton-rs/kona?rev=kona-client%2Fv0.1.0-beta.18#f9c03f220640d89a0019066c36ff620fd6f3112b"
+source = "git+https://github.com/anton-rs/kona?rev=kona-client%2Fv1.0.0#a1172e46a743c63c9f0a0f13a444144e38d29355"
 dependencies = [
  "alloy-consensus",
  "alloy-evm",
@@ -1834,7 +1834,7 @@ dependencies = [
 [[package]]
 name = "kona-executor"
 version = "0.3.0"
-source = "git+https://github.com/anton-rs/kona?rev=kona-client%2Fv0.1.0-beta.18#f9c03f220640d89a0019066c36ff620fd6f3112b"
+source = "git+https://github.com/anton-rs/kona?rev=kona-client%2Fv1.0.0#a1172e46a743c63c9f0a0f13a444144e38d29355"
 dependencies = [
  "alloy-consensus",
  "alloy-eips",
@@ -1858,7 +1858,7 @@ dependencies = [
 [[package]]
 name = "kona-genesis"
 version = "0.3.0"
-source = "git+https://github.com/anton-rs/kona?rev=kona-client%2Fv0.1.0-beta.18#f9c03f220640d89a0019066c36ff620fd6f3112b"
+source = "git+https://github.com/anton-rs/kona?rev=kona-client%2Fv1.0.0#a1172e46a743c63c9f0a0f13a444144e38d29355"
 dependencies = [
  "alloy-consensus",
  "alloy-eips",
@@ -1877,7 +1877,7 @@ dependencies = [
 [[package]]
 name = "kona-hardforks"
 version = "0.3.0"
-source = "git+https://github.com/anton-rs/kona?rev=kona-client%2Fv0.1.0-beta.18#f9c03f220640d89a0019066c36ff620fd6f3112b"
+source = "git+https://github.com/anton-rs/kona?rev=kona-client%2Fv1.0.0#a1172e46a743c63c9f0a0f13a444144e38d29355"
 dependencies = [
  "alloy-eips",
  "alloy-primitives 1.1.0",
@@ -1888,7 +1888,7 @@ dependencies = [
 [[package]]
 name = "kona-mpt"
 version = "0.2.0"
-source = "git+https://github.com/anton-rs/kona?rev=kona-client%2Fv0.1.0-beta.18#f9c03f220640d89a0019066c36ff620fd6f3112b"
+source = "git+https://github.com/anton-rs/kona?rev=kona-client%2Fv1.0.0#a1172e46a743c63c9f0a0f13a444144e38d29355"
 dependencies = [
  "alloy-primitives 1.1.0",
  "alloy-rlp",
@@ -1900,7 +1900,7 @@ dependencies = [
 [[package]]
 name = "kona-preimage"
 version = "0.3.0"
-source = "git+https://github.com/anton-rs/kona?rev=kona-client%2Fv0.1.0-beta.18#f9c03f220640d89a0019066c36ff620fd6f3112b"
+source = "git+https://github.com/anton-rs/kona?rev=kona-client%2Fv1.0.0#a1172e46a743c63c9f0a0f13a444144e38d29355"
 dependencies = [
  "alloy-primitives 1.1.0",
  "async-trait",
@@ -1911,7 +1911,7 @@ dependencies = [
 [[package]]
 name = "kona-proof"
 version = "0.3.0"
-source = "git+https://github.com/anton-rs/kona?rev=kona-client%2Fv0.1.0-beta.18#f9c03f220640d89a0019066c36ff620fd6f3112b"
+source = "git+https://github.com/anton-rs/kona?rev=kona-client%2Fv1.0.0#a1172e46a743c63c9f0a0f13a444144e38d29355"
 dependencies = [
  "alloy-consensus",
  "alloy-eips",
@@ -1947,7 +1947,7 @@ dependencies = [
 [[package]]
 name = "kona-protocol"
 version = "0.3.0"
-source = "git+https://github.com/anton-rs/kona?rev=kona-client%2Fv0.1.0-beta.18#f9c03f220640d89a0019066c36ff620fd6f3112b"
+source = "git+https://github.com/anton-rs/kona?rev=kona-client%2Fv1.0.0#a1172e46a743c63c9f0a0f13a444144e38d29355"
 dependencies = [
  "alloc-no-stdlib",
  "alloy-consensus",
@@ -1972,7 +1972,7 @@ dependencies = [
 [[package]]
 name = "kona-registry"
 version = "0.3.0"
-source = "git+https://github.com/anton-rs/kona?rev=kona-client%2Fv0.1.0-beta.18#f9c03f220640d89a0019066c36ff620fd6f3112b"
+source = "git+https://github.com/anton-rs/kona?rev=kona-client%2Fv1.0.0#a1172e46a743c63c9f0a0f13a444144e38d29355"
 dependencies = [
  "alloy-chains",
  "alloy-primitives 1.1.0",
@@ -1986,7 +1986,7 @@ dependencies = [
 [[package]]
 name = "kona-rpc"
 version = "0.2.0"
-source = "git+https://github.com/anton-rs/kona?rev=kona-client%2Fv0.1.0-beta.18#f9c03f220640d89a0019066c36ff620fd6f3112b"
+source = "git+https://github.com/anton-rs/kona?rev=kona-client%2Fv1.0.0#a1172e46a743c63c9f0a0f13a444144e38d29355"
 dependencies = [
  "alloy-eips",
  "alloy-primitives 1.1.0",
@@ -2000,7 +2000,7 @@ dependencies = [
 [[package]]
 name = "kona-serde"
 version = "0.2.0"
-source = "git+https://github.com/anton-rs/kona?rev=kona-client%2Fv0.1.0-beta.18#f9c03f220640d89a0019066c36ff620fd6f3112b"
+source = "git+https://github.com/anton-rs/kona?rev=kona-client%2Fv1.0.0#a1172e46a743c63c9f0a0f13a444144e38d29355"
 dependencies = [
  "alloy-primitives 1.1.0",
  "serde",
