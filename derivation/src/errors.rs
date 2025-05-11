@@ -46,8 +46,8 @@ pub enum Error {
     NoPreimageKeyFound { key: PreimageKey },
     #[error("NoPreimageKeyFoundInVerifyBlob: {0:?}")]
     NoPreimageKeyFoundInVerifyBlob(Box<Error>),
-    #[error("NoPreimageDataFoundInVerifyBlob: {0:?}")]
-    NoPreimageDataFoundInVerifyBlob(Box<Error>),
+    #[error("NoPreimageDataFoundInVerifyBlob: blobKey={0:?}, err={1:?}")]
+    NoPreimageDataFoundInVerifyBlob(Vec<u8>, Box<Error>),
     #[error("UnexpectedGlobalGlobalGeneric: {0}")]
     UnexpectedGlobalGlobalGeneric(PreimageKey),
     #[error("NoPreimageKeyFoundInPrecompile: {0:?}")]

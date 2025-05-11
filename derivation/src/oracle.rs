@@ -8,11 +8,14 @@ use alloc::sync::Arc;
 use alloc::vec::Vec;
 use alloy_eips::eip4844::{BYTES_PER_COMMITMENT, FIELD_ELEMENTS_PER_BLOB};
 use alloy_primitives::{keccak256, B256, U256};
+use ark_ff::BigInteger;
 use hashbrown::{HashMap, HashSet};
 use kona_preimage::errors::{PreimageOracleError, PreimageOracleResult};
 use kona_preimage::{HintWriterClient, PreimageKey, PreimageKeyType, PreimageOracleClient};
 use kona_proof::FlushableCache;
+use kona_proof::l1::ROOTS_OF_UNITY;
 use sha2::{Digest, Sha256};
+use ark_ff::fields::PrimeField;
 
 #[derive(Clone, Debug, Default)]
 pub struct MemoryOracleClient {
@@ -167,30 +170,33 @@ fn verify_blob_preimage(
     if kzg_cache.contains(kzg_commitment) {
         return Ok(());
     }
-    let index_bytes: [u8; 8] = blob_key[POSITION_FIELD_ELEMENT..]
-        .try_into()
-        .map_err(Error::UnexpectedBlobFieldIndex)?;
-    let field_element_index = u64::from_be_bytes(index_bytes);
 
     let blob_key = &mut blob_key.to_vec();
-    // Require kzg_proof data to verify all the blob index
-    let kzg_proof = if field_element_index == FIELD_ELEMENTS_PER_BLOB {
-        data
-    } else {
-        // Get by 4096 index
-        blob_key[POSITION_FIELD_ELEMENT..]
-            .copy_from_slice((FIELD_ELEMENTS_PER_BLOB).to_be_bytes().as_ref());
-        get_data_by_blob_key(blob_key, preimages)
-            .map_err(|e| Error::NoPreimageDataFoundInVerifyBlob(Box::new(e)))?
-    };
-
     // Populate blob sidecar
     let mut blob = [0u8; kzg_rs::BYTES_PER_BLOB];
     for i in 0..FIELD_ELEMENTS_PER_BLOB {
-        blob_key[POSITION_FIELD_ELEMENT..].copy_from_slice(i.to_be_bytes().as_ref());
+        blob_key[48..].copy_from_slice(
+            ROOTS_OF_UNITY[i as usize].into_bigint().to_bytes_be().as_ref(),
+        );
         let sidecar_blob = get_data_by_blob_key(blob_key, preimages)?;
         blob[(i as usize) << 5..(i as usize + 1) << 5].copy_from_slice(sidecar_blob);
     }
+
+    // Require kzg_proof data to verify all the blob index
+    let kzg_proof = {
+        let field_element_index: [u8; 8] = blob_key[POSITION_FIELD_ELEMENT..]
+            .try_into()
+            .map_err(Error::UnexpectedBlobFieldIndex)?;
+        if u64::from_be_bytes(field_element_index) == FIELD_ELEMENTS_PER_BLOB {
+            data
+        } else {
+            // Get by 4096 index
+            blob_key[POSITION_FIELD_ELEMENT..]
+                .copy_from_slice((FIELD_ELEMENTS_PER_BLOB).to_be_bytes().as_ref());
+            get_data_by_blob_key(blob_key, preimages)
+                .map_err(|e| Error::NoPreimageDataFoundInVerifyBlob(blob_key.to_vec(), Box::new(e)))?
+        }
+    };
     // Ensure valida blob
     let kzg_blob = kzg_rs::Blob::from_slice(&blob).map_err(Error::UnexpectedKZGBlob)?;
     let settings = kzg_rs::get_kzg_settings();
@@ -312,7 +318,7 @@ mod test {
         ];
         let err = MemoryOracleClient::try_from(preimage).unwrap_err();
         match err {
-            Error::NoPreimageDataFoundInVerifyBlob(_) => {}
+            Error::NoPreimageDataFoundInVerifyBlob(_,_) => {}
             _ => panic!("Unexpected error, got: {:?}", err),
         }
     }
