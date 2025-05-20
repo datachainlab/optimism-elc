@@ -3,8 +3,8 @@ package ibc.lightclients.ethereum.v1;
 option go_package = "github.com/datachainlab/optimism-ibc-relay-prover/module/types";
 
 message TrustedSyncCommittee {
-  SyncCommittee sync_committee = 2;
-  bool is_next = 3;
+  SyncCommittee sync_committee = 1;
+  bool is_next = 2;
 }
 
 message ForkParameters {

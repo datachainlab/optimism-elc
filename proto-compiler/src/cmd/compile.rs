@@ -27,7 +27,7 @@ impl CompileCmd {
         create_dir_all(&out_dir).unwrap();
 
         println!(
-            "[info ] Compiling parlia-ibc .proto files to Rust into '{}'...",
+            "[info ] Compiling optimism-elc .proto files to Rust into '{}'...",
             out_dir.display()
         );
 

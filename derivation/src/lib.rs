@@ -9,4 +9,4 @@ pub mod types;
 
 pub use anyhow::Error;
 
-pub const POSITION_FIELD_ELEMENT: usize = 72;
+const POSITION_FIELD_ELEMENT: usize = 72;

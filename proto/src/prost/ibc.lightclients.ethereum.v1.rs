@@ -1,9 +1,9 @@
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TrustedSyncCommittee {
-    #[prost(message, optional, tag = "2")]
+    #[prost(message, optional, tag = "1")]
     pub sync_committee: ::core::option::Option<SyncCommittee>,
-    #[prost(bool, tag = "3")]
+    #[prost(bool, tag = "2")]
     pub is_next: bool,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]

@@ -1,4 +1,4 @@
-//! ibc-proto library gives the developer access to the Cosmos SDK IBC proto-defined structs.
+//! optimism_ibc_proto library gives the developer access to the Cosmos SDK IBC proto-defined structs.
 
 // Todo: automate the creation of this module setup based on the dots in the filenames.
 // This module setup is necessary because the generated code contains "super::" calls for dependencies.
