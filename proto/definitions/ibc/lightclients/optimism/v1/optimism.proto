@@ -1,0 +1,84 @@
+syntax = "proto3";
+package ibc.lightclients.optimism.v1;
+option go_package = "github.com/datachainlab/optimism-ibc-relay-prover/module/types";
+option (gogoproto.goproto_getters_all) = false;
+
+import "gogoproto/gogo.proto";
+import "ibc/core/client/v1/client.proto";
+import "google/protobuf/duration.proto";
+
+import "ibc/lightclients/ethereum/v1/ethereum.proto";
+
+message L1Config {
+  bytes genesis_validators_root = 1;
+  uint64 min_sync_committee_participants = 2;
+  uint64 genesis_time = 3;
+  ethereum.v1.ForkParameters fork_parameters = 4;
+  uint64 seconds_per_slot = 5;
+  uint64 slots_per_epoch = 6;
+  uint64 epochs_per_sync_committee_period = 7;
+
+  ibc.lightclients.ethereum.v1.Fraction trust_level = 8;
+}
+
+message ClientState {
+  uint64 chain_id = 1;
+
+  bytes ibc_store_address = 2;
+  bytes ibc_commitments_slot = 3;
+
+  ibc.core.client.v1.Height latest_height = 4;
+
+  google.protobuf.Duration trusting_period = 5 [(gogoproto.nullable) = false, (gogoproto.stdduration) = true];
+  google.protobuf.Duration max_clock_drift = 6 [(gogoproto.nullable) = false, (gogoproto.stdduration) = true];
+
+  bool frozen = 7;
+
+  bytes rollup_config_json = 8;
+
+  L1Config l1_config = 9;
+
+}
+
+message L1Header {
+  ibc.lightclients.ethereum.v1.TrustedSyncCommittee trusted_sync_committee = 1;
+  ibc.lightclients.ethereum.v1.ConsensusUpdate consensus_update = 2;
+  ibc.lightclients.ethereum.v1.ExecutionUpdate execution_update = 3;
+}
+
+message Derivation {
+  bytes agreed_l2_output_root = 1;
+  bytes l2_output_root = 2;
+  uint64 l2_block_number = 3;
+}
+
+message Header {
+  ibc.core.client.v1.Height trusted_height = 1;
+  AccountUpdate account_update = 2;
+
+  Derivation derivation = 3;
+  bytes preimages = 4;
+  repeated L1Header trusted_to_deterministic = 5;
+  repeated L1Header deterministic_to_latest = 6;
+}
+
+message ConsensusState {
+  bytes storage_root = 1;
+  uint64 timestamp = 2;
+  bytes output_root = 3;
+
+  uint64 l1_slot = 4;
+  bytes l1_current_sync_committee = 5;
+  bytes l1_next_sync_committee = 6;
+}
+
+message Misbehaviour {
+  string client_id = 1;
+  Header header_1 = 2;
+  Header header_2 = 3;
+}
+
+message AccountUpdate {
+  bytes account_proof = 1;
+  bytes account_storage_root = 2;
+}
