@@ -7,6 +7,4 @@ pub mod fpvm_evm;
 pub mod oracle;
 pub mod types;
 
-pub use anyhow::Error;
-
 const POSITION_FIELD_ELEMENT: usize = 72;

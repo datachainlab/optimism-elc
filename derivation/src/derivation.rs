@@ -1,10 +1,10 @@
 use crate::errors;
+use crate::errors::Error;
 use crate::fpvm_evm::FpvmOpEvmFactory;
 use crate::oracle::MemoryOracleClient;
 use alloc::sync::Arc;
 use alloy_consensus::Header;
 use alloy_primitives::{Sealed, B256};
-use anyhow::Result;
 use core::clone::Clone;
 use core::fmt::Debug;
 use kona_driver::Driver;
@@ -49,7 +49,7 @@ impl Derivation {
         chain_id: u64,
         rollup_config: &RollupConfig,
         oracle: MemoryOracleClient,
-    ) -> Result<Header> {
+    ) -> Result<Header, Error> {
         kona_proof::block_on(self.run(chain_id, rollup_config, oracle))
     }
 
@@ -60,7 +60,7 @@ impl Derivation {
         chain_id: u64,
         rollup_config: &RollupConfig,
         oracle: MemoryOracleClient,
-    ) -> Result<Header> {
+    ) -> Result<Header, Error> {
         let boot = &BootInfo {
             l1_head: self.l1_head_hash,
             agreed_l2_output_root: self.agreed_l2_output_root,
@@ -122,9 +122,10 @@ impl Derivation {
         ////////////////////////////////////////////////////////////////
 
         if output_root != boot.claimed_l2_output_root {
-            return Err(
-                errors::Error::InvalidClaim(output_root, boot.claimed_l2_output_root).into(),
-            );
+            return Err(errors::Error::InvalidClaim(
+                output_root,
+                boot.claimed_l2_output_root,
+            ));
         }
 
         let read = driver.cursor.read();

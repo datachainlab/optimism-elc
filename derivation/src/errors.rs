@@ -9,47 +9,43 @@ use kona_preimage::PreimageKey;
 pub enum Error {
     #[error("InvalidClaim actual={0}, expected={1}")]
     InvalidClaim(B256, B256),
-    #[error("UnexpectedKZGCommitment: {0}")]
+    #[error("UnexpectedKZGCommitment: err={0:?}")]
     UnexpectedKZGCommitment(kzg_rs::enums::KzgError),
-    #[error("UnexpectedKZGProof: {0}")]
+    #[error("UnexpectedKZGProof: err={0:?}")]
     UnexpectedKZGProof(kzg_rs::enums::KzgError),
-    #[error("UnexpectedKZGBlob: {0}")]
+    #[error("UnexpectedKZGBlob: err={0:?}")]
     UnexpectedKZGBlob(kzg_rs::enums::KzgError),
-    #[error("UnexpectedPreimageBlob: {0}")]
+    #[error("UnexpectedPreimageBlob: err={0:?}")]
     UnexpectedPreimageBlob(kzg_rs::enums::KzgError),
-    #[error("UnexpectedPreimageBlobResult: {0}")]
+    #[error("UnexpectedPreimageBlobResult: key={0}")]
     UnexpectedPreimageBlobResult(PreimageKey),
-    #[error("UnexpectedBlobFieldIndex: {0}")]
+    #[error("UnexpectedBlobFieldIndex: err={0:?}")]
     UnexpectedBlobFieldIndex(TryFromSliceError),
-    #[error("UnexpectedPreimageKey: {0}")]
+    #[error("UnexpectedPreimageKeySize: size={0}")]
     UnexpectedPreimageKeySize(usize),
-    #[error("UnexpectedPreimageKey: {source:?} {key:?}")]
+    #[error("UnexpectedPreimageKey: err={source:?} key={key:?}")]
     UnexpectedPreimageKey {
         source: PreimageOracleError,
         key: [u8; 32],
     },
-    #[error("UnexpectedSha256PreimageValue: {value:?} {key:?}")]
+    #[error("UnexpectedSha256PreimageValue: value={value:?} key={key}")]
     UnexpectedSha256PreimageValue { value: Vec<u8>, key: PreimageKey },
-    #[error("UnexpectedKeccak256PreimageValue: {value:?} {key:?}")]
+    #[error("UnexpectedKeccak256PreimageValue: value={value:?} key={key}")]
     UnexpectedKeccak256PreimageValue { value: Vec<u8>, key: PreimageKey },
-    #[error("UnexpectedPrecompiledValue: {actual:?} {expected:?} {key:?}")]
-    UnexpectedPrecompiledValue {
-        expected: Vec<u8>,
-        actual: Vec<u8>,
-        key: PreimageKey,
-    },
-    #[error("NoPreimagePrecompiledCodeFound: {key:?}")]
-    NoPreimagePrecompiledCodeFound { key: PreimageKey },
-    #[error("NoPreimageKeyFound: {key:?}")]
+    #[error("NoPreimageKeyFound: key={key}")]
     NoPreimageKeyFound { key: PreimageKey },
-    #[error("NoPreimageKeyFoundInVerifyBlob: {0:?}")]
+    #[error("NoPreimageKeyFoundInVerifyBlob: err={0:?}")]
     NoPreimageKeyFoundInVerifyBlob(Box<Error>),
     #[error("NoPreimageDataFoundInVerifyBlob: blobKey={0:?}, err={1:?}")]
     NoPreimageDataFoundInVerifyBlob(Vec<u8>, Box<Error>),
-    #[error("UnexpectedGlobalGlobalGeneric: {0}")]
-    UnexpectedGlobalGlobalGeneric(PreimageKey),
-    #[error("NoPreimageKeyFoundInPrecompile: {0:?}")]
+    #[error("NoPreimageKeyFoundInPrecompile: err={0:?}")]
     NoPreimageKeyFoundInPrecompile(Box<Error>),
-    #[error("UnexpectedSliceLength: {0:?} {1:?}")]
+    #[error("UnexpectedSliceLength: {0} {1}")]
     UnexpectedSliceLength(usize, usize),
+    #[error("OracleProviderError: err={0:?}")]
+    OracleProviderError(#[from] kona_proof::errors::OracleProviderError),
+    #[error("DriverError: err={0:?}")]
+    DriverError(#[from] kona_driver::DriverError<kona_executor::ExecutorError>),
+    #[error("PipelineError: err={0:?}")]
+    PipelineError(#[from] kona_derive::errors::PipelineErrorKind),
 }
