@@ -50,7 +50,7 @@ pub(crate) fn fpvm_bls12_g2_add<T: PreimageOracleClient + HintWriterClient>(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::fpvm_evm::precompiles::test_utils::test::{
+    use crate::fpvm_evm::precompiles::test_utils::{
         execute_native_precompile, TestOracleReader,
     };
 

@@ -52,8 +52,8 @@ mod test {
     use alloy_primitives::hex;
 
     use super::*;
-    use crate::fpvm_evm::precompiles::test_utils::test::execute_native_precompile;
-    use crate::fpvm_evm::precompiles::test_utils::test::TestOracleReader;
+    use crate::fpvm_evm::precompiles::test_utils::execute_native_precompile;
+    use crate::fpvm_evm::precompiles::test_utils::TestOracleReader;
 
     #[test]
     fn test_accelerated_bls12_381_map_fp_g2() {

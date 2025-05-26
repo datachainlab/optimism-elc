@@ -37,7 +37,7 @@ pub(crate) fn fpvm_kzg_point_eval<T: PreimageOracleClient + HintWriterClient>(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::fpvm_evm::precompiles::test_utils::test::{
+    use crate::fpvm_evm::precompiles::test_utils::{
         execute_native_precompile, TestOracleReader,
     };
     use alloy_eips::eip4844::VERSIONED_HASH_VERSION_KZG;
