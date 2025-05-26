@@ -28,7 +28,7 @@ pub struct L1Headers<const L1_SYNC_COMMITTEE_SIZE: usize> {
     /// And it must be stored in ConsensusState.
     trusted_to_deterministic: Vec<L1Header<L1_SYNC_COMMITTEE_SIZE>>,
     /// L1 headers from deterministic to latest
-    /// Since the header is already finalized in L1, the latest is not necessarily deterministic from the L2 header.
+    /// While the header is already finalized in L1, the latest is not necessarily deterministic from the L2 header.
     ///
     /// Consider the case where the LATEST is stored in ConsensusState.
     /// The prover cannot retrieve information held in ConsensusState. Therefore, if the latest is stored in ConsensusState, the trusted state cannot be restored by prover and update_client cannot be executed.
@@ -46,6 +46,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> L1Headers<L1_SYNC_COMMITTEE_SIZE> {
             slot: trusted_consensus_state.l1_slot,
             current_sync_committee: trusted_consensus_state.l1_current_sync_committee.clone(),
             next_sync_committee: trusted_consensus_state.l1_next_sync_committee.clone(),
+            timestamp: trusted_consensus_state.l1_timestamp,
         };
 
         let mut updated_as_next = false;
@@ -223,14 +224,7 @@ mod test {
     use optimism_ibc_proto::ibc::lightclients::optimism::v1::Header as RawHeader;
 
     fn get_empty_raw_header() -> RawHeader {
-        RawHeader {
-            trusted_to_deterministic: vec![],
-            deterministic_to_latest: vec![],
-            derivation: None,
-            preimages: vec![],
-            account_update: None,
-            trusted_height: None,
-        }
+        RawHeader::default()
     }
 
     #[test]

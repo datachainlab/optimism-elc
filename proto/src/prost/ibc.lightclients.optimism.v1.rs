@@ -63,6 +63,8 @@ pub struct L1Header {
     pub execution_update: ::core::option::Option<
         super::super::ethereum::v1::ExecutionUpdate,
     >,
+    #[prost(uint64, tag = "4")]
+    pub timestamp: u64,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -107,6 +109,8 @@ pub struct ConsensusState {
     pub l1_current_sync_committee: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes = "vec", tag = "6")]
     pub l1_next_sync_committee: ::prost::alloc::vec::Vec<u8>,
+    #[prost(uint64, tag = "7")]
+    pub l1_timestamp: u64,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

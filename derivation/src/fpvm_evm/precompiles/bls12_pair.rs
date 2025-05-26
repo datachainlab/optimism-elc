@@ -57,8 +57,8 @@ pub(crate) fn fpvm_bls12_pairing<T: PreimageOracleClient + HintWriterClient>(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::fpvm_evm::precompiles::test_utils::test::execute_native_precompile;
-    use crate::fpvm_evm::precompiles::test_utils::test::TestOracleReader;
+    use crate::fpvm_evm::precompiles::test_utils::execute_native_precompile;
+    use crate::fpvm_evm::precompiles::test_utils::TestOracleReader;
     use alloy_primitives::hex;
 
     #[test]

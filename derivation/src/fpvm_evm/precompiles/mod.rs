@@ -16,5 +16,7 @@ mod bls12_pair;
 mod bn128_pair;
 mod ecrecover;
 mod kzg_point_eval;
-mod test_utils;
 mod utils;
+
+#[cfg(test)]
+mod test_utils;

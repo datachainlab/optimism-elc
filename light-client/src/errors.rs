@@ -138,6 +138,14 @@ pub enum Error {
     InvalidProofFormatError(String),
     #[error("InvalidExecutionBlockHashMerkleBranch: err={0:?}")]
     InvalidExecutionBlockHashMerkleBranch(MerkleError),
+    #[error("UnexpectedL1Timestamp: compute={0} request={1}")]
+    UnexpectedL1Timestamp(u128, u128),
+    #[error("TimestampOverflowError: time={0}")]
+    TimestampOverflowError(u64),
+    #[error("ZeroL1ExecutionBlockNumberError")]
+    ZeroL1ExecutionBlockNumberError,
+    #[error("SyncCommitteeValidateError: err={0:?}")]
+    SyncCommitteeValidateError(L1ConsensusError),
 
     // Framework
     #[error("LCPError: err={0:?}")]
