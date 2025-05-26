@@ -56,9 +56,7 @@ pub(crate) fn fpvm_bn128_pair_granite<T: PreimageOracleClient + HintWriterClient
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::fpvm_evm::precompiles::test_utils::{
-        execute_native_precompile, TestOracleReader,
-    };
+    use crate::fpvm_evm::precompiles::test_utils::{execute_native_precompile, TestOracleReader};
     use alloy_primitives::hex;
 
     #[test]

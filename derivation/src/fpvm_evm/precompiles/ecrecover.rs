@@ -34,9 +34,7 @@ pub(crate) fn fpvm_ec_recover<T: PreimageOracleClient + HintWriterClient>(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::fpvm_evm::precompiles::test_utils::{
-        execute_native_precompile, TestOracleReader,
-    };
+    use crate::fpvm_evm::precompiles::test_utils::{execute_native_precompile, TestOracleReader};
     use alloy_primitives::hex;
 
     #[test]
