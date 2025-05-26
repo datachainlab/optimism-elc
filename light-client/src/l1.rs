@@ -847,7 +847,7 @@ pub(crate) mod tests {
                 slot: case.cons_slot.into(),
                 current_sync_committee: case.cons_l1_current_sync_committee.clone(),
                 next_sync_committee: case.cons_l1_next_sync_committee.clone(),
-                timestamp: case.cons_l1_timestamp.clone(),
+                timestamp: case.cons_l1_timestamp,
             };
             let (_, l1_consensus) = l1_header
                 .verify(1748245356, &l1_config, &cons_state)
