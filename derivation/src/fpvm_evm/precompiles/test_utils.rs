@@ -1,6 +1,7 @@
 //! Test utilities for accelerated precompiles.
 use crate::oracle::MemoryOracleClient;
 use crate::types::Preimage;
+use alloc::boxed::Box;
 use alloc::sync::Arc;
 use alloc::vec;
 use alloc::vec::Vec;
