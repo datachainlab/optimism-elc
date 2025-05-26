@@ -99,6 +99,7 @@ impl ClientState {
             trusted_consensus_state.l1_timestamp,
         )?;
         // check if the header timestamp does not indicate a future time
+        validate_header_timestamp_not_future(now, self.max_clock_drift, l1_consensus.timestamp)?;
         let timestamp = new_timestamp(l2_header.timestamp)?;
         validate_header_timestamp_not_future(now, self.max_clock_drift, timestamp)?;
 
