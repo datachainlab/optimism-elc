@@ -32,6 +32,8 @@ pub struct ConsensusState {
     /// aggregate public key of next sync committee
     /// "next" indicates `current + 1` period
     pub l1_next_sync_committee: PublicKey,
+    /// finalized header's timestamp
+    pub l1_timestamp: Time,
 }
 
 impl ConsensusState {
@@ -59,6 +61,7 @@ impl TryFrom<RawConsensusState> for ConsensusState {
             output_root,
             // L1
             l1_slot: value.l1_slot.into(),
+            l1_timestamp: new_timestamp(value.l1_timestamp)?,
             l1_current_sync_committee: PublicKey::try_from(value.l1_current_sync_committee)
                 .map_err(Error::L1ConsensusError)?,
             l1_next_sync_committee: PublicKey::try_from(value.l1_next_sync_committee)
@@ -77,6 +80,7 @@ impl From<ConsensusState> for RawConsensusState {
             l1_slot: value.l1_slot.into(),
             l1_current_sync_committee: value.l1_current_sync_committee.to_vec(),
             l1_next_sync_committee: value.l1_next_sync_committee.to_vec(),
+            l1_timestamp: value.l1_timestamp.as_unix_timestamp_secs(),
         }
     }
 }

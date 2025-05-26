@@ -92,10 +92,11 @@ impl ClientState {
         )?;
 
         // check if the current timestamp is within the trusting period
+        // check not L2 but L1 because the L2 is derived from L1 consensus
         validate_state_timestamp_within_trusting_period(
             now,
             self.trusting_period,
-            trusted_consensus_state.timestamp,
+            trusted_consensus_state.l1_timestamp,
         )?;
         // check if the header timestamp does not indicate a future time
         let timestamp = new_timestamp(l2_header.timestamp)?;
@@ -113,6 +114,7 @@ impl ClientState {
             l1_slot: l1_consensus.slot,
             l1_current_sync_committee: l1_consensus.current_sync_committee,
             l1_next_sync_committee: l1_consensus.next_sync_committee,
+            l1_timestamp: l1_consensus.timestamp,
         };
 
         Ok((

@@ -46,6 +46,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> L1Headers<L1_SYNC_COMMITTEE_SIZE> {
             slot: trusted_consensus_state.l1_slot,
             current_sync_committee: trusted_consensus_state.l1_current_sync_committee.clone(),
             next_sync_committee: trusted_consensus_state.l1_next_sync_committee.clone(),
+            timestamp: trusted_consensus_state.l1_timestamp,
         };
 
         let mut updated_as_next = false;
