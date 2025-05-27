@@ -19,6 +19,14 @@ pub struct L1Config {
     pub epochs_per_sync_committee_period: u64,
     #[prost(message, optional, tag = "8")]
     pub trust_level: ::core::option::Option<super::super::ethereum::v1::Fraction>,
+    #[prost(message, optional, tag = "9")]
+    pub trusting_period: ::core::option::Option<
+        super::super::super::super::google::protobuf::Duration,
+    >,
+    #[prost(message, optional, tag = "10")]
+    pub max_clock_drift: ::core::option::Option<
+        super::super::super::super::google::protobuf::Duration,
+    >,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -33,19 +41,11 @@ pub struct ClientState {
     pub latest_height: ::core::option::Option<
         super::super::super::core::client::v1::Height,
     >,
-    #[prost(message, optional, tag = "5")]
-    pub trusting_period: ::core::option::Option<
-        super::super::super::super::google::protobuf::Duration,
-    >,
-    #[prost(message, optional, tag = "6")]
-    pub max_clock_drift: ::core::option::Option<
-        super::super::super::super::google::protobuf::Duration,
-    >,
-    #[prost(bool, tag = "7")]
+    #[prost(bool, tag = "5")]
     pub frozen: bool,
-    #[prost(bytes = "vec", tag = "8")]
+    #[prost(bytes = "vec", tag = "6")]
     pub rollup_config_json: ::prost::alloc::vec::Vec<u8>,
-    #[prost(message, optional, tag = "9")]
+    #[prost(message, optional, tag = "7")]
     pub l1_config: ::core::option::Option<L1Config>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]

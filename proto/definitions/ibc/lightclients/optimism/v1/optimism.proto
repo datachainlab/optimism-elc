@@ -19,6 +19,9 @@ message L1Config {
   uint64 epochs_per_sync_committee_period = 7;
 
   ibc.lightclients.ethereum.v1.Fraction trust_level = 8;
+
+  google.protobuf.Duration trusting_period = 9 [(gogoproto.nullable) = false, (gogoproto.stdduration) = true];
+  google.protobuf.Duration max_clock_drift = 10 [(gogoproto.nullable) = false, (gogoproto.stdduration) = true];
 }
 
 message ClientState {
@@ -29,14 +32,11 @@ message ClientState {
 
   ibc.core.client.v1.Height latest_height = 4;
 
-  google.protobuf.Duration trusting_period = 5 [(gogoproto.nullable) = false, (gogoproto.stdduration) = true];
-  google.protobuf.Duration max_clock_drift = 6 [(gogoproto.nullable) = false, (gogoproto.stdduration) = true];
+  bool frozen = 5;
 
-  bool frozen = 7;
+  bytes rollup_config_json = 6;
 
-  bytes rollup_config_json = 8;
-
-  L1Config l1_config = 9;
+  L1Config l1_config = 7;
 
 }
 

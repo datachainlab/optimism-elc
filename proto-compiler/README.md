@@ -8,3 +8,4 @@ rm ../proto/src/prost/cosmos.*.rs
 ```
 
 <ibc-go-path> is repository of [cosmos/ibc-go](https://github.com/cosmos/ibc-go)
+The version of `ibc-go` must match the version used in `proto/src/IBC_GO_COMMIT`.

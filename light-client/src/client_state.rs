@@ -9,7 +9,6 @@ use crate::misc::{
 use alloc::borrow::ToOwned;
 use alloc::vec::Vec;
 use alloy_primitives::B256;
-use core::time::Duration;
 use ethereum_consensus::beacon::Version;
 use ethereum_consensus::fork::{ForkParameter, ForkParameters, ForkSpec};
 use ethereum_consensus::types::{Address, H256, U64};
@@ -35,10 +34,6 @@ pub struct ClientState {
     /// IBC Solidity parameters
     pub ibc_store_address: Address,
     pub ibc_commitments_slot: H256,
-
-    ///Light Client parameters
-    pub trusting_period: Duration,
-    pub max_clock_drift: Duration,
 
     /// State
     pub latest_height: Height,
@@ -70,7 +65,7 @@ impl ClientState {
         now: Time,
         trusted_consensus_state: &ConsensusState,
         header: Header<L1_SYNC_COMMITTEE_SIZE>,
-    ) -> Result<(ClientState, ConsensusState, Height, Time), Error> {
+    ) -> Result<(ClientState, ConsensusState, Height), Error> {
         // Since the L1 block hash is used for L2 derivation, the validity of L1 must be verified.
         let l1_consensus = header.verify_l1(
             &self.l1_config,
@@ -95,13 +90,15 @@ impl ClientState {
         // check not L2 but L1 because the L2 is derived from L1 consensus
         validate_state_timestamp_within_trusting_period(
             now,
-            self.trusting_period,
+            self.l1_config.trusting_period,
             trusted_consensus_state.l1_timestamp,
         )?;
         // check if the header timestamp does not indicate a future time
-        validate_header_timestamp_not_future(now, self.max_clock_drift, l1_consensus.timestamp)?;
-        let timestamp = new_timestamp(l2_header.timestamp)?;
-        validate_header_timestamp_not_future(now, self.max_clock_drift, timestamp)?;
+        validate_header_timestamp_not_future(
+            now,
+            self.l1_config.max_clock_drift,
+            l1_consensus.timestamp,
+        )?;
 
         let mut new_client_state = self.clone();
         let header_height = Height::new(header.trusted_height.revision_number(), l2_header.number);
@@ -118,12 +115,7 @@ impl ClientState {
             l1_timestamp: l1_consensus.timestamp,
         };
 
-        Ok((
-            new_client_state,
-            new_consensus_state,
-            header_height,
-            timestamp,
-        ))
+        Ok((new_client_state, new_consensus_state, header_height))
     }
 
     pub fn verify_membership(
@@ -198,6 +190,8 @@ impl From<L1Config> for RawL1Config {
                 numerator: value.trust_level.numerator(),
                 denominator: value.trust_level.denominator(),
             }),
+            trusting_period: Some(value.trusting_period.into()),
+            max_clock_drift: Some(value.max_clock_drift.into()),
         }
     }
 }
@@ -241,6 +235,18 @@ impl TryFrom<RawL1Config> for L1Config {
         .map_err(Error::L1ConsensusError)?;
         let trust_level = value.trust_level.ok_or(Error::MissingTrustLevel)?;
 
+        let trusting_period = value
+            .trusting_period
+            .ok_or(Error::MissingTrustingPeriod)?
+            .try_into()
+            .map_err(|_| Error::MissingTrustingPeriod)?;
+
+        let max_clock_drift = value
+            .max_clock_drift
+            .ok_or(Error::NegativeMaxClockDrift)?
+            .try_into()
+            .map_err(|_| Error::NegativeMaxClockDrift)?;
+
         Ok(Self {
             genesis_validators_root: H256::from_slice(&value.genesis_validators_root),
             min_sync_committee_participants: value.min_sync_committee_participants.into(),
@@ -250,6 +256,8 @@ impl TryFrom<RawL1Config> for L1Config {
             slots_per_epoch: value.slots_per_epoch.into(),
             epochs_per_sync_committee_period: value.epochs_per_sync_committee_period.into(),
             trust_level: Fraction::new(trust_level.numerator, trust_level.denominator).unwrap(),
+            trusting_period,
+            max_clock_drift,
         })
     }
 }
@@ -277,18 +285,6 @@ impl TryFrom<RawClientState> for ClientState {
             .map_err(Error::UnexpectedCommitmentSlot)?;
         let ibc_commitments_slot = H256::from(ibc_commitments_slot.0);
 
-        let trusting_period = value
-            .trusting_period
-            .ok_or(Error::MissingTrustingPeriod)?
-            .try_into()
-            .map_err(|_| Error::MissingTrustingPeriod)?;
-
-        let max_clock_drift = value
-            .max_clock_drift
-            .ok_or(Error::NegativeMaxClockDrift)?
-            .try_into()
-            .map_err(|_| Error::NegativeMaxClockDrift)?;
-
         let rollup_config: RollupConfig = serde_json::from_slice(&value.rollup_config_json)
             .map_err(Error::UnexpectedRollupConfig)?;
 
@@ -302,8 +298,6 @@ impl TryFrom<RawClientState> for ClientState {
             ibc_store_address,
             ibc_commitments_slot,
             latest_height,
-            trusting_period,
-            max_clock_drift,
             frozen,
             rollup_config,
             l1_config,
@@ -323,8 +317,6 @@ impl TryFrom<ClientState> for RawClientState {
                 revision_number: value.latest_height.revision_number(),
                 revision_height: value.latest_height.revision_height(),
             }),
-            trusting_period: Some(value.trusting_period.into()),
-            max_clock_drift: Some(value.max_clock_drift.into()),
             frozen: value.frozen.to_owned(),
             rollup_config_json: serde_json::to_vec(&value.rollup_config)
                 .map_err(Error::UnexpectedRollupConfig)?,
