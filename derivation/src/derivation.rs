@@ -1,23 +1,23 @@
 use crate::errors;
 use crate::errors::Error;
-use crate::fpvm_evm::FpvmOpEvmFactory;
-use crate::oracle::MemoryOracleClient;
+use crate::oracle::{MemoryOracleClient, NopeHintWriter};
 use alloc::sync::Arc;
 use alloy_consensus::Header;
 use alloy_primitives::{Sealed, B256};
 use core::clone::Clone;
 use core::fmt::Debug;
+use kona_client::fpvm_evm::FpvmOpEvmFactory;
+use kona_client::single::fetch_safe_head_hash;
+use kona_derive::sources::EthereumDataSource;
 use kona_driver::Driver;
 use kona_executor::TrieDBProvider;
 use kona_genesis::RollupConfig;
-use kona_preimage::{CommsClient, PreimageKey};
-use kona_proof::errors::OracleProviderError;
+use kona_proof::sync::new_oracle_pipeline_cursor;
 use kona_proof::{
     executor::KonaExecutor,
     l1::{OracleBlobProvider, OracleL1ChainProvider, OraclePipeline},
     l2::OracleL2ChainProvider,
-    sync::new_pipeline_cursor,
-    BootInfo, HintType,
+    BootInfo,
 };
 use serde::{Deserialize, Serialize};
 
@@ -82,7 +82,7 @@ impl Derivation {
             .header_by_hash(safe_head_hash)
             .map(|header| Sealed::new_unchecked(header, safe_head_hash))?;
 
-        let cursor = new_pipeline_cursor(
+        let cursor = new_oracle_pipeline_cursor(
             rollup_config.as_ref(),
             safe_head,
             &mut l1_provider,
@@ -91,17 +91,19 @@ impl Derivation {
         .await?;
         l2_provider.set_cursor(cursor.clone());
 
+        let da_provider =
+            EthereumDataSource::new_from_parts(l1_provider.clone(), beacon, &rollup_config);
         let pipeline = OraclePipeline::new(
             rollup_config.clone(),
             cursor.clone(),
             oracle.clone(),
-            beacon,
+            da_provider,
             l1_provider.clone(),
             l2_provider.clone(),
         )
         .await?;
 
-        let evm_factory = FpvmOpEvmFactory::new(oracle_for_preimage);
+        let evm_factory = FpvmOpEvmFactory::new(NopeHintWriter, oracle_for_preimage);
         let executor = KonaExecutor::new(
             rollup_config.as_ref(),
             l2_provider.clone(),
@@ -132,28 +134,4 @@ impl Derivation {
         let header = read.l2_safe_head_header().clone().unseal();
         Ok(header)
     }
-}
-
-pub async fn fetch_safe_head_hash<O>(
-    caching_oracle: &O,
-    agreed_l2_output_root: B256,
-) -> Result<B256, OracleProviderError>
-where
-    O: CommsClient,
-{
-    let mut output_preimage = [0u8; 128];
-    HintType::StartingL2Output
-        .with_data(&[agreed_l2_output_root.as_ref()])
-        .send(caching_oracle)
-        .await?;
-    caching_oracle
-        .get_exact(
-            PreimageKey::new_keccak256(*agreed_l2_output_root),
-            output_preimage.as_mut(),
-        )
-        .await?;
-
-    output_preimage[96..128]
-        .try_into()
-        .map_err(OracleProviderError::SliceConversion)
 }

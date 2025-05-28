@@ -63,6 +63,15 @@ impl PreimageOracleClient for MemoryOracleClient {
 }
 
 #[async_trait::async_trait]
+impl HintWriterClient for NopeHintWriter {
+    async fn write(&self, _hint: &str) -> PreimageOracleResult<()> {
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct NopeHintWriter;
+#[async_trait::async_trait]
 impl HintWriterClient for MemoryOracleClient {
     async fn write(&self, _hint: &str) -> PreimageOracleResult<()> {
         Ok(())
