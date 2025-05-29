@@ -1,6 +1,6 @@
 [package]
 name = "optimism-elc"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 
 [dependencies]
@@ -11,7 +11,7 @@ rlp = { workspace = true }
 prost = { workspace = true }
 
 # derivation
-optimism-derivation = { version = "0.1.0", path = "../derivation", default-features = false }
+optimism-derivation = { version = "0.1.1", path = "../derivation", default-features = false }
 optimism-ibc-proto = { version = "0.1.0", path = "../proto", default-features = false }
 
 # LCP
