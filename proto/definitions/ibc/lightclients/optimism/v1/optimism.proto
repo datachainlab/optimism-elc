@@ -84,3 +84,20 @@ message AccountUpdate {
   bytes account_proof = 1;
   bytes account_storage_root = 2;
 }
+
+message Misbehaviour {
+    resolved_l2_number = 1;
+    resolved_output_root = 2;
+    # trusted l1 heightでのFaultDisputeGame.solのstorage proof
+    fault_dispute_game_storage_proof = 3;
+    # OutputRoot::from_parts(parent_header.state_root, storage_root, parent_header.seal())に
+    resolved_message_passer_account_proof = 5;
+    resolved_message_passer_storage_root = 5;
+
+    # trusted l2からresolved_l2までのheader RLPリスト
+    # parent hashがELCで作ったhashと一致していることを確認していく
+    # resolved_l2_numberのところでresolved_output_rootが作れないとエラー
+    # message_passer_xxxに必要なstate_rootはここから得る
+    repeated bytes[] trusted_to_resolved_l2 = 4;
+
+}
