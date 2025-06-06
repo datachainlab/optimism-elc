@@ -109,7 +109,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> Header<L1_SYNC_COMMITTEE_SIZE> {
         chain_id: u64,
         trusted_output_root: B256,
         rollup_config: &RollupConfig,
-    ) -> Result<(alloy_consensus::Header, B256), Error> {
+    ) -> Result<(alloy_consensus::Header, u64, B256), Error> {
         // Ensure trusted
         if self.derivation.agreed_l2_output_root != trusted_output_root {
             return Err(Error::UnexpectedTrustedOutputRoot(
@@ -119,11 +119,11 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> Header<L1_SYNC_COMMITTEE_SIZE> {
         }
 
         // Ensure honest derivation
-        let header = self
+        let result = self
             .derivation
             .verify(chain_id, rollup_config, self.oracle.clone())
             .map_err(|e| Error::DerivationError(self.derivation.clone(), self.oracle.len(), e))?;
-        Ok((header, self.derivation.l2_output_root))
+        Ok((result.0, result.1, self.derivation.l2_output_root))
     }
 }
 

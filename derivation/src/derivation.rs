@@ -49,7 +49,7 @@ impl Derivation {
         chain_id: u64,
         rollup_config: &RollupConfig,
         oracle: MemoryOracleClient,
-    ) -> Result<Header, Error> {
+    ) -> Result<(Header, u64), Error> {
         kona_proof::block_on(self.run(chain_id, rollup_config, oracle))
     }
 
@@ -60,7 +60,7 @@ impl Derivation {
         chain_id: u64,
         rollup_config: &RollupConfig,
         oracle: MemoryOracleClient,
-    ) -> Result<Header, Error> {
+    ) -> Result<(Header, u64), Error> {
         let boot = &BootInfo {
             l1_head: self.l1_head_hash,
             agreed_l2_output_root: self.agreed_l2_output_root,
@@ -131,7 +131,8 @@ impl Derivation {
         }
 
         let read = driver.cursor.read();
+        let l1_origin_number = read.l2_safe_head().l1_origin.number;
         let header = read.l2_safe_head_header().clone().unseal();
-        Ok(header)
+        Ok((header, l1_origin_number))
     }
 }

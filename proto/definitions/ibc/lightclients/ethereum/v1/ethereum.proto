@@ -1,6 +1,7 @@
 syntax = "proto3";
 package ibc.lightclients.ethereum.v1;
 option go_package = "github.com/datachainlab/optimism-ibc-relay-prover/module/types";
+import "ibc/core/client/v1/client.proto";
 
 message TrustedSyncCommittee {
   SyncCommittee sync_committee = 1;
@@ -69,4 +70,20 @@ message BeaconBlockHeader {
   bytes parent_root = 3;
   bytes state_root = 4;
   bytes body_root = 5;
+}
+
+message FinalizedHeaderMisbehaviour {
+  string client_id = 1;
+  ibc.core.client.v1.Height trusted_height = 2;
+  TrustedSyncCommittee trusted_sync_committee = 3;
+  ConsensusUpdate consensus_update_1 = 4;
+  ConsensusUpdate consensus_update_2 = 5;
+}
+
+message NextSyncCommitteeMisbehaviour {
+  string client_id = 1;
+  ibc.core.client.v1.Height trusted_height = 2;
+  TrustedSyncCommittee trusted_sync_committee = 3;
+  ConsensusUpdate consensus_update_1 = 4;
+  ConsensusUpdate consensus_update_2 = 5;
 }

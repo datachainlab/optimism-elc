@@ -30,6 +30,22 @@ pub struct L1Config {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FaultDisputeGameConfig {
+    #[prost(bytes = "vec", tag = "1")]
+    pub dispute_game_factory_address: ::prost::alloc::vec::Vec<u8>,
+    #[prost(uint32, tag = "2")]
+    pub dispute_game_factory_target_storage_slot: u32,
+    #[prost(uint32, tag = "3")]
+    pub fault_dispute_game_status_slot: u32,
+    #[prost(uint32, tag = "4")]
+    pub fault_dispute_game_status_slot_offset: u32,
+    #[prost(uint32, tag = "5")]
+    pub fault_dispute_game_created_at_slot_offset: u32,
+    #[prost(uint32, tag = "6")]
+    pub status_defender_win: u32,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ClientState {
     #[prost(uint64, tag = "1")]
     pub chain_id: u64,
@@ -47,6 +63,8 @@ pub struct ClientState {
     pub rollup_config_json: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, optional, tag = "7")]
     pub l1_config: ::core::option::Option<L1Config>,
+    #[prost(message, optional, tag = "8")]
+    pub fault_dispute_game_config: ::core::option::Option<FaultDisputeGameConfig>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -111,16 +129,8 @@ pub struct ConsensusState {
     pub l1_next_sync_committee: ::prost::alloc::vec::Vec<u8>,
     #[prost(uint64, tag = "7")]
     pub l1_timestamp: u64,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct Misbehaviour {
-    #[prost(string, tag = "1")]
-    pub client_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "2")]
-    pub header_1: ::core::option::Option<Header>,
-    #[prost(message, optional, tag = "3")]
-    pub header_2: ::core::option::Option<Header>,
+    #[prost(uint64, tag = "8")]
+    pub l1_origin: u64,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -129,4 +139,51 @@ pub struct AccountUpdate {
     pub account_proof: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes = "vec", tag = "2")]
     pub account_storage_root: ::prost::alloc::vec::Vec<u8>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FaultDisputeGameProof {
+    #[prost(bytes = "vec", tag = "1")]
+    pub state_root: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "3")]
+    pub dispute_game_factory_account: ::core::option::Option<AccountUpdate>,
+    #[prost(bytes = "vec", tag = "4")]
+    pub dispute_game_factory_game_id_proof: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "5")]
+    pub fault_dispute_game_account: ::core::option::Option<AccountUpdate>,
+    #[prost(bytes = "vec", tag = "6")]
+    pub fault_dispute_game_game_status_proof: ::prost::alloc::vec::Vec<u8>,
+    #[prost(uint64, tag = "7")]
+    pub fault_dispute_game_source_game_type: u64,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Misbehaviour {
+    #[prost(string, tag = "1")]
+    pub client_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub trusted_height: ::core::option::Option<
+        super::super::super::core::client::v1::Height,
+    >,
+    #[prost(uint64, tag = "3")]
+    pub resolved_l2_number: u64,
+    #[prost(bytes = "vec", tag = "4")]
+    pub resolved_output_root: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "5")]
+    pub fault_dispute_game_proof: ::core::option::Option<FaultDisputeGameProof>,
+    #[prost(message, optional, tag = "6")]
+    pub latest_l1_header: ::core::option::Option<L1Header>,
+    /// Only for past game
+    #[prost(message, optional, tag = "7")]
+    pub first_l2_to_l1_message_passer_account: ::core::option::Option<AccountUpdate>,
+    #[prost(message, optional, tag = "8")]
+    pub last_l2_to_l1_message_passer_account: ::core::option::Option<AccountUpdate>,
+    #[prost(bytes = "vec", repeated, tag = "9")]
+    pub l2_header_history: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
+    /// Only for future game
+    /// L1 block which the resolved FaultDisputeGameFactory.create(gameType, output, l2_num) is called at
+    #[prost(message, optional, tag = "10")]
+    pub submitted_l1_proof: ::core::option::Option<FaultDisputeGameProof>,
+    #[prost(bytes = "vec", repeated, tag = "11")]
+    pub l1_header_history: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
 }

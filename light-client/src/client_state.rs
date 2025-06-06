@@ -1,7 +1,8 @@
 use crate::consensus_state::ConsensusState;
 use crate::errors::Error;
 use crate::header::Header;
-use crate::l1::L1Config;
+use crate::l1::{L1Config, L1Consensus};
+use crate::misbehaviour::{FaultDisputeGameConfig, Misbehaviour, Verifier};
 use crate::misc::{
     new_timestamp, validate_header_timestamp_not_future,
     validate_state_timestamp_within_trusting_period,
@@ -15,7 +16,7 @@ use ethereum_consensus::types::{Address, H256, U64};
 use ethereum_light_client_verifier::context::Fraction;
 use ethereum_light_client_verifier::execution::ExecutionVerifier;
 use kona_genesis::RollupConfig;
-use light_client::types::{Any, Height, Time};
+use light_client::types::{Any, ClientId, Height, Time};
 use optimism_ibc_proto::google::protobuf::Any as IBCAny;
 use optimism_ibc_proto::ibc::lightclients::ethereum::v1::{
     Fork as ProtoFork, ForkParameters as ProtoForkParameters, ForkSpec as ProtoForkSpec,
@@ -44,6 +45,9 @@ pub struct ClientState {
 
     /// L1 Config
     pub l1_config: L1Config,
+
+    /// Fault Dispute Game Config
+    pub fault_dispute_game_config: FaultDisputeGameConfig,
 }
 
 impl ClientState {
@@ -74,7 +78,7 @@ impl ClientState {
         )?;
 
         // Ensure L2 header is valid
-        let (l2_header, l2_output_root) = header.verify_l2(
+        let (l2_header, l1_origin, l2_output_root) = header.verify_l2(
             self.chain_id,
             trusted_consensus_state.output_root,
             &self.rollup_config,
@@ -113,9 +117,72 @@ impl ClientState {
             l1_current_sync_committee: l1_consensus.current_sync_committee,
             l1_next_sync_committee: l1_consensus.next_sync_committee,
             l1_timestamp: l1_consensus.timestamp,
+            l1_origin,
         };
 
         Ok((new_client_state, new_consensus_state, header_height))
+    }
+    pub fn check_misbehaviour_and_update_state<const L1_SYNC_COMMITTEE_SIZE: usize>(
+        &self,
+        now: Time,
+        client_id: &ClientId,
+        trusted_consensus_state: &ConsensusState,
+        misbehaviour: Misbehaviour<L1_SYNC_COMMITTEE_SIZE>,
+    ) -> Result<ClientState, Error> {
+        if self.frozen {
+            return Err(Error::ClientFrozen(client_id.clone()));
+        }
+
+        let misbehaviour_client_id = misbehaviour.client_id();
+        if misbehaviour_client_id != client_id {
+            return Err(Error::UnexpectedClientIdInMisbehaviour(
+                client_id.clone(),
+                misbehaviour_client_id.clone(),
+            ));
+        }
+
+        let l1_cons_state = L1Consensus {
+            slot: trusted_consensus_state.l1_slot,
+            current_sync_committee: trusted_consensus_state.l1_current_sync_committee.clone(),
+            next_sync_committee: trusted_consensus_state.l1_next_sync_committee.clone(),
+            timestamp: trusted_consensus_state.l1_timestamp,
+        };
+
+        validate_state_timestamp_within_trusting_period(
+            now,
+            self.l1_config.trusting_period,
+            trusted_consensus_state.l1_timestamp,
+        )?;
+
+        match &misbehaviour {
+            Misbehaviour::L1(l1) => l1.verify(
+                now.as_unix_timestamp_secs(),
+                &self.l1_config,
+                &l1_cons_state,
+            ),
+            Misbehaviour::L2(l2) => match l2.verifier() {
+                Verifier::Future(v) => v.verify(
+                    now.as_unix_timestamp_secs(),
+                    &self.l1_config,
+                    &self.fault_dispute_game_config,
+                    &l1_cons_state,
+                    misbehaviour.trusted_height().revision_height(),
+                    trusted_consensus_state.l1_origin,
+                ),
+                Verifier::Past(v) => v.verify(
+                    now.as_unix_timestamp_secs(),
+                    &self.l1_config,
+                    &self.fault_dispute_game_config,
+                    &l1_cons_state,
+                    trusted_consensus_state.output_root,
+                ),
+            },
+        }?;
+
+        Ok(Self {
+            frozen: true,
+            ..self.clone()
+        })
     }
 
     pub fn verify_membership(
@@ -292,6 +359,9 @@ impl TryFrom<RawClientState> for ClientState {
 
         let l1_config = value.l1_config.ok_or(Error::MissingL1Config)?;
         let l1_config = L1Config::try_from(l1_config)?;
+        let fault_dispute_game_config = value
+            .fault_dispute_game_config
+            .ok_or(Error::MissingFaultDisputeGameConfig)?;
 
         Ok(Self {
             chain_id: value.chain_id,
@@ -301,6 +371,7 @@ impl TryFrom<RawClientState> for ClientState {
             frozen,
             rollup_config,
             l1_config,
+            fault_dispute_game_config: fault_dispute_game_config.try_into()?,
         })
     }
 }
@@ -321,6 +392,7 @@ impl TryFrom<ClientState> for RawClientState {
             rollup_config_json: serde_json::to_vec(&value.rollup_config)
                 .map_err(Error::UnexpectedRollupConfig)?,
             l1_config: Some(value.l1_config.into()),
+            fault_dispute_game_config: Some(value.fault_dispute_game_config.into()),
         })
     }
 }
