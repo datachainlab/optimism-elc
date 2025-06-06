@@ -16,8 +16,8 @@ pub mod errors;
 pub mod header;
 mod l1;
 mod message;
-mod misc;
 mod misbehaviour;
+mod misc;
 
 pub fn register_implementations<const SYNC_COMMITTEE_SIZE: usize>(
     registry: &mut dyn light_client::LightClientRegistry,

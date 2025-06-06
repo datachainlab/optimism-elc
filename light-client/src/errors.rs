@@ -7,7 +7,7 @@ use core::array::TryFromSliceError;
 use ethereum_consensus::bls::PublicKey;
 use ethereum_consensus::errors::{Error as L1ConsensusError, MerkleError};
 use ethereum_consensus::sync_protocol::SyncCommitteePeriod;
-use ethereum_consensus::types::H256;
+use ethereum_consensus::types::{Address, H256};
 use ethereum_light_client_verifier::errors::Error as L1VerifyError;
 use light_client::types::{ClientId, Height, Time, TimeError};
 use optimism_derivation::derivation::Derivation;
@@ -146,6 +146,30 @@ pub enum Error {
     ZeroL1ExecutionBlockNumberError,
     #[error("SyncCommitteeValidateError: err={0:?}")]
     SyncCommitteeValidateError(L1ConsensusError),
+
+    // Misbehaviour
+    #[error("UnexpectedDisputeGameFactoryProxyProof: storage_root={storage_root:?} proof={proof:?} game_uuid={game_uuid:?} game_id_key={game_id_key:?} output_root={output_root:?} l2_block_number={l2_block_number} err={err:?}")]
+    UnexpectedDisputeGameFactoryProxyProof {
+        storage_root: H256,
+        proof: Vec<Vec<u8>>,
+        game_uuid: B256,
+        game_id_key: B256,
+        output_root: B256,
+        l2_block_number: u64,
+        err: Option<L1VerifyError>,
+    },
+
+    #[error("UnexpectedFaultDisputeGameProof: storage_root={storage_root:?} proof={proof:?} status_key={status_key:?} address={address:?} err={err:?}")]
+    UnexpectedFaultDisputeGameProof {
+        storage_root: H256,
+        proof: Vec<Vec<u8>>,
+        status_key: B256,
+        address: Address,
+        err: Option<L1VerifyError>,
+    },
+
+    #[error("UnexpectedGameI: game_id={0:?}")]
+    UnexpectedGameID(Vec<u8>),
 
     // Framework
     #[error("LCPError: err={0:?}")]
