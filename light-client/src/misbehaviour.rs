@@ -76,6 +76,7 @@ fn unpack_game_id(game_id: [u8; 32]) -> (Vec<u8>, Vec<u8>, [u8; 20]) {
 
 #[derive(Clone, Debug)]
 struct FaultDisputeGameFactoryProof {
+    /// Finalized and verified L1 header state root
     state_root: B256,
 
     /// Proof of DisputeGameFactoryProxy
@@ -171,11 +172,15 @@ impl FaultDisputeGameFactoryProof {
 }
 
 fn check_misbehaviour(
+    /// L2 output in consensus state
     trusted_l2_output_root: B256,
     trusted_l2_message_passer_account: AccountUpdateInfo,
+    /// Resolved L2 output in FaultDisputeGame
     resolved_l2_output_root: B256,
     resolved_l2_message_passer_account: AccountUpdateInfo,
+    /// Headers from trusted to resolved
     trusted_to_resolved_l2: Vec<Vec<u8>>,
+    /// Proof of fault dispute game
     fault_dispute_game_factory_proof: FaultDisputeGameFactoryProof
 ) -> Result<(), Error> {
     let mut headers: Vec<Header> = Vec::with_capacity(trusted_to_resolved_l2.len());
