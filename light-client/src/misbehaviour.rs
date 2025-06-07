@@ -8,6 +8,7 @@ use core::hash::Hash;
 use ethereum_consensus::types::{Address, H256};
 use ethereum_light_client_verifier::execution::ExecutionVerifier;
 use kona_protocol::{OutputRoot, Predeploys};
+use crate::consensus_state::ConsensusState;
 
 /// Confirmed slot of DisputeGameFactoryProxy contract by forge
 const DISPUTE_GAME_FACTORY_STORAGE_SLOT: u64 = 103;
@@ -194,93 +195,131 @@ impl FaultDisputeGameFactoryProof {
     }
 }
 
-fn check_misbehaviour(
-    // L2 output in consensus state
-    trusted_l2_output_root: B256,
-    trusted_l2_message_passer_account: AccountUpdateInfo,
-    // Resolved L2 output in FaultDisputeGame
-    resolved_l2_output_root: B256,
-    resolved_l2_message_passer_account: AccountUpdateInfo,
-    // Headers from trusted to resolved
-    trusted_to_resolved_l2: Vec<Vec<u8>>,
-    // Proof of fault dispute game
+struct OutputRootWithMessagePasser {
+    output_root: B256,
+    l2_to_l1_message_passer_account: AccountUpdateInfo,
+}
+
+impl OutputRootWithMessagePasser {
+    pub fn assert_equals(&self, l2_state_root: B256, header_hash: B256) -> Result<(), Error> {
+        let computed_output_root = self.computed_output_root(l2_state_root, header_hash)?;
+        if computed_output_root != self.output_root {
+            return Err(Error::UnexpectedComputedOutputRoot {
+                expected: self.output_root,
+                actual: computed_output_root,
+                state_root: l2_state_root,
+                hash: header_hash,
+            });
+        }
+        Ok(())
+    }
+
+    pub fn assert_not_equals(&self, l2_state_root: B256, header_hash: B256) -> Result<(), Error> {
+        let computed_output_root = self.computed_output_root(l2_state_root, header_hash)?;
+        if computed_output_root == self.output_root {
+            return Err(Error::UnexpectedComputedOutputRoot {
+                expected: self.output_root,
+                actual: computed_output_root,
+                state_root: l2_state_root,
+                hash: header_hash,
+            })
+        }
+        Ok(())
+    }
+
+    fn computed_output_root(&self, l2_state_root: B256, header_hash: B256) -> Result<B256, Error> {
+        // Ensure the account storage root matches the expected state root
+        self.l2_to_l1_message_passer_account
+            .verify_account_storage(&Address(Predeploys::L2_TO_L1_MESSAGE_PASSER.0.0), l2_state_root.0.into())?;
+
+        // Compute the output root from the account storage root and header hash
+        Ok(OutputRoot::from_parts(
+            l2_state_root,
+            self.l2_to_l1_message_passer_account.account_storage_root.0.into(),
+            header_hash,
+        ).hash())
+    }
+}
+
+struct TrustedToResolvedL2 {
+    trusted: Header,
+    resolved: Header
+}
+
+impl TryFrom<Vec<Vec<u8>>> for TrustedToResolvedL2 {
+    type Error = Error;
+
+    fn try_from(value: Vec<Vec<u8>> ) -> Result<Self, Self::Error> {
+        let mut headers: Vec<Header> = Vec::with_capacity(value.len());
+        for rlp in value.into_iter() {
+            let mut rlp = rlp.as_slice();
+            let header = Header::decode(&mut rlp).map_err(Error::UnexpectedHeaderRLPError)?;
+            headers.push(header);
+        }
+
+        // Ensure collect header relation
+        for (index, header) in headers.iter().enumerate() {
+            if index == headers.len() - 1 {
+                break;
+            }
+            let parent = &headers[index + 1];
+            if header.parent_hash != parent.hash_slow() || header.number != parent.number + 1 {
+                return Err(Error::UnexpectedHeaderRelation {
+                    expected_parent_hash: header.parent_hash,
+                    actual_parent_hash: parent.hash_slow(),
+                    header_number: header.number,
+                    parent_number: parent.number,
+                });
+            }
+        }
+
+        Ok(Self {
+            trusted: headers.first().ok_or(Error::NoHeaderFound)?.clone(),
+            resolved: headers.last().ok_or(Error::NoHeaderFound)?.clone(),
+        })
+    }
+}
+
+struct Misbehaviour {
+    /// L2 output in consensus state
+    trusted_output: OutputRootWithMessagePasser,
+    /// Resolved L2 output in FaultDisputeGame
+    resolved_output: OutputRootWithMessagePasser,
+    /// Headers from trusted to resolved
+    trusted_to_resolved_l2: TrustedToResolvedL2,
+    /// Proof of fault dispute game
     fault_dispute_game_factory_proof: FaultDisputeGameFactoryProof
-) -> Result<(), Error> {
-    let mut headers: Vec<Header> = Vec::with_capacity(trusted_to_resolved_l2.len());
-    for rlp in trusted_to_resolved_l2.into_iter() {
-        let mut rlp = rlp.as_slice();
-        let header = Header::decode(&mut rlp).map_err(Error::UnexpectedHeaderRLPError)?;
-        headers.push(header);
-    }
+}
 
-    // Ensure collect header relation
-    for (index, header) in headers.iter().enumerate() {
-        if index == headers.len() - 1 {
-            break;
+impl Misbehaviour {
+    pub fn verify(&self, cons_state: ConsensusState) -> Result<(), Error> {
+
+        let consensus_output_root= cons_state.output_root;
+        if self.trusted_output.output_root != consensus_output_root {
+            return Err(Error::UnexpectedTrustedOutputRoot(self.trusted_output.output_root, consensus_output_root));
         }
-        let parent = &headers[index + 1];
-        if header.parent_hash != parent.hash_slow() {
-            return Err(Error::UnexpectedHeaderRelation {
-                expected_parent_hash: header.parent_hash,
-                actual_parent_hash: parent.hash_slow(),
-                header_number: header.number,
-                parent_number: parent.number,
-            });
-        }
-        if header.number != parent.number + 1 {
-            return Err(Error::UnexpectedHeaderRelation {
-                expected_parent_hash: header.parent_hash,
-                actual_parent_hash: parent.hash_slow(),
-                header_number: header.number,
-                parent_number: parent.number,
-            });
-        }
+
+        // Ensure the trusted is equals to argument
+        let trusted_header = &self.trusted_to_resolved_l2.trusted;
+        self.trusted_output.assert_equals(
+            trusted_header.state_root,
+            trusted_header.hash_slow(),
+        )?;
+
+        // Ensure the resolved is not equals to argument
+        let resolved_header = &self.trusted_to_resolved_l2.resolved;
+        self.resolved_output.assert_not_equals(
+            resolved_header.state_root,
+            resolved_header.hash_slow(),
+        )?;
+
+        // Ensure the status is not defender win
+        self.fault_dispute_game_factory_proof
+            .verify_resolved_status(resolved_header.number, self.resolved_output.output_root)?;
+
+        // Misbehaviour detected
+        Ok(())
     }
-
-    // Ensure the first header is trusted
-    let trusted = headers.first().ok_or(Error::NoHeaderFound)?;
-    trusted_l2_message_passer_account
-        .verify_account_storage(&Address(Predeploys::L2_TO_L1_MESSAGE_PASSER.0.0), trusted.state_root.0.into())?;
-    let compute_trusted_output_root = OutputRoot::from_parts(
-        trusted.state_root,
-        trusted_l2_message_passer_account.account_storage_root.0.into(),
-        trusted.hash_slow(),
-    );
-    if compute_trusted_output_root.hash() != trusted_l2_output_root {
-        return Err(Error::UnexpectedComputedTrustedOutputRoot {
-            expected: trusted_l2_output_root,
-            actual: compute_trusted_output_root.hash(),
-            number: trusted.number,
-            state_root: trusted.state_root,
-            hash: trusted.hash_slow(),
-        });
-    }
-
-    // Ensure the first header is resolved
-    let resolved = headers.last().ok_or(Error::NoHeaderFound)?;
-    resolved_l2_message_passer_account
-        .verify_account_storage(&Address(Predeploys::L2_TO_L1_MESSAGE_PASSER.0.0), resolved.state_root.0.into())?;
-    let compute_resolved_output_root = OutputRoot::from_parts(
-        resolved.state_root,
-        resolved_l2_message_passer_account.account_storage_root.0.into(),
-        resolved.hash_slow(),
-    );
-    if compute_resolved_output_root.hash() == resolved_l2_output_root {
-        return Err(Error::UnexpectedComputedTrustedOutputRoot {
-            expected: resolved_l2_output_root,
-            actual: compute_resolved_output_root.hash(),
-            number: resolved.number,
-            state_root: resolved.state_root,
-            hash: resolved.hash_slow(),
-        });
-    }
-
-    // Ensure the status is not defender win
-    fault_dispute_game_factory_proof
-        .verify_resolved_status(resolved.number, resolved_l2_output_root)?;
-
-    // Misbehaviour detected
-    Ok(())
 }
 
 #[cfg(test)]
@@ -342,3 +381,4 @@ mod test {
         ).unwrap()
     }
 }
+

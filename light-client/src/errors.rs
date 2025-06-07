@@ -189,11 +189,10 @@ pub enum Error {
         address: Address,
         packing_slot_value: [u8; 32],
     },
-    #[error("UnexpectedComputedTrustedOutputRoot: expected={expected:?} actual={actual:?} number={number} state_root={state_root:?} hash={hash:?}")]
-    UnexpectedComputedTrustedOutputRoot {
+    #[error("UnexpectedComputedOutputRoot: expected={expected:?} actual={actual:?} state_root={state_root:?} hash={hash:?}")]
+    UnexpectedComputedOutputRoot {
         expected: B256,
         actual: B256,
-        number: u64,
         state_root: B256,
         hash: B256,
     },
