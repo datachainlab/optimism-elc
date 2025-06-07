@@ -1,7 +1,7 @@
 use crate::consensus_state::ConsensusState;
 use crate::errors::Error;
 use crate::header::Header;
-use crate::l1::L1Config;
+use crate::l1::{L1Config, L1Consensus, L1SyncCommittee};
 use crate::misc::{
     new_timestamp, validate_header_timestamp_not_future,
     validate_state_timestamp_within_trusting_period,
@@ -24,6 +24,8 @@ use optimism_ibc_proto::ibc::lightclients::ethereum::v1::{
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::ClientState as RawClientState;
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::L1Config as RawL1Config;
 use prost::Message;
+use crate::l1;
+use crate::misbehaviour::Misbehaviour;
 
 pub const OPTIMISM_CLIENT_STATE_TYPE_URL: &str = "/ibc.lightclients.optimism.v1.ClientState";
 
@@ -117,6 +119,37 @@ impl ClientState {
 
         Ok((new_client_state, new_consensus_state, header_height))
     }
+    pub fn check_misbehaviour_and_update_state<const L1_SYNC_COMMITTEE_SIZE: usize>(
+        &self,
+        now: Time,
+        trusted_consensus_state: &ConsensusState,
+        misbehaviour: Misbehaviour<L1_SYNC_COMMITTEE_SIZE>,
+    ) -> Result<(), Error> {
+        match misbehaviour {
+            Misbehaviour::L1(l1) => {
+                l1.validate()?;
+                let ctx = self.l1_config.build_context(now.as_unix_timestamp_secs());
+                let l1_cons_state = L1Consensus {
+                    slot: Default::default(),
+                    current_sync_committee: Default::default(),
+                    next_sync_committee: Default::default(),
+                    timestamp: (),
+                };
+                let l1_sync_committee = L1SyncCommittee::new(
+                    &l1_cons_state,
+                    l1.trusted_sync_committee.sync_committee.clone(),
+                    l1.trusted_sync_committee.is_next,
+                )?;
+
+                let verifier = l1::L1Verifier::default();
+                return verifier.verify_misbehaviour(ctx, &l1_sync_committee, &l1.data);
+            }
+            Misbehaviour::L2(l2) => {
+            }
+        }
+        Ok(())
+    }
+
 
     pub fn verify_membership(
         &self,

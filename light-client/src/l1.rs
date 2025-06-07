@@ -21,6 +21,9 @@ use ethereum_light_client_verifier::context::{
 use ethereum_light_client_verifier::errors::Error::IrrelevantConsensusUpdates;
 use ethereum_light_client_verifier::state::LightClientStoreReader;
 use ethereum_light_client_verifier::updates::{ConsensusUpdate, ExecutionUpdate};
+use ethereum_light_client_verifier::misbehaviour::{
+    FinalizedHeaderMisbehaviour, Misbehaviour as MisbehaviourData, NextSyncCommitteeMisbehaviour,
+};
 use light_client::types::Time;
 use optimism_ibc_proto::ibc::lightclients::ethereum::v1::{
     BeaconBlockHeader as ProtoBeaconBlockHeader, ConsensusUpdate as ProtoConsensusUpdate,
@@ -365,6 +368,16 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L1Verifier<SYNC_COMMITTEE_SIZE> {
 
         Ok(())
     }
+
+    pub fn verify_misbehaviour<CC: ChainConsensusVerificationContext>(
+        &self,
+        ctx: &CC,
+        l1_sync_committee: &L1SyncCommittee<SYNC_COMMITTEE_SIZE>,
+        data: &MisbehaviourData<SYNC_COMMITTEE_SIZE, ConsensusUpdateInfo<SYNC_COMMITTEE_SIZE>>,
+    ) -> Result<(), Error> {
+        //TODO
+       Ok(())
+    }
 }
 
 impl<const SYNC_COMMITTEE_SIZE: usize> LightClientStoreReader<SYNC_COMMITTEE_SIZE>
@@ -586,6 +599,21 @@ fn apply_updates<const SYNC_COMMITTEE_SIZE: usize, CC: ChainConsensusVerificatio
             store_period,
             update_finalized_period,
         ))
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Misbehaviour<const SYNC_COMMITTEE_SIZE: usize> {
+    /// The sync committee related to the misbehaviour
+    pub trusted_sync_committee: TrustedSyncCommittee<SYNC_COMMITTEE_SIZE>,
+    /// The misbehaviour data
+    pub data: MisbehaviourData<SYNC_COMMITTEE_SIZE, ConsensusUpdateInfo<SYNC_COMMITTEE_SIZE>>,
+}
+
+impl<const SYNC_COMMITTEE_SIZE: usize> Misbehaviour<SYNC_COMMITTEE_SIZE> {
+    pub fn validate(&self) -> Result<(), Error> {
+        self.trusted_sync_committee.validate()?;
+        Ok(())
     }
 }
 

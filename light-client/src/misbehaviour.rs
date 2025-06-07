@@ -9,6 +9,7 @@ use core::hash::Hash;
 use ethereum_consensus::types::{Address, H256};
 use ethereum_light_client_verifier::execution::ExecutionVerifier;
 use kona_protocol::{OutputRoot, Predeploys};
+use crate::l1::Misbehaviour as L1Misbehaviour;
 
 /// Confirmed slot of DisputeGameFactoryProxy contract by forge
 const DISPUTE_GAME_FACTORY_STORAGE_SLOT: u64 = 103;
@@ -281,7 +282,7 @@ impl TryFrom<Vec<Vec<u8>>> for TrustedToResolvedL2 {
     }
 }
 
-struct Misbehaviour {
+struct L2Misbehaviour {
     /// L2 output in consensus state
     trusted_output: OutputRootWithMessagePasser,
     /// Resolved L2 output in FaultDisputeGame
@@ -292,7 +293,7 @@ struct Misbehaviour {
     fault_dispute_game_factory_proof: FaultDisputeGameFactoryProof,
 }
 
-impl Misbehaviour {
+impl L2Misbehaviour {
     pub fn verify(&self, cons_state: ConsensusState) -> Result<(), Error> {
         let consensus_output_root = cons_state.output_root;
         if self.trusted_output.output_root != consensus_output_root {
@@ -319,6 +320,11 @@ impl Misbehaviour {
         // Misbehaviour detected
         Ok(())
     }
+}
+
+pub enum Misbehaviour<const SYNC_COMMITTEE_SIZE: usize> {
+    L2(L2Misbehaviour),
+    L1(L1Misbehaviour<SYNC_COMMITTEE_SIZE>),
 }
 
 #[cfg(test)]
