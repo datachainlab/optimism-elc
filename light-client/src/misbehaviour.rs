@@ -23,24 +23,13 @@ const FAULT_DISPUTE_GAME_STATUS_OFFSET: u8 = 15;
 const STATUS_DEFENDER_WIN: u8 = 2;
 
 fn calculate_mapping_slot_bytes(key_bytes: &[u8], mapping_slot: u64) -> B256 {
-    // Convert mapping_slot to a 32-byte array
-    let mapping_slot_bytes = {
-        let mut padded = [0u8; 32];
-        let slot_bytes = mapping_slot.to_be_bytes();
-        padded[32 - slot_bytes.len()..].copy_from_slice(&slot_bytes);
-        padded
-    };
+    let mapping_slot_bytes = u64_to_bytes(mapping_slot);
 
-    // Concatenate key_bytes and mapping_slot_bytes
-    let mut concatenated = Vec::with_capacity(key_bytes.len() + 32);
+    let mut concatenated = Vec::with_capacity(key_bytes.len() + mapping_slot_bytes.len());
     concatenated.extend_from_slice(key_bytes);
     concatenated.extend_from_slice(&mapping_slot_bytes);
 
-    // Calculate the keccak256 hash
-    let slot_hash = keccak256(&concatenated);
-
-    // Convert the hash to H256
-    B256::from_slice(slot_hash.as_slice())
+    keccak256(&concatenated)
 }
 
 fn calc_game_uuid(l2_block_num: B256, output_root: B256) -> B256 {
