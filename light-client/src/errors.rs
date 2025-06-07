@@ -151,7 +151,7 @@ pub enum Error {
     // Misbehaviour
     #[error("NoHeaderFound")]
     NoHeaderFound,
-    #[error("UnexpectedHeaderRLPError err={0:?}")]
+    #[error("UnexpectedHeaderRelation: expected_parent_hash={expected_parent_hash:?} actual_parent_hash={actual_parent_hash:?} header_number={header_number} parent_number={parent_number}")]
     UnexpectedHeaderRelation {
         expected_parent_hash: B256,
         actual_parent_hash: B256,
@@ -180,11 +180,14 @@ pub enum Error {
     },
     #[error("UnexpectedGameID: game_id={0:?}")]
     UnexpectedGameID(Vec<u8>),
-    #[error("UnexpectedResolvedStatus: status={status} output_root={output_root:?} l2_block_number={l2_block_number}")]
+    #[error("UnexpectedResolvedStatus: status={status} storage_root={storage_root:?} proof={proof:?} status_key={status_key:?} address={address:?} packing_slot_value={packing_slot_value:?}")]
     UnexpectedResolvedStatus{
         status: u8,
-        output_root: B256,
-        l2_block_number: u64,
+        storage_root: H256,
+        proof: Vec<Vec<u8>>,
+        status_key: B256,
+        address: Address,
+        packing_slot_value: [u8; 32],
     },
     #[error("UnexpectedComputedTrustedOutputRoot: expected={expected:?} actual={actual:?} number={number} state_root={state_root:?} hash={hash:?}")]
     UnexpectedComputedTrustedOutputRoot {
