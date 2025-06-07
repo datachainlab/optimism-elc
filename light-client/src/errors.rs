@@ -4,6 +4,7 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use alloy_primitives::B256;
 use core::array::TryFromSliceError;
+use alloy_primitives::private::alloy_rlp;
 use ethereum_consensus::bls::PublicKey;
 use ethereum_consensus::errors::{Error as L1ConsensusError, MerkleError};
 use ethereum_consensus::sync_protocol::SyncCommitteePeriod;
@@ -148,6 +149,17 @@ pub enum Error {
     SyncCommitteeValidateError(L1ConsensusError),
 
     // Misbehaviour
+    #[error("NoHeaderFound")]
+    NoHeaderFound,
+    #[error("UnexpectedHeaderRLPError err={0:?}")]
+    UnexpectedHeaderRelation {
+        expected_parent_hash: B256,
+        actual_parent_hash: B256,
+        header_number: u64,
+        parent_number: u64,
+    },
+    #[error("UnexpectedHeaderRLPError err={0:?}")]
+    UnexpectedHeaderRLPError(alloy_rlp::Error),
     #[error("UnexpectedDisputeGameFactoryProxyProof: storage_root={storage_root:?} proof={proof:?} game_uuid={game_uuid:?} game_id_key={game_id_key:?} output_root={output_root:?} l2_block_number={l2_block_number} err={err:?}")]
     UnexpectedDisputeGameFactoryProxyProof {
         storage_root: H256,
@@ -158,7 +170,6 @@ pub enum Error {
         l2_block_number: u64,
         err: Option<L1VerifyError>,
     },
-
     #[error("UnexpectedFaultDisputeGameProof: storage_root={storage_root:?} proof={proof:?} status_key={status_key:?} address={address:?} err={err:?}")]
     UnexpectedFaultDisputeGameProof {
         storage_root: H256,
@@ -167,9 +178,30 @@ pub enum Error {
         address: Address,
         err: Option<L1VerifyError>,
     },
-
-    #[error("UnexpectedGameI: game_id={0:?}")]
+    #[error("UnexpectedGameID: game_id={0:?}")]
     UnexpectedGameID(Vec<u8>),
+    #[error("UnexpectedResolvedStatus: status={status} output_root={output_root:?} l2_block_number={l2_block_number}")]
+    UnexpectedResolvedStatus{
+        status: u8,
+        output_root: B256,
+        l2_block_number: u64,
+    },
+    #[error("UnexpectedComputedTrustedOutputRoot: expected={expected:?} actual={actual:?} number={number} state_root={state_root:?} hash={hash:?}")]
+    UnexpectedComputedTrustedOutputRoot {
+        expected: B256,
+        actual: B256,
+        number: u64,
+        state_root: B256,
+        hash: B256,
+    },
+    #[error("UnexpectedComputedResolvedOutputRoot: expected={expected:?} actual={actual:?} number={number} state_root={state_root:?} hash={hash:?}")]
+    UnexpectedComputedResolvedOutputRoot {
+        expected: B256,
+        actual: B256,
+        number: u64,
+        state_root: B256,
+        hash: B256,
+    },
 
     // Framework
     #[error("LCPError: err={0:?}")]

@@ -7,7 +7,7 @@ use alloy_primitives::{keccak256, Sealable, B256};
 use core::hash::Hash;
 use ethereum_consensus::types::Address;
 use ethereum_light_client_verifier::execution::ExecutionVerifier;
-use kona_protocol::OutputRoot;
+use kona_protocol::{OutputRoot, Predeploys};
 
 /// Confirmed slot of DisputeGameFactoryProxy contract by forge
 const DISPUTE_GAME_FACTORY_STORAGE_SLOT: u64 = 103;
@@ -172,14 +172,15 @@ impl FaultDisputeGameFactoryProof {
 
 fn check_misbehaviour(
     trusted_l2_output_root: B256,
-    trusted_l2_message_passer_storage_root: B256,
+    trusted_l2_message_passer_account: AccountUpdateInfo,
     resolved_l2_output_root: B256,
-    resolved_l2_message_passer_storage_root: B256,
+    resolved_l2_message_passer_account: AccountUpdateInfo,
     trusted_to_resolved_l2: Vec<Vec<u8>>,
+    fault_dispute_game_factory_proof: FaultDisputeGameFactoryProof
 ) -> Result<(), Error> {
     let mut headers: Vec<Header> = Vec::with_capacity(trusted_to_resolved_l2.len());
     for mut rlp in trusted_to_resolved_l2.into_iter() {
-        let header = Header::decode(rlp.as_mut())?;
+        let header = Header::decode(rlp.as_mut()).map_err(Error::UnexpectedHeaderRLPError)?;
         headers.push(header);
     }
 
@@ -190,34 +191,73 @@ fn check_misbehaviour(
         }
         let parent = &headers[index + 1];
         if header.parent_hash != parent.hash_slow() {
-            //TODO error
+            return Err(Error::UnexpectedHeaderRelation {
+                expected_parent_hash: header.parent_hash,
+                actual_parent_hash: parent.hash_slow(),
+                header_number: header.number,
+                parent_number: parent.number,
+            });
+        }
+        if header.number != parent.number + 1 {
+            return Err(Error::UnexpectedHeaderRelation {
+                expected_parent_hash: header.parent_hash,
+                actual_parent_hash: parent.hash_slow(),
+                header_number: header.number,
+                parent_number: parent.number,
+            });
         }
     }
 
     // Ensure the first header is trusted
-    let trusted = headers.first().ok_or("No headers found")?;
+    let trusted = headers.first().ok_or(Error::NoHeaderFound)?;
+    trusted_l2_message_passer_account
+        .verify_account_storage(Predeploys::L2_TO_L1_MESSAGE_PASSER.0.into(), trusted.state_root.into())?;
     let compute_trusted_output_root = OutputRoot::from_parts(
         trusted.state_root,
-        trusted_l2_message_passer_storage_root,
+        trusted_l2_message_passer_account.account_storage_root.0.into(),
         trusted.hash_slow(),
     );
     if compute_trusted_output_root.hash() != trusted_l2_output_root {
-        //TODO error
+        return Err(Error::UnexpectedComputedTrustedOutputRoot {
+            expected: trusted_l2_output_root,
+            actual: compute_trusted_output_root.hash(),
+            number: trusted.number,
+            state_root: trusted.state_root,
+            hash: trusted.hash_slow(),
+        });
     }
 
-    let resolved = headers.last().ok_or("No headers found")?;
+    // Ensure the first header is resolved
+    let resolved = headers.last().ok_or(Error::NoHeaderFound)?;
+    resolved_l2_message_passer_account
+        .verify_account_storage(Predeploys::L2_TO_L1_MESSAGE_PASSER.0.into(), resolved.state_root.into())?;
     let compute_resolved_output_root = OutputRoot::from_parts(
         resolved.state_root,
-        resolved_l2_message_passer_storage_root,
+        resolved_l2_message_passer_account.account_storage_root.0.into(),
         resolved.hash_slow(),
     );
-    if compute_resolved_output_root.hash() != resolved_l2_output_root {
-        // Misbehaviour detected
-        return Ok(());
+    if compute_resolved_output_root.hash() == resolved_l2_output_root {
+        return Err(Error::UnexpectedComputedTrustedOutputRoot {
+            expected: resolved_l2_output_root,
+            actual: compute_resolved_output_root.hash(),
+            number: resolved.number,
+            state_root: resolved.state_root,
+            hash: resolved.hash_slow(),
+        });
     }
-    // Ensure resolved_output surely in the DisputeGameFactoryProxy
-    // TODO check the storage proof
 
-    // Not misbehaviour
-    return Err("Output root mismatch");
+    // Ensure the status is not defender win
+    let status = fault_dispute_game_factory_proof.get_resolved_status(
+        resolved.number,
+        resolved_l2_output_root,
+    )?;
+    if status != STATUS_DEFENDER_WIN {
+        return Err(Error::UnexpectedResolvedStatus {
+            status,
+            output_root: resolved_l2_output_root,
+            l2_block_number: resolved.number,
+        });
+    }
+    // Misbehaviour detected
+    Ok(())
 }
