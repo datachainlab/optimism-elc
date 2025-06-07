@@ -2,9 +2,9 @@ use crate::l1::L1Consensus;
 use alloc::boxed::Box;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
+use alloy_primitives::private::alloy_rlp;
 use alloy_primitives::B256;
 use core::array::TryFromSliceError;
-use alloy_primitives::private::alloy_rlp;
 use ethereum_consensus::bls::PublicKey;
 use ethereum_consensus::errors::{Error as L1ConsensusError, MerkleError};
 use ethereum_consensus::sync_protocol::SyncCommitteePeriod;
@@ -181,7 +181,7 @@ pub enum Error {
     #[error("UnexpectedGameID: game_id={0:?}")]
     UnexpectedGameID(Vec<u8>),
     #[error("UnexpectedResolvedStatus: status={status} storage_root={storage_root:?} proof={proof:?} status_key={status_key:?} address={address:?} packing_slot_value={packing_slot_value:?}")]
-    UnexpectedResolvedStatus{
+    UnexpectedResolvedStatus {
         status: u8,
         storage_root: H256,
         proof: Vec<Vec<u8>>,
