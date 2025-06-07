@@ -191,7 +191,7 @@ struct OutputRootWithMessagePasser {
 
 impl OutputRootWithMessagePasser {
     pub fn assert_equals(&self, l2_state_root: B256, header_hash: B256) -> Result<(), Error> {
-        let computed_output_root = self.computed_output_root(l2_state_root, header_hash)?;
+        let computed_output_root = self.compute_output_root(l2_state_root, header_hash)?;
         if computed_output_root != self.output_root {
             return Err(Error::UnexpectedComputedOutputRoot {
                 expected: self.output_root,
@@ -204,7 +204,7 @@ impl OutputRootWithMessagePasser {
     }
 
     pub fn assert_not_equals(&self, l2_state_root: B256, header_hash: B256) -> Result<(), Error> {
-        let computed_output_root = self.computed_output_root(l2_state_root, header_hash)?;
+        let computed_output_root = self.compute_output_root(l2_state_root, header_hash)?;
         if computed_output_root == self.output_root {
             return Err(Error::UnexpectedComputedOutputRoot {
                 expected: self.output_root,
@@ -216,7 +216,7 @@ impl OutputRootWithMessagePasser {
         Ok(())
     }
 
-    fn computed_output_root(&self, l2_state_root: B256, header_hash: B256) -> Result<B256, Error> {
+    fn compute_output_root(&self, l2_state_root: B256, header_hash: B256) -> Result<B256, Error> {
         // Ensure the account storage root matches the expected state root
         self.l2_to_l1_message_passer_account
             .verify_account_storage(&Address(Predeploys::L2_TO_L1_MESSAGE_PASSER.0.0), l2_state_root.0.into())?;
@@ -317,7 +317,7 @@ mod test {
     use alloy_primitives::hex;
     use ethereum_consensus::types::Address;
     use crate::account::AccountUpdateInfo;
-    use crate::misbehaviour::FaultDisputeGameFactoryProof;
+    use crate::misbehaviour::{FaultDisputeGameFactoryProof, OutputRootWithMessagePasser};
 
     #[test]
     fn test_verify_resolved_status_defender_win() {
@@ -368,6 +368,34 @@ mod test {
             28191582,
             hex!("f0d512abcee62939dbf802954c5202629e81d7e46423ce86ac789613b5668222").into()
         ).unwrap()
+    }
+
+    #[test]
+    fn test_output_root_with_message_passer_success() {
+        let model = OutputRootWithMessagePasser {
+            output_root: hex!("5cac0ff77cc47f04bfc4854c798d53a1ec8091297cfe8f560737865a8d386402").into(),
+            l2_to_l1_message_passer_account: AccountUpdateInfo {
+                account_proof: vec![
+                    hex!("f90211a0fedfd67eb63d2d5d81361cd0efa93b8c19c38b2838e66854dc475214c88a8693a000134375175777be53b0d1af72f12bd8fa34c3dafa8bd44dd92ef936e3540e9aa0ff4a57ded01f08fde62f7c373059169ea60bb3a03217c72b8f21432f07a0259ea0c32527cf8224f51b3e77e6afbdeec3e5bb18bebf00b99ee5aa2066a2c846e1a0a01663c7d41a0d8ab245f13afdbf19519a2100b17589ded43eb528c0d5a21eb2c5a0f5bbe0f614e4391bb30390b5cfee195a2f1be56bbf53f96284b5c2f0d0ce557aa06e71b868c4808116de92d1e5650441e24fa5ec1ab307b4bfa9a86ce224c8f0aea075fb503743549641cbcfed0923b8d79f25dba6670ffc15a2e2ea20f4fe777405a0948f7c61a467181e4a4abcd54fa627a74d000a270d89497c10d91989c557327aa00606954a134a292547f114ed152c90e80d0fe431169aa31b2b4125f44c27acc5a0431a9f228ff8c81fca407432a936b14bfeb03a7d22184f8d6984d04d757d9530a0659c59af8b9133666ad5559cc2d39296f506c266be4cb25bb312d5867533f5a1a0beddc79fb8645745353c9f3c3fffb05e955a27f8104066952a55284624cc863fa0ec7d1e36b540a1cac24175a0cb9799bf334b278091a97f73b030eddc2b5b33e7a0fe2a532a0b1818083e5e4c9150daeab9253906f8736a719d912d1e03b836c4d1a052037c066fb5a794a9c7f9830594d59de36880414d46b9cbed831e6842cc652480").into(),
+                    hex!("f90211a08db9bcd64b6153797290b23cb6bbd1299f485bdde3d76ad33f695c1075c43950a0fd395c56d8c35e215e05b63e1e3fe1dab26e638992c1667b35465f9fae64ceb3a01c6bdaa1f02aebd9a0907ca2a9cd097b3419cd7e030f49240fe3755fcaedc7eaa0ddde23a2eeea98adf8767903f920f19eaf99ffe8f51cd09e2a6b03bbd743bc8ca01df1919ccafaa6e2b0ce64c6fb82acb76e129fd837874f1db1bb4889d12eb84aa0b1973fbeb518540caf89538a6a03f1c1f0c16bd1e3d72383c10a19ea11a543cfa005d8b0b296111bada8a6a27cf10a63cb7fe329cf0a61195451e0fc5322db6e3da04a6e33ce0093cbe0cc571f49fb0f0c5a1991b81807b20a47ae3b7bd6a3f3264ca013f146bc1697c279d014c61e2ce8f7588f0078e1588a51114d67d20459ad3644a04b579879faa16e0709cb3bd072b35d82321fdb6f7b948cd4e85cfcfbe2fd114ea0865d212791df9e0572301bb291f3590bdc58d0775084bd2e8ede9a9b0d2e540ca067eb5fa3bbb5fb1042176f18a595918917bb55e9b6e76e312aab3a9475cef130a06f3d1ad50fd8760f4b3d3c958091686503902dba318a3346bda90b58d8ec9384a0dfdc20fc7809b7826a24c4e41cb39cc89081b6eb4a63c96403c386178c4f347ba024b331c177c713e464d67cb8d41ab63de1dd5c16149ceec89bcf19e7f6b9e3b9a09e0228c4ecaeacbaed895cb63c4d638090efb09c2af832724b52d7100d68608480").into(),
+                    hex!("f90211a08fa61dcb8ef97f20f703fff7cb8be4407d528af6a4157348066e20175bc41d66a01e86d02a1c54dab8b9e07408031dc4704a374128e71e554dada6f8c8369b0975a0e7c8f9804d218d0edb94fa67be8f11488ef77dec1ae5a0dc3fac6d5dd2654655a0e0661bac2b420c4deb9017cc87e0e4b26133d875639a268f33fb699a25974f16a0f78a552f0f452fc45dfe582e0f22f2c79a56637c40142dcd486359010956ec63a095a0f9fc67204866d5d7b4dc267f42bcd12497ea65d9dcb4cf00f511d66a7a11a0ca485d6e8c3d05abe00f9aa4e8169d5ecf2a25562243f2775c92570942af5870a08c11f65c702023a1c9acbff75f7cd03d9b6c2261a2b3d00ceb1daeaacb58a921a0e39fdfb86b9965bd31c866382f92171b7d25a81c2d821a9ddbc1c52272406430a06d4be36fca5d4c13c8eedbe4c6d5fe529be2b808a0efb4b300a03d38297fd6d3a0c1beebc914ee9d375c572daab13411be1c19a9caf77cafa7f76d13d67d9c9693a0cf98d6b3117b7e76eff304e15836e323993c66b72a704cfe36f5e113bdbf6ee6a02eb377baa5888c4ec42ff60bb9c69da078ffd34797e5d2e3de2da385e0c1b4bda00c441eec4b17ca2570ea5cb5b63e5458842531df7124206bbbb176c0280dd87ca07d065533d1f2b91ddfb19016c1a7da0c793e1c8900005521e775156ee6e76ad1a091753f8ca118be774ef123353ab410546f7c849321fbcf167ff636e8741c476280").into(),
+                    hex!("f90211a036d52302820cb69d5d3ae4c017f01b866a662097c29656fec117b3b9e6846da3a0c811e7a2babd507c014be29490c1526935e8f78527ec53a7657278c6f5e4e91ba0865ac766d320110909ddc53ebafa7f508a8bfcc40b3d7eb5e05daf3b296ba6bea086b68727dc684a156cbe36a77debedb767ef1bf2650196a9d95f685bd2c8b3f3a05c4db4cceda9c90714f1b6a084d284370a0302b4647aa909c2c90773be5c55d0a0b6c4afdac4b8c4aadb8bee424f907a0f2c15b5c714607285728d1f2be189056ea0542148fcb22348f09e4604396225d14cc5fb774ed99a5b8d75d563d8c1024ee1a0685c61ba219ff719f0e3592d4aaefda3ca038558d643d3ace8b99e61d03cd5baa09ce694ddf89266d5bb59ad7ca73fdbeefbe3e2eafd42a6f89df3b2447bf829cba0fa73e0efca08187d53e453f4b62739ab60a5ab48a9fe1112b1f35b007e87a00ba08d603193cdf44931e2b74724c586fe7e414ed588ce880304342fd6386b33a62ea03619820603709df22a209fa2c8f1f4abf936a3b66fa3035811fd33df1c4937caa0329fcb81a31c300d825f7802c7402f0735bd3a97b07b6a7823b39cae487f9d6ba00caaca59e8ec3c63eb6d2930c4d1e16bbfbf4534b4cb3a19b5ccff1194a37c41a0c90f5529adf6e5624d5e2c7370978f587b8ef91096875de78007c7743331af36a0a7bdf5a51e28903edc8fb069b5a6c7e504838db6da78f5e8ef37165529f4639a80").into(),
+                    hex!("f90211a08999d72ab9c8ec2b49a9e76353f190e77b0892131af950f1339b648c7dbb1dcda093e3cf894097a37ede81c812c809757b65e5a7e82cf943c973b52330085d3a26a016f093c63f49a7f981a2f97196f56e8a3b55b412d15935fc641f766b2f92b681a0d2c6555ab840d1d93d8b8c7e1a9cb69cc055ff38e0000a770466fc36253f76fba00b9540ed4e83c9d9a8e654b81c04cd08c099f072151b7f7625ded4c47ced579ea00f7ecf6842364141f927b51baf7542631f1a0d8154b72720bea3b3356cf653e6a07bb2291f8ed2816ca1065ea4136f8b561114fb008d8cb0025ae96c291d4b7a1ea01c96cb000805941ad012cc157ce322ca066c6049c8783588ede787b817bbac5aa0d073e886f3fc2efe07a896178aa632315403cd7e670d02727e1ea14ea5ff6b7fa03c0f988e8d13152da497fb26a28eb551b8d97663efaeeeafa6e7575c9a6d764ca0248dae2cb0ea2b3538aadaa6fd23f03657b8e1473c1bafcd3fd0615ab9d78e02a0787207b81d402a739560795a6c0298a55327ba85e0b248cb3b99f9752840db69a02de370ed5728fecb42b04f10d4b16bf39f42e8f9c1bb4d210cea38f74d2f77e9a0a902034cdb877ec394f860d5a025e1bbca491f5aebef9dfa0cde0c9bc51821ada07c83283249ac61edc125055ae1681fb30a0333259d9f37b7ad967b697ebd68eba04f877b2cc0ee9935a4956936d20311d7dc02d5be9016de3957f4b9026da006ba80").into(),
+                    hex!("f90171a0a36522f33aa8aa1a34809947df9743637c4d3e4157818a20d05aa11ea6aec089a08f337a6a953840302c4c769b557c079b21250f8cb9df8b30254644c5cec9b44ca08a62b3148e9b7ed5d97cf97f2a34bfffb1b348934aa5c28f7810317290f9e29ca06281f1878de04b10770ed33aa5a55a3f039ab935a1ad89bf4bc8c48e0d8ee07480a0a3b41e5ba57c21b1c6527916863bb0196b1c95cdbd6689033dd38ff21b747bab80a053ccff59dec13ee4187c0bb34292c47ad0876add114af6102a68aaaec08ed66ea09b498012f0d0b04fc192ebf58f013194908fa42d05155988d19b5eee16d6cb5880a0ed008974019ae455b30143ecb4343670a5e833077b10ac41335acdd49987979580a0dabb4f84b9c2b7cda9a21584922989c756a6be35841458a336ee8826706fab9fa0aac904afdd7ac137512ca85b2e31a571debb6870208cd77848c7eb98b68c563ea0512911f3b6e5ebb8873150482eb4af8e3912303fe61111e2a0d3e20eba03bc868080").into(),
+                    hex!("f87180808080808080808080a0ab443673181c2a53d61e422ac0e4e95bb78d56aa6a39909e0647bc9e0cbc0947a01fc98fe9dc0c9ab99033a76639211f18e48f69eb3e8f13c4920d3e12b6821f4ca06e96614e580b1f61c57d5d228c777c22dcafb21fefe4abd066497e63b911533e80808080").into(),
+                    hex!("f8709d30147f4cc0e0156d993334777d699c312c2fe454f8b3fa338ed309f4a0b850f84e028a14bedd953e2e38dbb0e6a03476605a8835d26d43b140c732ee51181df216c2d1041b6c661feda6c0c0c8a0a01f958654ab06a152993e7a0ae7b6dbb0d4b19265cc9337b8789fe1353bd9dc35").into(),
+                ],
+                account_storage_root: hex!("3476605a8835d26d43b140c732ee51181df216c2d1041b6c661feda6c0c0c8a0").into(),
+            }
+        };
+        let l2_state_root = hex!("b93e70c874b195a821574f96a808da20a555f312f9171d215685d7f010da5ffe").into();
+
+        // assert equals
+        let l2_head_hash = hex!("12348dc33fa740c5eb9d1d7ba61723ce97bff8499b52dbe402e751f46bed35df").into();
+        model.assert_equals(l2_state_root, l2_head_hash).unwrap();
+
+        // assert not equals
+        model.assert_not_equals(l2_state_root, [0u8; 32].into()).unwrap();
     }
 }
 
