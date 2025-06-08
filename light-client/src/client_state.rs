@@ -127,27 +127,22 @@ impl ClientState {
     ) -> Result<(), Error> {
         match misbehaviour {
             Misbehaviour::L1(l1) => {
-                l1.validate()?;
-                let ctx = self.l1_config.build_context(now.as_unix_timestamp_secs());
                 let l1_cons_state = L1Consensus {
-                    slot: Default::default(),
-                    current_sync_committee: Default::default(),
-                    next_sync_committee: Default::default(),
-                    timestamp: (),
+                    slot: trusted_consensus_state.l1_slot,
+                    current_sync_committee: trusted_consensus_state.l1_current_sync_committee.clone(),
+                    next_sync_committee: trusted_consensus_state.l1_next_sync_committee.clone(),
+                    timestamp: trusted_consensus_state.l1_timestamp,
                 };
-                let l1_sync_committee = L1SyncCommittee::new(
+                l1.verify(
+                    now.as_unix_timestamp_secs(),
+                    &self.l1_config,
                     &l1_cons_state,
-                    l1.trusted_sync_committee.sync_committee.clone(),
-                    l1.trusted_sync_committee.is_next,
-                )?;
-
-                let verifier = l1::L1Verifier::default();
-                return verifier.verify_misbehaviour(ctx, &l1_sync_committee, &l1.data);
+                )
             }
             Misbehaviour::L2(l2) => {
+                l2.verify(trusted_consensus_state)
             }
         }
-        Ok(())
     }
 
 

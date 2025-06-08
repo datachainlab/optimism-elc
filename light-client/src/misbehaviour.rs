@@ -294,7 +294,7 @@ struct L2Misbehaviour {
 }
 
 impl L2Misbehaviour {
-    pub fn verify(&self, cons_state: ConsensusState) -> Result<(), Error> {
+    pub fn verify(&self, cons_state: &ConsensusState) -> Result<(), Error> {
         let consensus_output_root = cons_state.output_root;
         if self.trusted_output.output_root != consensus_output_root {
             return Err(Error::UnexpectedTrustedOutputRoot(

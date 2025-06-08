@@ -31,6 +31,7 @@ use optimism_ibc_proto::ibc::lightclients::ethereum::v1::{
     SyncCommittee as ProtoSyncCommittee,
 };
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::L1Header as RawL1Header;
+use crate::consensus_state::ConsensusState;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct L1Config {
@@ -611,9 +612,29 @@ pub struct Misbehaviour<const SYNC_COMMITTEE_SIZE: usize> {
 }
 
 impl<const SYNC_COMMITTEE_SIZE: usize> Misbehaviour<SYNC_COMMITTEE_SIZE> {
-    pub fn validate(&self) -> Result<(), Error> {
+    fn validate(&self) -> Result<(), Error> {
         self.trusted_sync_committee.validate()?;
         Ok(())
+    }
+
+    pub fn verify(
+        &self,
+        now: u64,
+        l1_config: &L1Config,
+        consensus_state: &L1Consensus,
+    ) -> Result<(), Error> {
+        let ctx = l1_config.build_context(now);
+
+        self.validate()?;
+
+        let l1_sync_committee = L1SyncCommittee::new(
+            consensus_state,
+            self.trusted_sync_committee.sync_committee.clone(),
+            self.trusted_sync_committee.is_next,
+        )?;
+
+        let verifier = L1Verifier::default();
+        verifier.verify_misbehaviour(ctx, &l1_sync_committee, &self.data)
     }
 }
 
