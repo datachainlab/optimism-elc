@@ -204,6 +204,8 @@ pub enum Error {
         state_root: B256,
         hash: B256,
     },
+    #[error("L1VerifyMisbehaviourError: err={0:?}")]
+    L1VerifyMisbehaviourError(L1VerifyError),
 
     // Framework
     #[error("LCPError: err={0:?}")]

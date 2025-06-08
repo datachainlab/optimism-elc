@@ -124,7 +124,7 @@ impl ClientState {
         now: Time,
         trusted_consensus_state: &ConsensusState,
         misbehaviour: Misbehaviour<L1_SYNC_COMMITTEE_SIZE>,
-    ) -> Result<(), Error> {
+    ) -> Result<ClientState, Error> {
         let l1_cons_state = L1Consensus {
             slot: trusted_consensus_state.l1_slot,
             current_sync_committee: trusted_consensus_state.l1_current_sync_committee.clone(),
@@ -154,7 +154,12 @@ impl ClientState {
                     trusted_consensus_state.output_root
                 )
             }
-        }
+        }?;
+
+        Ok(Self {
+            frozen: true,
+            ..self.clone()
+        })
     }
 
 

@@ -374,10 +374,13 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L1Verifier<SYNC_COMMITTEE_SIZE> {
         &self,
         ctx: &CC,
         l1_sync_committee: &L1SyncCommittee<SYNC_COMMITTEE_SIZE>,
-        data: &MisbehaviourData<SYNC_COMMITTEE_SIZE, ConsensusUpdateInfo<SYNC_COMMITTEE_SIZE>>,
+        data: MisbehaviourData<SYNC_COMMITTEE_SIZE, ConsensusUpdateInfo<SYNC_COMMITTEE_SIZE>>,
     ) -> Result<(), Error> {
-        //TODO
-       Ok(())
+        self.consensus_verifier.validate_misbehaviour(
+            ctx,
+            l1_sync_committee,
+            data,
+        ).map_err(Error::L1VerifyMisbehaviourError)
     }
 }
 
@@ -634,7 +637,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> Misbehaviour<SYNC_COMMITTEE_SIZE> {
         )?;
 
         let verifier = L1Verifier::default();
-        verifier.verify_misbehaviour(&ctx, &l1_sync_committee, &self.data)
+        verifier.verify_misbehaviour(&ctx, &l1_sync_committee, self.data.clone())
     }
 }
 
