@@ -634,7 +634,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> Misbehaviour<SYNC_COMMITTEE_SIZE> {
         )?;
 
         let verifier = L1Verifier::default();
-        verifier.verify_misbehaviour(ctx, &l1_sync_committee, &self.data)
+        verifier.verify_misbehaviour(&ctx, &l1_sync_committee, &self.data)
     }
 }
 

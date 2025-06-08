@@ -9,7 +9,7 @@ use core::hash::Hash;
 use ethereum_consensus::types::{Address, H256};
 use ethereum_light_client_verifier::execution::ExecutionVerifier;
 use kona_protocol::{OutputRoot, Predeploys};
-use crate::l1::Misbehaviour as L1Misbehaviour;
+use crate::l1::{L1Config, L1Consensus, L1Header, Misbehaviour as L1Misbehaviour};
 
 /// Confirmed slot of DisputeGameFactoryProxy contract by forge
 const DISPUTE_GAME_FACTORY_STORAGE_SLOT: u64 = 103;
@@ -79,9 +79,9 @@ fn unpack_game_id(game_id: [u8; 32]) -> (Vec<u8>, Vec<u8>, [u8; 20]) {
 }
 
 #[derive(Clone, Debug)]
-struct FaultDisputeGameFactoryProof {
-    /// Finalized and verified L1 header state root
-    state_root: B256,
+struct FaultDisputeGameFactoryProof<const SYNC_COMMITTEE_SIZE: usize> {
+    /// Finalized and verified L1 header
+    l1_header: L1Header<SYNC_COMMITTEE_SIZE>,
 
     /// Proof of DisputeGameFactoryProxy
     dispute_game_factory_address: Address,
@@ -93,15 +93,30 @@ struct FaultDisputeGameFactoryProof {
     fault_dispute_game_storage_proof: Vec<Vec<u8>>,
 }
 
-impl FaultDisputeGameFactoryProof {
+impl <const SYNC_COMMITTEE_SIZE: usize> FaultDisputeGameFactoryProof<SYNC_COMMITTEE_SIZE> {
+
+    pub fn verify_l1(
+        &self,
+        now: u64,
+        l1_config: &L1Config,
+        consensus_state: &L1Consensus,
+    ) -> Result<(), Error> {
+        // Ensure the L1 header is finalized and verified
+        let _ = self.l1_header.verify(now, l1_config, consensus_state)?;
+        Ok(())
+    }
+
     pub fn verify_resolved_status(
         &self,
         claimed_l2_number: u64,
         claimed_output_root: B256,
     ) -> Result<(), Error> {
+
+        let state_root : H256=  self.l1_header.execution_update.state_root.0.into();
+
         // Ensure valid account proof
         self.dispute_game_factory_account
-            .verify_account_storage(&self.dispute_game_factory_address, self.state_root.0.into())?;
+            .verify_account_storage(&self.dispute_game_factory_address, state_root)?;
 
         // Extract game id from DisputeGameFactoryProxy by output_root.
         let game_uuid = calc_game_uuid(
@@ -147,7 +162,7 @@ impl FaultDisputeGameFactoryProof {
         let (_, _, fault_dispute_game_address) = unpack_game_id(left_pad(game_id));
         self.fault_dispute_game_account.verify_account_storage(
             &Address(fault_dispute_game_address),
-            self.state_root.0.into(),
+            state_root,
         )?;
         let mut status_key = [0u8; 32];
         status_key[status_key.len() - 1] = FAULT_DISPUTE_GAME_STATUS_SLOT;
@@ -190,7 +205,7 @@ impl FaultDisputeGameFactoryProof {
     }
 }
 
-struct OutputRootWithMessagePasser {
+pub struct OutputRootWithMessagePasser {
     output_root: B256,
     l2_to_l1_message_passer_account: AccountUpdateInfo,
 }
@@ -243,7 +258,7 @@ impl OutputRootWithMessagePasser {
     }
 }
 
-struct TrustedToResolvedL2 {
+pub struct TrustedToResolvedL2 {
     trusted: Header,
     resolved: Header,
 }
@@ -282,7 +297,7 @@ impl TryFrom<Vec<Vec<u8>>> for TrustedToResolvedL2 {
     }
 }
 
-struct L2Misbehaviour {
+pub struct L2Misbehaviour<const SYNC_COMMITTEE_SIZE: usize> {
     /// L2 output in consensus state
     trusted_output: OutputRootWithMessagePasser,
     /// Resolved L2 output in FaultDisputeGame
@@ -290,12 +305,16 @@ struct L2Misbehaviour {
     /// Headers from trusted to resolved
     trusted_to_resolved_l2: TrustedToResolvedL2,
     /// Proof of fault dispute game
-    fault_dispute_game_factory_proof: FaultDisputeGameFactoryProof,
+    fault_dispute_game_factory_proof: FaultDisputeGameFactoryProof<SYNC_COMMITTEE_SIZE>,
 }
 
-impl L2Misbehaviour {
-    pub fn verify(&self, cons_state: &ConsensusState) -> Result<(), Error> {
-        let consensus_output_root = cons_state.output_root;
+impl <const SYNC_COMMITTEE_SIZE: usize> L2Misbehaviour<SYNC_COMMITTEE_SIZE> {
+    pub fn verify(&self,
+          now: u64,
+          l1_config: &L1Config,
+          l1_cons_state: &L1Consensus,
+          consensus_output_root: B256
+    ) -> Result<(), Error> {
         if self.trusted_output.output_root != consensus_output_root {
             return Err(Error::UnexpectedTrustedOutputRoot(
                 self.trusted_output.output_root,
@@ -313,6 +332,13 @@ impl L2Misbehaviour {
         self.resolved_output
             .assert_not_equals(resolved_header.state_root, resolved_header.hash_slow())?;
 
+        // Ensure the l1 header is finalized
+        self.fault_dispute_game_factory_proof.verify_l1(
+            now,
+            l1_config,
+            l1_cons_state,
+        )?;
+
         // Ensure the status is not defender win
         self.fault_dispute_game_factory_proof
             .verify_resolved_status(resolved_header.number, self.resolved_output.output_root)?;
@@ -323,7 +349,7 @@ impl L2Misbehaviour {
 }
 
 pub enum Misbehaviour<const SYNC_COMMITTEE_SIZE: usize> {
-    L2(L2Misbehaviour),
+    L2(L2Misbehaviour<SYNC_COMMITTEE_SIZE>),
     L1(L1Misbehaviour<SYNC_COMMITTEE_SIZE>),
 }
 
@@ -339,11 +365,21 @@ mod test {
     use alloy_primitives::hex;
     use alloy_primitives::private::alloy_rlp::Decodable;
     use ethereum_consensus::types::Address;
+    use light_client::types::Time;
+    use crate::l1::{ExecutionUpdateInfo, L1Header, TrustedSyncCommittee};
 
     #[test]
     fn test_verify_resolved_status_defender_win() {
         let model= FaultDisputeGameFactoryProof {
-            state_root: hex!("84cde1ef1ab57fe978674fe74d94f1c87d6650b908bc85531d791acb80e12f2c").into(),
+            l1_header: L1Header {
+                trusted_sync_committee: TrustedSyncCommittee::<32> { sync_committee: Default::default(), is_next: false },
+                consensus_update: Default::default(),
+                execution_update: ExecutionUpdateInfo {
+                    state_root: hex!("84cde1ef1ab57fe978674fe74d94f1c87d6650b908bc85531d791acb80e12f2c").into(),
+                    ..Default::default()
+                },
+                timestamp: Time::from_unix_timestamp(100, 0).unwrap()
+            },
             dispute_game_factory_address: Address(hex!("05F9613aDB30026FFd634f38e5C4dFd30a197Fa1")),
             dispute_game_factory_account: AccountUpdateInfo {
                 account_proof: vec![

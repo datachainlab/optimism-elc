@@ -125,14 +125,21 @@ impl ClientState {
         trusted_consensus_state: &ConsensusState,
         misbehaviour: Misbehaviour<L1_SYNC_COMMITTEE_SIZE>,
     ) -> Result<(), Error> {
+        let l1_cons_state = L1Consensus {
+            slot: trusted_consensus_state.l1_slot,
+            current_sync_committee: trusted_consensus_state.l1_current_sync_committee.clone(),
+            next_sync_committee: trusted_consensus_state.l1_next_sync_committee.clone(),
+            timestamp: trusted_consensus_state.l1_timestamp,
+        };
+
+        validate_state_timestamp_within_trusting_period(
+            now,
+            self.l1_config.trusting_period,
+            trusted_consensus_state.l1_timestamp,
+        )?;
+
         match misbehaviour {
             Misbehaviour::L1(l1) => {
-                let l1_cons_state = L1Consensus {
-                    slot: trusted_consensus_state.l1_slot,
-                    current_sync_committee: trusted_consensus_state.l1_current_sync_committee.clone(),
-                    next_sync_committee: trusted_consensus_state.l1_next_sync_committee.clone(),
-                    timestamp: trusted_consensus_state.l1_timestamp,
-                };
                 l1.verify(
                     now.as_unix_timestamp_secs(),
                     &self.l1_config,
@@ -140,7 +147,12 @@ impl ClientState {
                 )
             }
             Misbehaviour::L2(l2) => {
-                l2.verify(trusted_consensus_state)
+                l2.verify(
+                    now.as_unix_timestamp_secs(),
+                    &self.l1_config,
+                    &l1_cons_state,
+                    trusted_consensus_state.output_root
+                )
             }
         }
     }
