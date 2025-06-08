@@ -1,7 +1,9 @@
 use crate::consensus_state::ConsensusState;
 use crate::errors::Error;
 use crate::header::Header;
+use crate::l1;
 use crate::l1::{L1Config, L1Consensus, L1SyncCommittee};
+use crate::misbehaviour::Misbehaviour;
 use crate::misc::{
     new_timestamp, validate_header_timestamp_not_future,
     validate_state_timestamp_within_trusting_period,
@@ -24,8 +26,6 @@ use optimism_ibc_proto::ibc::lightclients::ethereum::v1::{
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::ClientState as RawClientState;
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::L1Config as RawL1Config;
 use prost::Message;
-use crate::l1;
-use crate::misbehaviour::Misbehaviour;
 
 pub const OPTIMISM_CLIENT_STATE_TYPE_URL: &str = "/ibc.lightclients.optimism.v1.ClientState";
 
@@ -139,21 +139,17 @@ impl ClientState {
         )?;
 
         match misbehaviour {
-            Misbehaviour::L1(l1) => {
-                l1.verify(
-                    now.as_unix_timestamp_secs(),
-                    &self.l1_config,
-                    &l1_cons_state,
-                )
-            }
-            Misbehaviour::L2(l2) => {
-                l2.verify(
-                    now.as_unix_timestamp_secs(),
-                    &self.l1_config,
-                    &l1_cons_state,
-                    trusted_consensus_state.output_root
-                )
-            }
+            Misbehaviour::L1(l1) => l1.verify(
+                now.as_unix_timestamp_secs(),
+                &self.l1_config,
+                &l1_cons_state,
+            ),
+            Misbehaviour::L2(l2) => l2.verify(
+                now.as_unix_timestamp_secs(),
+                &self.l1_config,
+                &l1_cons_state,
+                trusted_consensus_state.output_root,
+            ),
         }?;
 
         Ok(Self {
@@ -161,7 +157,6 @@ impl ClientState {
             ..self.clone()
         })
     }
-
 
     pub fn verify_membership(
         &self,

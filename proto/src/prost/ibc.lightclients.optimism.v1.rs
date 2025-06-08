@@ -114,19 +114,49 @@ pub struct ConsensusState {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct Misbehaviour {
-    #[prost(string, tag = "1")]
-    pub client_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "2")]
-    pub header_1: ::core::option::Option<Header>,
-    #[prost(message, optional, tag = "3")]
-    pub header_2: ::core::option::Option<Header>,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AccountUpdate {
     #[prost(bytes = "vec", tag = "1")]
     pub account_proof: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes = "vec", tag = "2")]
     pub account_storage_root: ::prost::alloc::vec::Vec<u8>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FaultDisputeGameFactoryProof {
+    #[prost(message, optional, tag = "1")]
+    pub l1_header: ::core::option::Option<L1Header>,
+    #[prost(bytes = "vec", tag = "2")]
+    pub dispute_game_factory_address: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "3")]
+    pub dispute_game_factory_account: ::core::option::Option<AccountUpdate>,
+    #[prost(bytes = "vec", tag = "4")]
+    pub dispute_game_factory_storage_proof: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "5")]
+    pub fault_dispute_game_account: ::core::option::Option<AccountUpdate>,
+    #[prost(bytes = "vec", tag = "6")]
+    pub fault_dispute_game_storage_proof: ::prost::alloc::vec::Vec<u8>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct OutputRootWithMessagePasser {
+    #[prost(bytes = "vec", tag = "1")]
+    pub output_root: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "2")]
+    pub l2_to_l1_message_passer_account: ::core::option::Option<AccountUpdate>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Misbehaviour {
+    #[prost(string, tag = "1")]
+    pub client_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub trusted_output: ::core::option::Option<OutputRootWithMessagePasser>,
+    #[prost(message, optional, tag = "3")]
+    pub resolved_output: ::core::option::Option<OutputRootWithMessagePasser>,
+    #[prost(bytes = "vec", repeated, tag = "4")]
+    pub trusted_to_resolved_l2: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
+    #[prost(message, optional, tag = "5")]
+    pub fault_dispute_game_factory_proof: ::core::option::Option<
+        FaultDisputeGameFactoryProof,
+    >,
 }

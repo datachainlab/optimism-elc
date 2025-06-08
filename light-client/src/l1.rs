@@ -2,6 +2,7 @@ use crate::errors::Error;
 use crate::misc::new_timestamp;
 use alloc::string::ToString;
 use alloc::vec::Vec;
+use core::str::FromStr;
 use core::time::Duration;
 use ethereum_consensus::beacon::{BeaconBlockHeader, Epoch, Root, Slot};
 use ethereum_consensus::bls::{PublicKey, Signature};
@@ -19,19 +20,25 @@ use ethereum_light_client_verifier::context::{
     ChainConsensusVerificationContext, Fraction, LightClientContext,
 };
 use ethereum_light_client_verifier::errors::Error::IrrelevantConsensusUpdates;
-use ethereum_light_client_verifier::state::LightClientStoreReader;
-use ethereum_light_client_verifier::updates::{ConsensusUpdate, ExecutionUpdate};
 use ethereum_light_client_verifier::misbehaviour::{
     FinalizedHeaderMisbehaviour, Misbehaviour as MisbehaviourData, NextSyncCommitteeMisbehaviour,
 };
-use light_client::types::Time;
+use ethereum_light_client_verifier::state::LightClientStoreReader;
+use ethereum_light_client_verifier::updates::{ConsensusUpdate, ExecutionUpdate};
+use light_client::types::{ClientId, Time};
+use optimism_ibc_proto::google::protobuf::Any as IBCAny;
 use optimism_ibc_proto::ibc::lightclients::ethereum::v1::{
     BeaconBlockHeader as ProtoBeaconBlockHeader, ConsensusUpdate as ProtoConsensusUpdate,
     ExecutionUpdate as ProtoExecutionUpdate, SyncAggregate as ProtoSyncAggregate,
     SyncCommittee as ProtoSyncCommittee,
 };
+use optimism_ibc_proto::ibc::lightclients::ethereum::v1::{
+    FinalizedHeaderMisbehaviour as RawFinalizedHeaderMisbehaviour,
+    NextSyncCommitteeMisbehaviour as RawNextSyncCommitteeMisbehaviour,
+};
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::L1Header as RawL1Header;
-use crate::consensus_state::ConsensusState;
+use prost::bytes::Buf;
+use prost::Message;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct L1Config {
@@ -376,11 +383,9 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L1Verifier<SYNC_COMMITTEE_SIZE> {
         l1_sync_committee: &L1SyncCommittee<SYNC_COMMITTEE_SIZE>,
         data: MisbehaviourData<SYNC_COMMITTEE_SIZE, ConsensusUpdateInfo<SYNC_COMMITTEE_SIZE>>,
     ) -> Result<(), Error> {
-        self.consensus_verifier.validate_misbehaviour(
-            ctx,
-            l1_sync_committee,
-            data,
-        ).map_err(Error::L1VerifyMisbehaviourError)
+        self.consensus_verifier
+            .validate_misbehaviour(ctx, l1_sync_committee, data)
+            .map_err(Error::L1VerifyMisbehaviourError)
     }
 }
 
@@ -606,12 +611,104 @@ fn apply_updates<const SYNC_COMMITTEE_SIZE: usize, CC: ChainConsensusVerificatio
     }
 }
 
+const ETHEREUM_FINALIZED_HEADER_MISBEHAVIOUR_TYPE_URL: &str =
+    "/ibc.lightclients.ethereum.v1.FinalizedHeaderMisbehaviour";
+const ETHEREUM_NEXT_SYNC_COMMITTEE_MISBEHAVIOUR_TYPE_URL: &str =
+    "/ibc.lightclients.ethereum.v1.NextSyncCommitteeMisbehaviour";
+
 #[derive(Clone, Debug)]
 pub struct Misbehaviour<const SYNC_COMMITTEE_SIZE: usize> {
+    pub client_id: ClientId,
     /// The sync committee related to the misbehaviour
     pub trusted_sync_committee: TrustedSyncCommittee<SYNC_COMMITTEE_SIZE>,
     /// The misbehaviour data
     pub data: MisbehaviourData<SYNC_COMMITTEE_SIZE, ConsensusUpdateInfo<SYNC_COMMITTEE_SIZE>>,
+}
+
+impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawFinalizedHeaderMisbehaviour>
+    for Misbehaviour<SYNC_COMMITTEE_SIZE>
+{
+    type Error = Error;
+    fn try_from(value: RawFinalizedHeaderMisbehaviour) -> Result<Self, Self::Error> {
+        let trusted_sync_committee = value
+            .trusted_sync_committee
+            .ok_or(Error::MissingTrustedSyncCommittee)?;
+        Ok(Self {
+            client_id: ClientId::from_str(&value.client_id).map_err(Error::UnexpectedClientId)?,
+            trusted_sync_committee: TrustedSyncCommittee {
+                sync_committee: convert_proto_to_sync_committee(
+                    trusted_sync_committee.sync_committee,
+                )?,
+                is_next: trusted_sync_committee.is_next,
+            },
+            data: MisbehaviourData::FinalizedHeader(FinalizedHeaderMisbehaviour {
+                consensus_update_1: convert_proto_to_consensus_update(
+                    value
+                        .consensus_update_1
+                        .ok_or(Error::proto_missing("consensus_update_1"))?,
+                )?,
+                consensus_update_2: convert_proto_to_consensus_update(
+                    value
+                        .consensus_update_2
+                        .ok_or(Error::proto_missing("consensus_update_2"))?,
+                )?,
+            }),
+        })
+    }
+}
+
+impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawNextSyncCommitteeMisbehaviour>
+    for Misbehaviour<SYNC_COMMITTEE_SIZE>
+{
+    type Error = Error;
+    fn try_from(value: RawNextSyncCommitteeMisbehaviour) -> Result<Self, Self::Error> {
+        let trusted_sync_committee = value
+            .trusted_sync_committee
+            .ok_or(Error::MissingTrustedSyncCommittee)?;
+        Ok(Self {
+            client_id: ClientId::from_str(&value.client_id).map_err(Error::UnexpectedClientId)?,
+            trusted_sync_committee: TrustedSyncCommittee {
+                sync_committee: convert_proto_to_sync_committee(
+                    trusted_sync_committee.sync_committee,
+                )?,
+                is_next: trusted_sync_committee.is_next,
+            },
+            data: MisbehaviourData::NextSyncCommittee(NextSyncCommitteeMisbehaviour {
+                consensus_update_1: convert_proto_to_consensus_update(
+                    value
+                        .consensus_update_1
+                        .ok_or(Error::proto_missing("consensus_update_1"))?,
+                )?,
+                consensus_update_2: convert_proto_to_consensus_update(
+                    value
+                        .consensus_update_2
+                        .ok_or(Error::proto_missing("consensus_update_2"))?,
+                )?,
+            }),
+        })
+    }
+}
+
+impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<IBCAny> for Misbehaviour<SYNC_COMMITTEE_SIZE> {
+    type Error = Error;
+
+    fn try_from(raw: IBCAny) -> Result<Self, Self::Error> {
+        use core::ops::Deref;
+
+        match raw.type_url.as_str() {
+            ETHEREUM_FINALIZED_HEADER_MISBEHAVIOUR_TYPE_URL => {
+                RawFinalizedHeaderMisbehaviour::decode(raw.value.deref())
+                    .map_err(Error::ProtoDecodeError)?
+                    .try_into()
+            }
+            ETHEREUM_NEXT_SYNC_COMMITTEE_MISBEHAVIOUR_TYPE_URL => {
+                RawNextSyncCommitteeMisbehaviour::decode(raw.value.deref())
+                    .map_err(Error::ProtoDecodeError)?
+                    .try_into()
+            }
+            _ => Err(Error::UnknownMisbehaviourType(raw.type_url)),
+        }
+    }
 }
 
 impl<const SYNC_COMMITTEE_SIZE: usize> Misbehaviour<SYNC_COMMITTEE_SIZE> {

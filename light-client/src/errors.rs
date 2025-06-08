@@ -10,7 +10,7 @@ use ethereum_consensus::errors::{Error as L1ConsensusError, MerkleError};
 use ethereum_consensus::sync_protocol::SyncCommitteePeriod;
 use ethereum_consensus::types::{Address, H256};
 use ethereum_light_client_verifier::errors::Error as L1VerifyError;
-use light_client::types::{ClientId, Height, Time, TimeError};
+use light_client::types::{ClientId, Height, Time, TimeError, TypeError};
 use optimism_derivation::derivation::Derivation;
 
 #[derive(thiserror::Error, Debug)]
@@ -206,6 +206,12 @@ pub enum Error {
     },
     #[error("L1VerifyMisbehaviourError: err={0:?}")]
     L1VerifyMisbehaviourError(L1VerifyError),
+    #[error("UnknownMisbehaviourType: type={0:?}")]
+    UnknownMisbehaviourType(String),
+    #[error("UnexpectedDisputeGameFactoryAddress: err={0:?}")]
+    UnexpectedDisputeGameFactoryAddress(L1ConsensusError),
+    #[error("UnexpectedClientId: err={0:?}")]
+    UnexpectedClientId(TypeError),
 
     // Framework
     #[error("LCPError: err={0:?}")]

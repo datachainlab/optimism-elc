@@ -1,15 +1,21 @@
 use crate::account::AccountUpdateInfo;
-use crate::consensus_state::ConsensusState;
+use crate::commitment::decode_eip1184_rlp_proof;
 use crate::errors::Error;
+use crate::header::OPTIMISM_HEADER_TYPE_URL;
+use crate::l1::{L1Config, L1Consensus, L1Header, Misbehaviour as L1Misbehaviour};
 use alloc::vec::Vec;
 use alloy_consensus::Header;
 use alloy_primitives::private::alloy_rlp::Decodable;
 use alloy_primitives::{keccak256, Sealable, B256};
 use core::hash::Hash;
+use core::str::FromStr;
 use ethereum_consensus::types::{Address, H256};
 use ethereum_light_client_verifier::execution::ExecutionVerifier;
 use kona_protocol::{OutputRoot, Predeploys};
-use crate::l1::{L1Config, L1Consensus, L1Header, Misbehaviour as L1Misbehaviour};
+use light_client::types::ClientId;
+use optimism_ibc_proto::google::protobuf::Any as IBCAny;
+use optimism_ibc_proto::ibc::lightclients::optimism::v1::Misbehaviour as RawL2Misbehaviour;
+use prost::Message;
 
 /// Confirmed slot of DisputeGameFactoryProxy contract by forge
 const DISPUTE_GAME_FACTORY_STORAGE_SLOT: u64 = 103;
@@ -22,6 +28,8 @@ const FAULT_DISPUTE_GAME_STATUS_SLOT: u8 = 0;
 const FAULT_DISPUTE_GAME_STATUS_OFFSET: u8 = 15;
 
 const STATUS_DEFENDER_WIN: u8 = 2;
+
+pub const OPTIMISM_MISBEHAVIOUR_TYPE_URL: &str = "/ibc.lightclients.optimism.v1.Misbehaviour";
 
 fn calculate_mapping_slot_bytes(key_bytes: &[u8], mapping_slot: u64) -> B256 {
     let mapping_slot_bytes = u64_to_bytes(mapping_slot);
@@ -93,8 +101,7 @@ struct FaultDisputeGameFactoryProof<const SYNC_COMMITTEE_SIZE: usize> {
     fault_dispute_game_storage_proof: Vec<Vec<u8>>,
 }
 
-impl <const SYNC_COMMITTEE_SIZE: usize> FaultDisputeGameFactoryProof<SYNC_COMMITTEE_SIZE> {
-
+impl<const SYNC_COMMITTEE_SIZE: usize> FaultDisputeGameFactoryProof<SYNC_COMMITTEE_SIZE> {
     pub fn verify_l1(
         &self,
         now: u64,
@@ -111,8 +118,7 @@ impl <const SYNC_COMMITTEE_SIZE: usize> FaultDisputeGameFactoryProof<SYNC_COMMIT
         claimed_l2_number: u64,
         claimed_output_root: B256,
     ) -> Result<(), Error> {
-
-        let state_root : H256=  self.l1_header.execution_update.state_root.0.into();
+        let state_root: H256 = self.l1_header.execution_update.state_root.0.into();
 
         // Ensure valid account proof
         self.dispute_game_factory_account
@@ -160,10 +166,8 @@ impl <const SYNC_COMMITTEE_SIZE: usize> FaultDisputeGameFactoryProof<SYNC_COMMIT
 
         // Ensure game is resolved with DIFFENDER_WIN status
         let (_, _, fault_dispute_game_address) = unpack_game_id(left_pad(game_id));
-        self.fault_dispute_game_account.verify_account_storage(
-            &Address(fault_dispute_game_address),
-            state_root,
-        )?;
+        self.fault_dispute_game_account
+            .verify_account_storage(&Address(fault_dispute_game_address), state_root)?;
         let mut status_key = [0u8; 32];
         status_key[status_key.len() - 1] = FAULT_DISPUTE_GAME_STATUS_SLOT;
         let execution_verifier = ExecutionVerifier;
@@ -298,6 +302,7 @@ impl TryFrom<Vec<Vec<u8>>> for TrustedToResolvedL2 {
 }
 
 pub struct L2Misbehaviour<const SYNC_COMMITTEE_SIZE: usize> {
+    client_id: ClientId,
     /// L2 output in consensus state
     trusted_output: OutputRootWithMessagePasser,
     /// Resolved L2 output in FaultDisputeGame
@@ -308,12 +313,96 @@ pub struct L2Misbehaviour<const SYNC_COMMITTEE_SIZE: usize> {
     fault_dispute_game_factory_proof: FaultDisputeGameFactoryProof<SYNC_COMMITTEE_SIZE>,
 }
 
-impl <const SYNC_COMMITTEE_SIZE: usize> L2Misbehaviour<SYNC_COMMITTEE_SIZE> {
-    pub fn verify(&self,
-          now: u64,
-          l1_config: &L1Config,
-          l1_cons_state: &L1Consensus,
-          consensus_output_root: B256
+impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL2Misbehaviour>
+    for L2Misbehaviour<SYNC_COMMITTEE_SIZE>
+{
+    type Error = Error;
+
+    fn try_from(raw: RawL2Misbehaviour) -> Result<Self, Self::Error> {
+        let client_id = ClientId::from_str(&raw.client_id).map_err(Error::UnexpectedClientId)?;
+        let proto_trusted_output = raw
+            .trusted_output
+            .ok_or(Error::proto_missing("trusted_output"))?;
+        let proto_resolved_output = raw
+            .resolved_output
+            .ok_or(Error::proto_missing("resolved_output"))?;
+        let proto_fdg_factory_proof = raw
+            .fault_dispute_game_factory_proof
+            .ok_or(Error::proto_missing("fault_dispute_game_factory_proof"))?;
+
+        let trusted_output = OutputRootWithMessagePasser {
+            output_root: B256::try_from(proto_trusted_output.output_root.as_slice())
+                .map_err(Error::UnexpectedOutputRoot)?,
+            l2_to_l1_message_passer_account: AccountUpdateInfo::try_from(
+                proto_trusted_output.l2_to_l1_message_passer_account.ok_or(
+                    Error::proto_missing("trusted_output.l2_to_l1_message_passer_account"),
+                )?,
+            )?,
+        };
+
+        let resolved_output = OutputRootWithMessagePasser {
+            output_root: B256::try_from(proto_resolved_output.output_root.as_slice())
+                .map_err(Error::UnexpectedOutputRoot)?,
+            l2_to_l1_message_passer_account: AccountUpdateInfo::try_from(
+                proto_resolved_output
+                    .l2_to_l1_message_passer_account
+                    .ok_or(Error::proto_missing(
+                        "resolved_output.l2_to_l1_message_passer_account",
+                    ))?,
+            )?,
+        };
+
+        let trusted_to_resolved_l2 = TrustedToResolvedL2::try_from(raw.trusted_to_resolved_l2)?;
+
+        let fault_dispute_game_factory_proof = FaultDisputeGameFactoryProof {
+            l1_header: L1Header::try_from(proto_fdg_factory_proof.l1_header.ok_or(
+                Error::proto_missing("fault_dispute_game_factory_proof.l1_header"),
+            )?)?,
+            dispute_game_factory_address: Address::try_from(
+                proto_fdg_factory_proof
+                    .dispute_game_factory_address
+                    .as_slice(),
+            )
+            .map_err(Error::UnexpectedDisputeGameFactoryAddress)?,
+            dispute_game_factory_account: AccountUpdateInfo::try_from(
+                proto_fdg_factory_proof.dispute_game_factory_account.ok_or(
+                    Error::proto_missing(
+                        "fault_dispute_game_factory_proof.dispute_game_factory_account",
+                    ),
+                )?,
+            )?,
+            dispute_game_factory_storage_proof: decode_eip1184_rlp_proof(
+                proto_fdg_factory_proof.dispute_game_factory_storage_proof,
+            )?,
+            fault_dispute_game_account: AccountUpdateInfo::try_from(
+                proto_fdg_factory_proof
+                    .fault_dispute_game_account
+                    .ok_or(Error::proto_missing(
+                        "fault_dispute_game_factory_proof.fault_dispute_game_account",
+                    ))?,
+            )?,
+            fault_dispute_game_storage_proof: decode_eip1184_rlp_proof(
+                proto_fdg_factory_proof.fault_dispute_game_storage_proof,
+            )?,
+        };
+
+        Ok(Self {
+            client_id,
+            trusted_output,
+            resolved_output,
+            trusted_to_resolved_l2,
+            fault_dispute_game_factory_proof,
+        })
+    }
+}
+
+impl<const SYNC_COMMITTEE_SIZE: usize> L2Misbehaviour<SYNC_COMMITTEE_SIZE> {
+    pub fn verify(
+        &self,
+        now: u64,
+        l1_config: &L1Config,
+        l1_cons_state: &L1Consensus,
+        consensus_output_root: B256,
     ) -> Result<(), Error> {
         if self.trusted_output.output_root != consensus_output_root {
             return Err(Error::UnexpectedTrustedOutputRoot(
@@ -333,11 +422,8 @@ impl <const SYNC_COMMITTEE_SIZE: usize> L2Misbehaviour<SYNC_COMMITTEE_SIZE> {
             .assert_not_equals(resolved_header.state_root, resolved_header.hash_slow())?;
 
         // Ensure the l1 header is finalized
-        self.fault_dispute_game_factory_proof.verify_l1(
-            now,
-            l1_config,
-            l1_cons_state,
-        )?;
+        self.fault_dispute_game_factory_proof
+            .verify_l1(now, l1_config, l1_cons_state)?;
 
         // Ensure the status is not defender win
         self.fault_dispute_game_factory_proof
@@ -353,9 +439,27 @@ pub enum Misbehaviour<const SYNC_COMMITTEE_SIZE: usize> {
     L1(L1Misbehaviour<SYNC_COMMITTEE_SIZE>),
 }
 
+impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<IBCAny> for Misbehaviour<SYNC_COMMITTEE_SIZE> {
+    type Error = Error;
+
+    fn try_from(raw: IBCAny) -> Result<Self, Self::Error> {
+        use core::ops::Deref;
+
+        match raw.type_url.as_str() {
+            OPTIMISM_MISBEHAVIOUR_TYPE_URL => {
+                let raw = RawL2Misbehaviour::decode(raw.value.as_slice())
+                    .map_err(Error::ProtoDecodeError)?;
+                Ok(Misbehaviour::L2(L2Misbehaviour::try_from(raw)?))
+            }
+            _ => Ok(Misbehaviour::L1(L1Misbehaviour::try_from(raw)?)),
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crate::account::AccountUpdateInfo;
+    use crate::l1::{ExecutionUpdateInfo, L1Header, TrustedSyncCommittee};
     use crate::misbehaviour::{
         FaultDisputeGameFactoryProof, OutputRootWithMessagePasser, TrustedToResolvedL2,
     };
@@ -366,7 +470,6 @@ mod test {
     use alloy_primitives::private::alloy_rlp::Decodable;
     use ethereum_consensus::types::Address;
     use light_client::types::Time;
-    use crate::l1::{ExecutionUpdateInfo, L1Header, TrustedSyncCommittee};
 
     #[test]
     fn test_verify_resolved_status_defender_win() {

@@ -74,30 +74,32 @@ message ConsensusState {
   uint64 l1_timestamp = 7;
 }
 
-message Misbehaviour {
-  string client_id = 1;
-  Header header_1 = 2;
-  Header header_2 = 3;
-}
-
 message AccountUpdate {
   bytes account_proof = 1;
   bytes account_storage_root = 2;
 }
 
-message Misbehaviour {
-    resolved_l2_number = 1;
-    resolved_output_root = 2;
-    # trusted l1 heightでのFaultDisputeGame.solのstorage proof
-    fault_dispute_game_storage_proof = 3;
-    # OutputRoot::from_parts(parent_header.state_root, storage_root, parent_header.seal())に
-    resolved_message_passer_account_proof = 5;
-    resolved_message_passer_storage_root = 5;
+message FaultDisputeGameFactoryProof {
+  L1Header l1_header = 1;
 
-    # trusted l2からresolved_l2までのheader RLPリスト
-    # parent hashがELCで作ったhashと一致していることを確認していく
-    # resolved_l2_numberのところでresolved_output_rootが作れないとエラー
-    # message_passer_xxxに必要なstate_rootはここから得る
-    repeated bytes[] trusted_to_resolved_l2 = 4;
+  bytes dispute_game_factory_address = 2;
+  AccountUpdate dispute_game_factory_account = 3;
+  bytes dispute_game_factory_storage_proof = 4;
 
+  AccountUpdate fault_dispute_game_account = 5;
+  bytes fault_dispute_game_storage_proof = 6;
 }
+
+message OutputRootWithMessagePasser {
+  bytes output_root = 1;
+  AccountUpdate l2_to_l1_message_passer_account = 2;
+}
+
+message Misbehaviour {
+  string client_id = 1;
+  OutputRootWithMessagePasser trusted_output = 2;
+  OutputRootWithMessagePasser resolved_output = 3;
+  repeated bytes trusted_to_resolved_l2 = 4;
+  FaultDisputeGameFactoryProof fault_dispute_game_factory_proof = 5;
+}
+
