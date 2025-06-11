@@ -30,6 +30,16 @@ pub struct L1Config {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FaultDisputeGameConfig {
+    #[prost(uint32, tag = "1")]
+    pub dispute_game_factory_target_storage_slot: u32,
+    #[prost(uint32, tag = "2")]
+    pub fault_dispute_game_status_slot: u32,
+    #[prost(uint32, tag = "3")]
+    pub fault_dispute_game_status_slot_offset: u32,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ClientState {
     #[prost(uint64, tag = "1")]
     pub chain_id: u64,
@@ -47,6 +57,8 @@ pub struct ClientState {
     pub rollup_config_json: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, optional, tag = "7")]
     pub l1_config: ::core::option::Option<L1Config>,
+    #[prost(message, optional, tag = "8")]
+    pub fault_dispute_game_config: ::core::option::Option<FaultDisputeGameConfig>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -135,6 +147,8 @@ pub struct FaultDisputeGameFactoryProof {
     pub fault_dispute_game_account: ::core::option::Option<AccountUpdate>,
     #[prost(bytes = "vec", tag = "6")]
     pub fault_dispute_game_storage_proof: ::prost::alloc::vec::Vec<u8>,
+    #[prost(uint64, tag = "7")]
+    pub fault_dispute_game_source_game_type: u64,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

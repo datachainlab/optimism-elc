@@ -3,7 +3,7 @@ use crate::errors::Error;
 use crate::header::Header;
 use crate::l1;
 use crate::l1::{L1Config, L1Consensus, L1SyncCommittee};
-use crate::misbehaviour::Misbehaviour;
+use crate::misbehaviour::{FaultDisputeGameConfig, Misbehaviour};
 use crate::misc::{
     new_timestamp, validate_header_timestamp_not_future,
     validate_state_timestamp_within_trusting_period,
@@ -46,6 +46,9 @@ pub struct ClientState {
 
     /// L1 Config
     pub l1_config: L1Config,
+
+    /// Fault Dispute Game Config
+    pub fault_dispute_game_config: FaultDisputeGameConfig,
 }
 
 impl ClientState {
@@ -147,6 +150,7 @@ impl ClientState {
             Misbehaviour::L2(l2) => l2.verify(
                 now.as_unix_timestamp_secs(),
                 &self.l1_config,
+                &self.fault_dispute_game_config,
                 &l1_cons_state,
                 trusted_consensus_state.output_root,
             ),
@@ -332,6 +336,7 @@ impl TryFrom<RawClientState> for ClientState {
 
         let l1_config = value.l1_config.ok_or(Error::MissingL1Config)?;
         let l1_config = L1Config::try_from(l1_config)?;
+        let fault_dispute_game_config = value.fault_dispute_game_config.ok_or(Error::MissingFaultDisputeGameConfig)?;
 
         Ok(Self {
             chain_id: value.chain_id,
@@ -341,6 +346,7 @@ impl TryFrom<RawClientState> for ClientState {
             frozen,
             rollup_config,
             l1_config,
+            fault_dispute_game_config: fault_dispute_game_config.into()
         })
     }
 }
@@ -361,6 +367,7 @@ impl TryFrom<ClientState> for RawClientState {
             rollup_config_json: serde_json::to_vec(&value.rollup_config)
                 .map_err(Error::UnexpectedRollupConfig)?,
             l1_config: Some(value.l1_config.into()),
+            fault_dispute_game_config: Some(value.fault_dispute_game_config.into()),
         })
     }
 }

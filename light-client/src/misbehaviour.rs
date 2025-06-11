@@ -1,7 +1,6 @@
 use crate::account::AccountUpdateInfo;
 use crate::commitment::decode_eip1184_rlp_proof;
 use crate::errors::Error;
-use crate::header::OPTIMISM_HEADER_TYPE_URL;
 use crate::l1::{L1Config, L1Consensus, L1Header, Misbehaviour as L1Misbehaviour};
 use alloc::vec::Vec;
 use alloy_consensus::Header;
@@ -15,17 +14,9 @@ use kona_protocol::{OutputRoot, Predeploys};
 use light_client::types::ClientId;
 use optimism_ibc_proto::google::protobuf::Any as IBCAny;
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::Misbehaviour as RawL2Misbehaviour;
+use optimism_ibc_proto::ibc::lightclients::optimism::v1::FaultDisputeGameConfig as RawFaultDisputeGameConfig;
 use prost::Message;
 
-/// Confirmed slot of DisputeGameFactoryProxy contract by forge
-const DISPUTE_GAME_FACTORY_STORAGE_SLOT: u64 = 103;
-
-/// storage layout of forge is reverse position
-/// created_at offset = 0, bytes = 8 -> [24:32]
-/// resoled_at offset = 8, bytes = 8 -> [16:23]
-/// status offset = 16, bytes = 1 -> [15]
-const FAULT_DISPUTE_GAME_STATUS_SLOT: u8 = 0;
-const FAULT_DISPUTE_GAME_STATUS_OFFSET: u8 = 15;
 
 const STATUS_DEFENDER_WIN: u8 = 2;
 
@@ -41,13 +32,13 @@ fn calculate_mapping_slot_bytes(key_bytes: &[u8], mapping_slot: u64) -> B256 {
     keccak256(&concatenated)
 }
 
-fn calc_game_uuid(l2_block_num: B256, output_root: B256) -> B256 {
+fn calc_game_uuid(source_game_type: u64, l2_block_num: B256, output_root: B256) -> B256 {
     // Define constants
     // We can split this into words that are 32 bytes long to get:
     // 0000000000000000000000000000000000000000000000000000000000000060  // offset
     // 000000000000000000000000000000000000000000000000000000000000000b  // length
     // 48656c6c6f20576f726c64000000000000000000000000000000000000000000  // extra_data
-    let source_game_type = u64_to_bytes(0);
+    let source_game_type = u64_to_bytes(source_game_type);
     // start position of extra_data length
     // 32 (gameType) + 32(rootClaim) + extraOffset(32)
     let extra_offset = u64_to_bytes(96);
@@ -86,8 +77,35 @@ fn unpack_game_id(game_id: [u8; 32]) -> (Vec<u8>, Vec<u8>, [u8; 20]) {
     (game_type, timestamp, game_proxy)
 }
 
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct FaultDisputeGameConfig {
+    dispute_game_factory_target_storage_slot: u32,
+    fault_dispute_game_status_slot: u32,
+    fault_dispute_game_status_slot_offset: u32
+}
+
+impl From<RawFaultDisputeGameConfig> for FaultDisputeGameConfig {
+    fn from(value: RawFaultDisputeGameConfig) -> Self {
+        Self {
+            dispute_game_factory_target_storage_slot: value.dispute_game_factory_target_storage_slot,
+            fault_dispute_game_status_slot: value.fault_dispute_game_status_slot,
+            fault_dispute_game_status_slot_offset: value.fault_dispute_game_status_slot_offset,
+        }
+    }
+}
+
+impl From<FaultDisputeGameConfig> for RawFaultDisputeGameConfig {
+    fn from(value: FaultDisputeGameConfig) -> Self {
+        Self {
+            dispute_game_factory_target_storage_slot: value.dispute_game_factory_target_storage_slot,
+            fault_dispute_game_status_slot: value.fault_dispute_game_status_slot,
+            fault_dispute_game_status_slot_offset: value.fault_dispute_game_status_slot_offset,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
-struct FaultDisputeGameFactoryProof<const SYNC_COMMITTEE_SIZE: usize> {
+pub struct FaultDisputeGameFactoryProof<const SYNC_COMMITTEE_SIZE: usize> {
     /// Finalized and verified L1 header
     l1_header: L1Header<SYNC_COMMITTEE_SIZE>,
 
@@ -99,6 +117,7 @@ struct FaultDisputeGameFactoryProof<const SYNC_COMMITTEE_SIZE: usize> {
     /// Proof of FaultDisputeGame
     fault_dispute_game_account: AccountUpdateInfo,
     fault_dispute_game_storage_proof: Vec<Vec<u8>>,
+    fault_dispute_game_source_game_type: u64,
 }
 
 impl<const SYNC_COMMITTEE_SIZE: usize> FaultDisputeGameFactoryProof<SYNC_COMMITTEE_SIZE> {
@@ -115,6 +134,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> FaultDisputeGameFactoryProof<SYNC_COMMITT
 
     pub fn verify_resolved_status(
         &self,
+        fault_dispute_game_config: &FaultDisputeGameConfig,
         claimed_l2_number: u64,
         claimed_output_root: B256,
     ) -> Result<(), Error> {
@@ -126,11 +146,12 @@ impl<const SYNC_COMMITTEE_SIZE: usize> FaultDisputeGameFactoryProof<SYNC_COMMITT
 
         // Extract game id from DisputeGameFactoryProxy by output_root.
         let game_uuid = calc_game_uuid(
+            self.fault_dispute_game_source_game_type,
             B256::from(u64_to_bytes(claimed_l2_number)),
             claimed_output_root,
         );
         let game_id_key =
-            calculate_mapping_slot_bytes(game_uuid.as_slice(), DISPUTE_GAME_FACTORY_STORAGE_SLOT);
+            calculate_mapping_slot_bytes(game_uuid.as_slice(), fault_dispute_game_config.dispute_game_factory_target_storage_slot as u64);
         let execution_verifier = ExecutionVerifier;
         let game_id = execution_verifier
             .verify(
@@ -168,8 +189,9 @@ impl<const SYNC_COMMITTEE_SIZE: usize> FaultDisputeGameFactoryProof<SYNC_COMMITT
         let (_, _, fault_dispute_game_address) = unpack_game_id(left_pad(game_id));
         self.fault_dispute_game_account
             .verify_account_storage(&Address(fault_dispute_game_address), state_root)?;
-        let mut status_key = [0u8; 32];
-        status_key[status_key.len() - 1] = FAULT_DISPUTE_GAME_STATUS_SLOT;
+        let status_key = u64_to_bytes(
+            fault_dispute_game_config.fault_dispute_game_status_slot as u64,
+        );
         let execution_verifier = ExecutionVerifier;
         let packing_slot_value = execution_verifier
             .verify(
@@ -194,7 +216,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> FaultDisputeGameFactoryProof<SYNC_COMMITT
             })?;
         let packing_slot_value = left_pad(packing_slot_value);
 
-        let status = packing_slot_value[FAULT_DISPUTE_GAME_STATUS_OFFSET as usize];
+        let status = packing_slot_value[fault_dispute_game_config.fault_dispute_game_status_slot_offset as usize];
         if status != STATUS_DEFENDER_WIN {
             return Err(Error::UnexpectedResolvedStatus {
                 status,
@@ -384,6 +406,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL2Misbehaviour>
             fault_dispute_game_storage_proof: decode_eip1184_rlp_proof(
                 proto_fdg_factory_proof.fault_dispute_game_storage_proof,
             )?,
+            fault_dispute_game_source_game_type: proto_fdg_factory_proof.fault_dispute_game_source_game_type
         };
 
         Ok(Self {
@@ -401,6 +424,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L2Misbehaviour<SYNC_COMMITTEE_SIZE> {
         &self,
         now: u64,
         l1_config: &L1Config,
+        fault_dispute_game_config: &FaultDisputeGameConfig,
         l1_cons_state: &L1Consensus,
         consensus_output_root: B256,
     ) -> Result<(), Error> {
@@ -427,7 +451,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L2Misbehaviour<SYNC_COMMITTEE_SIZE> {
 
         // Ensure the status is not defender win
         self.fault_dispute_game_factory_proof
-            .verify_resolved_status(resolved_header.number, self.resolved_output.output_root)?;
+            .verify_resolved_status(fault_dispute_game_config, resolved_header.number, self.resolved_output.output_root)?;
 
         // Misbehaviour detected
         Ok(())
@@ -460,9 +484,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<IBCAny> for Misbehaviour<SYNC_COM
 mod test {
     use crate::account::AccountUpdateInfo;
     use crate::l1::{ExecutionUpdateInfo, L1Header, TrustedSyncCommittee};
-    use crate::misbehaviour::{
-        FaultDisputeGameFactoryProof, OutputRootWithMessagePasser, TrustedToResolvedL2,
-    };
+    use crate::misbehaviour::{FaultDisputeGameConfig, FaultDisputeGameFactoryProof, OutputRootWithMessagePasser, TrustedToResolvedL2};
     use alloc::vec;
     use alloc::vec::Vec;
     use alloy_consensus::Header;
@@ -481,7 +503,7 @@ mod test {
                     state_root: hex!("84cde1ef1ab57fe978674fe74d94f1c87d6650b908bc85531d791acb80e12f2c").into(),
                     ..Default::default()
                 },
-                timestamp: Time::from_unix_timestamp(100, 0).unwrap()
+                timestamp: Time::from_unix_timestamp(100, 0).unwrap(),
             },
             dispute_game_factory_address: Address(hex!("05F9613aDB30026FFd634f38e5C4dFd30a197Fa1")),
             dispute_game_factory_account: AccountUpdateInfo {
@@ -522,10 +544,22 @@ mod test {
                 hex!("f9013180a0c52caf0505888b98c4fdb6cc7fb993c8bfa0d2493c4a2232714597de0e30f93ba0224cf7cab9c53845fcc3a8efb965ba1f754331666ada4f5ff00839123de8795480a0c8d8343191741f6635e15c60124fe6139eb6a0bcff26bd218bcea6aa2ba9d5d780a012d5e40264430bdfe8262bff91e0c9e15d05cc04bc25b0521a443a7decc193d1808080a0bc34934c765a0311fe38c14de0885983fe78ac320b7a30ad21c3621df72bb990a097c0d14e0a74999048d691ae25278a957d3874f112a30d6a2b095319d30d4791a03e26c8b1f3ff7d89e6abf24334b82b60f2e583c675e255eea4b73685da72c604a07706734103e02b3cd9d9c12e58e136354b079e21bea41e29c132f7d1e786e87080a087ecc59cde21b3078405d2d5ababfc88072c75d0ad6fca7dabde42dac0b6913080").into(),
                 hex!("f851808080808080808080a0fddbf730157e6bcd58316bf1fb2efa39acffbdb43f6e3207481dfd601a08d4958080808080a020de6edcfdb3b33776c67bfd5d7e6ec0ce7045ba913627a8cb6db827bcd1f39580").into(),
                 hex!("f5a0200decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e56393920102000000006837d1040000000068333388").into(),
-            ]
+            ],
+            fault_dispute_game_source_game_type: 0
         };
         model
             .verify_resolved_status(
+                &FaultDisputeGameConfig {
+                    // Confirmed slot of DisputeGameFactoryProxy contract by forge
+                    dispute_game_factory_target_storage_slot: 103,
+                    // Confirmed slot of FaultDisputeGame contract by forge
+                    // storage layout of forge is reverse position
+                    // created_at offset = 0, bytes = 8 -> [24:32]
+                    // resoled_at offset = 8, bytes = 8 -> [16:23]
+                    // status offset = 16, bytes = 1 -> [15]
+                    fault_dispute_game_status_slot: 0,
+                    fault_dispute_game_status_slot_offset: 15,
+                },
                 28191582,
                 hex!("f0d512abcee62939dbf802954c5202629e81d7e46423ce86ac789613b5668222").into(),
             )

@@ -24,6 +24,12 @@ message L1Config {
   google.protobuf.Duration max_clock_drift = 10 [(gogoproto.nullable) = false, (gogoproto.stdduration) = true];
 }
 
+message FaultDisputeGameConfig {
+  uint32 dispute_game_factory_target_storage_slot = 1;
+  uint32 fault_dispute_game_status_slot = 2;
+  uint32 fault_dispute_game_status_slot_offset = 3;
+}
+
 message ClientState {
   uint64 chain_id = 1;
 
@@ -37,6 +43,7 @@ message ClientState {
   bytes rollup_config_json = 6;
 
   L1Config l1_config = 7;
+  FaultDisputeGameConfig fault_dispute_game_config = 8;
 
 }
 
@@ -88,6 +95,7 @@ message FaultDisputeGameFactoryProof {
 
   AccountUpdate fault_dispute_game_account = 5;
   bytes fault_dispute_game_storage_proof = 6;
+  uint64 fault_dispute_game_source_game_type = 7;
 }
 
 message OutputRootWithMessagePasser {

@@ -70,6 +70,8 @@ pub enum Error {
     // Update
     #[error("MissingL1Config")]
     MissingL1Config,
+    #[error("MissingFaultDisputeGameConfig")]
+    MissingFaultDisputeGameConfig,
     #[error("MissingForkSpec")]
     MissingForkSpec,
     #[error("MissingL1Head")]
