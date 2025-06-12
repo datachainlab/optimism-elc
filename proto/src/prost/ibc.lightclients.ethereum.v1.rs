@@ -126,10 +126,14 @@ pub struct FinalizedHeaderMisbehaviour {
     #[prost(string, tag = "1")]
     pub client_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "2")]
-    pub trusted_sync_committee: ::core::option::Option<TrustedSyncCommittee>,
+    pub trusted_height: ::core::option::Option<
+        super::super::super::core::client::v1::Height,
+    >,
     #[prost(message, optional, tag = "3")]
-    pub consensus_update_1: ::core::option::Option<ConsensusUpdate>,
+    pub trusted_sync_committee: ::core::option::Option<TrustedSyncCommittee>,
     #[prost(message, optional, tag = "4")]
+    pub consensus_update_1: ::core::option::Option<ConsensusUpdate>,
+    #[prost(message, optional, tag = "5")]
     pub consensus_update_2: ::core::option::Option<ConsensusUpdate>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -138,9 +142,13 @@ pub struct NextSyncCommitteeMisbehaviour {
     #[prost(string, tag = "1")]
     pub client_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "2")]
-    pub trusted_sync_committee: ::core::option::Option<TrustedSyncCommittee>,
+    pub trusted_height: ::core::option::Option<
+        super::super::super::core::client::v1::Height,
+    >,
     #[prost(message, optional, tag = "3")]
-    pub consensus_update_1: ::core::option::Option<ConsensusUpdate>,
+    pub trusted_sync_committee: ::core::option::Option<TrustedSyncCommittee>,
     #[prost(message, optional, tag = "4")]
+    pub consensus_update_1: ::core::option::Option<ConsensusUpdate>,
+    #[prost(message, optional, tag = "5")]
     pub consensus_update_2: ::core::option::Option<ConsensusUpdate>,
 }

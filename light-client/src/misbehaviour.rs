@@ -11,7 +11,7 @@ use core::str::FromStr;
 use ethereum_consensus::types::{Address, H256};
 use ethereum_light_client_verifier::execution::ExecutionVerifier;
 use kona_protocol::{OutputRoot, Predeploys};
-use light_client::types::ClientId;
+use light_client::types::{Any, ClientId, Height};
 use optimism_ibc_proto::google::protobuf::Any as IBCAny;
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::Misbehaviour as RawL2Misbehaviour;
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::FaultDisputeGameConfig as RawFaultDisputeGameConfig;
@@ -231,6 +231,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> FaultDisputeGameFactoryProof<SYNC_COMMITT
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct OutputRootWithMessagePasser {
     output_root: B256,
     l2_to_l1_message_passer_account: AccountUpdateInfo,
@@ -284,6 +285,7 @@ impl OutputRootWithMessagePasser {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct TrustedToResolvedL2 {
     trusted: Header,
     resolved: Header,
@@ -323,8 +325,10 @@ impl TryFrom<Vec<Vec<u8>>> for TrustedToResolvedL2 {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct L2Misbehaviour<const SYNC_COMMITTEE_SIZE: usize> {
     client_id: ClientId,
+    trusted_height: Height,
     /// L2 output in consensus state
     trusted_output: OutputRootWithMessagePasser,
     /// Resolved L2 output in FaultDisputeGame
@@ -342,6 +346,9 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL2Misbehaviour>
 
     fn try_from(raw: RawL2Misbehaviour) -> Result<Self, Self::Error> {
         let client_id = ClientId::from_str(&raw.client_id).map_err(Error::UnexpectedClientId)?;
+        let trusted_height = raw
+            .trusted_height
+            .ok_or(Error::proto_missing("trusted_height"))?;
         let proto_trusted_output = raw
             .trusted_output
             .ok_or(Error::proto_missing("trusted_output"))?;
@@ -411,6 +418,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL2Misbehaviour>
 
         Ok(Self {
             client_id,
+            trusted_height: Height::from(trusted_height),
             trusted_output,
             resolved_output,
             trusted_to_resolved_l2,
@@ -458,9 +466,27 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L2Misbehaviour<SYNC_COMMITTEE_SIZE> {
     }
 }
 
+#[derive(Clone, Debug)]
 pub enum Misbehaviour<const SYNC_COMMITTEE_SIZE: usize> {
     L2(L2Misbehaviour<SYNC_COMMITTEE_SIZE>),
     L1(L1Misbehaviour<SYNC_COMMITTEE_SIZE>),
+}
+
+impl <const SYNC_COMMITTEE_SIZE: usize> Misbehaviour<SYNC_COMMITTEE_SIZE> {
+    pub fn trusted_height(&self) -> Height {
+        match self {
+            Misbehaviour::L2(misbehaviour) => misbehaviour.trusted_height,
+            Misbehaviour::L1(misbehaviour) => misbehaviour.trusted_height,
+        }
+    }
+}
+
+impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<Any> for Misbehaviour<L1_SYNC_COMMITTEE_SIZE> {
+    type Error = Error;
+
+    fn try_from(any: Any) -> Result<Self, Self::Error> {
+        IBCAny::from(any).try_into()
+    }
 }
 
 impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<IBCAny> for Misbehaviour<SYNC_COMMITTEE_SIZE> {

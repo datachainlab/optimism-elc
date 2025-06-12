@@ -7,17 +7,13 @@ use crate::message::ClientMessage;
 use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
+use core::time::Duration;
 use alloy_primitives::keccak256;
 use ethereum_consensus::types::H256;
-use light_client::commitments::{
-    gen_state_id_from_any, CommitmentPrefix, EmittedState, StateID, TrustingPeriodContext,
-    UpdateStateProxyMessage, ValidationContext, VerifyMembershipProxyMessage,
-};
-use light_client::types::{Any, ClientId, Height};
-use light_client::{
-    CreateClientResult, Error as LightClientError, HostClientReader, LightClient,
-    UpdateClientResult, UpdateStateData, VerifyMembershipResult, VerifyNonMembershipResult,
-};
+use light_client::commitments::{gen_state_id_from_any, CommitmentPrefix, EmittedState, MisbehaviourProxyMessage, PrevState, StateID, TrustingPeriodContext, UpdateStateProxyMessage, ValidationContext, VerifyMembershipProxyMessage};
+use light_client::types::{Any, ClientId, Height, Time};
+use light_client::{CreateClientResult, Error as LightClientError, HostClientReader, LightClient, MisbehaviourData, UpdateClientResult, UpdateStateData, VerifyMembershipResult, VerifyNonMembershipResult};
+use crate::misbehaviour::Misbehaviour;
 
 pub struct OptimismLightClient<const L1_SYNC_COMMITTEE_SIZE: usize>;
 
@@ -78,8 +74,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> LightClient
     ) -> Result<UpdateClientResult, light_client::Error> {
         match ClientMessage::<L1_SYNC_COMMITTEE_SIZE>::try_from(client_message.clone())? {
             ClientMessage::Header(header) => Ok(self.update_state(ctx, client_id, header)?.into()),
-            //TODO misbehavior
-            //ClientMessage::Misbehaviour => todo!("misbehaviour"),
+            ClientMessage::Misbehaviour(misbehaviour) => Ok(self.submit_misbehaviour(ctx, client_id, client_message, misbehaviour)?.into()),
         }
     }
 
@@ -213,6 +208,74 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> OptimismLightClient<L1_SYNC_COMMITTEE_
             prove: true,
         })
     }
+
+    fn submit_misbehaviour(
+        &self,
+        ctx: &dyn HostClientReader,
+        client_id: ClientId,
+        any_message: Any,
+        misbehaviour: Misbehaviour<L1_SYNC_COMMITTEE_SIZE>,
+    ) -> Result<MisbehaviourData, Error> {
+        let trusted_height = misbehaviour.trusted_height();
+        let any_client_state = ctx.client_state(&client_id).map_err(Error::LCPError)?;
+        let any_consensus_state = ctx
+            .consensus_state(&client_id, &trusted_height)
+            .map_err(Error::LCPError)?;
+        let trusted_consensus_state = ConsensusState::try_from(any_consensus_state)?;
+        let client_state = ClientState::try_from(any_client_state)?;
+        if client_state.frozen {
+            return Err(Error::ClientFrozen(client_id));
+        }
+
+         let new_client_state = client_state
+            .check_misbehaviour_and_update_state(
+                ctx.host_timestamp(),
+                &trusted_consensus_state,
+                misbehaviour,
+            )?;
+
+        Ok(MisbehaviourData {
+            new_any_client_state: new_client_state.try_into()?,
+            message: MisbehaviourProxyMessage {
+                prev_states: self.make_prev_states(
+                    ctx,
+                    &client_id,
+                    &client_state,
+                    vec![trusted_height.into()],
+                )?,
+                // For misbehaviour, it is acceptable if the header's timestamp points to the future.
+                context: ValidationContext::TrustingPeriod(TrustingPeriodContext::new(
+                    client_state.l1_config.trusting_period,
+                    Duration::ZERO,
+                    Time::unix_epoch(),
+                    trusted_consensus_state.l1_timestamp,
+                )),
+                client_message: any_message,
+            },
+        })
+    }
+
+    fn make_prev_states(
+        &self,
+        ctx: &dyn HostClientReader,
+        client_id: &ClientId,
+        client_state: &ClientState,
+        heights: Vec<Height>,
+    ) -> Result<Vec<PrevState>, Error> {
+        let mut prev_states = Vec::new();
+        for height in heights {
+            let consensus_state: ConsensusState = ctx
+                .consensus_state(client_id, &height)
+                .map_err(Error::LCPError)?
+                .try_into()?;
+            prev_states.push(PrevState {
+                height,
+                state_id: gen_state_id(client_state.clone(), consensus_state)?,
+            });
+        }
+        Ok(prev_states)
+    }
+
     fn validate_membership_args(
         ctx: &dyn HostClientReader,
         client_id: &ClientId,

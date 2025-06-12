@@ -105,9 +105,10 @@ message OutputRootWithMessagePasser {
 
 message Misbehaviour {
   string client_id = 1;
-  OutputRootWithMessagePasser trusted_output = 2;
-  OutputRootWithMessagePasser resolved_output = 3;
-  repeated bytes trusted_to_resolved_l2 = 4;
-  FaultDisputeGameFactoryProof fault_dispute_game_factory_proof = 5;
+  ibc.core.client.v1.Height trusted_height = 2;
+  OutputRootWithMessagePasser trusted_output = 3;
+  OutputRootWithMessagePasser resolved_output = 4;
+  repeated bytes trusted_to_resolved_l2 = 5;
+  FaultDisputeGameFactoryProof fault_dispute_game_factory_proof = 6;
 }
 

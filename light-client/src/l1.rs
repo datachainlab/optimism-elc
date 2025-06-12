@@ -25,7 +25,7 @@ use ethereum_light_client_verifier::misbehaviour::{
 };
 use ethereum_light_client_verifier::state::LightClientStoreReader;
 use ethereum_light_client_verifier::updates::{ConsensusUpdate, ExecutionUpdate};
-use light_client::types::{ClientId, Time};
+use light_client::types::{ClientId, Height, Time};
 use optimism_ibc_proto::google::protobuf::Any as IBCAny;
 use optimism_ibc_proto::ibc::lightclients::ethereum::v1::{
     BeaconBlockHeader as ProtoBeaconBlockHeader, ConsensusUpdate as ProtoConsensusUpdate,
@@ -619,6 +619,7 @@ const ETHEREUM_NEXT_SYNC_COMMITTEE_MISBEHAVIOUR_TYPE_URL: &str =
 #[derive(Clone, Debug)]
 pub struct Misbehaviour<const SYNC_COMMITTEE_SIZE: usize> {
     pub client_id: ClientId,
+    pub trusted_height: Height,
     /// The sync committee related to the misbehaviour
     pub trusted_sync_committee: TrustedSyncCommittee<SYNC_COMMITTEE_SIZE>,
     /// The misbehaviour data
@@ -635,6 +636,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawFinalizedHeaderMisbehaviour>
             .ok_or(Error::MissingTrustedSyncCommittee)?;
         Ok(Self {
             client_id: ClientId::from_str(&value.client_id).map_err(Error::UnexpectedClientId)?,
+            trusted_height: value.trusted_height.ok_or(Error::MissingTrustedHeight)?.into(),
             trusted_sync_committee: TrustedSyncCommittee {
                 sync_committee: convert_proto_to_sync_committee(
                     trusted_sync_committee.sync_committee,
@@ -667,6 +669,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawNextSyncCommitteeMisbehaviour>
             .ok_or(Error::MissingTrustedSyncCommittee)?;
         Ok(Self {
             client_id: ClientId::from_str(&value.client_id).map_err(Error::UnexpectedClientId)?,
+            trusted_height: value.trusted_height.ok_or(Error::MissingTrustedHeight)?.into(),
             trusted_sync_committee: TrustedSyncCommittee {
                 sync_committee: convert_proto_to_sync_committee(
                     trusted_sync_committee.sync_committee,

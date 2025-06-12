@@ -164,12 +164,16 @@ pub struct Misbehaviour {
     #[prost(string, tag = "1")]
     pub client_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "2")]
-    pub trusted_output: ::core::option::Option<OutputRootWithMessagePasser>,
+    pub trusted_height: ::core::option::Option<
+        super::super::super::core::client::v1::Height,
+    >,
     #[prost(message, optional, tag = "3")]
+    pub trusted_output: ::core::option::Option<OutputRootWithMessagePasser>,
+    #[prost(message, optional, tag = "4")]
     pub resolved_output: ::core::option::Option<OutputRootWithMessagePasser>,
-    #[prost(bytes = "vec", repeated, tag = "4")]
+    #[prost(bytes = "vec", repeated, tag = "5")]
     pub trusted_to_resolved_l2: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
-    #[prost(message, optional, tag = "5")]
+    #[prost(message, optional, tag = "6")]
     pub fault_dispute_game_factory_proof: ::core::option::Option<
         FaultDisputeGameFactoryProof,
     >,
