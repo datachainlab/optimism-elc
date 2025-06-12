@@ -125,18 +125,18 @@ impl ClientState {
     pub fn check_misbehaviour_and_update_state<const L1_SYNC_COMMITTEE_SIZE: usize>(
         &self,
         now: Time,
-        client_id: ClientId,
+        client_id: &ClientId,
         trusted_consensus_state: &ConsensusState,
         misbehaviour: Misbehaviour<L1_SYNC_COMMITTEE_SIZE>,
     ) -> Result<ClientState, Error> {
         if self.frozen {
-            return Err(Error::ClientFrozen(client_id));
+            return Err(Error::ClientFrozen(client_id.clone()));
         }
 
-        let misbehaviour_client_id = misbehaviour.client_id().clone();
+        let misbehaviour_client_id = misbehaviour.client_id();
         if misbehaviour_client_id != client_id {
             return Err(
-                Error::UnexpectedClientIdInMisbehaviour(client_id, misbehaviour_client_id).into(),
+                Error::UnexpectedClientIdInMisbehaviour(client_id.clone(), misbehaviour_client_id.clone()).into(),
             );
         }
 

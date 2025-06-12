@@ -234,7 +234,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> OptimismLightClient<L1_SYNC_COMMITTEE_
         let client_state = ClientState::try_from(any_client_state)?;
         let new_client_state = client_state.check_misbehaviour_and_update_state(
             ctx.host_timestamp(),
-            client_id,
+            &client_id,
             &trusted_consensus_state,
             misbehaviour,
         )?;
