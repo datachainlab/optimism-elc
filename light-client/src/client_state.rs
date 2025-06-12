@@ -17,7 +17,7 @@ use ethereum_consensus::types::{Address, H256, U64};
 use ethereum_light_client_verifier::context::Fraction;
 use ethereum_light_client_verifier::execution::ExecutionVerifier;
 use kona_genesis::RollupConfig;
-use light_client::types::{Any, Height, Time};
+use light_client::types::{Any, ClientId, Height, Time};
 use optimism_ibc_proto::google::protobuf::Any as IBCAny;
 use optimism_ibc_proto::ibc::lightclients::ethereum::v1::{
     Fork as ProtoFork, ForkParameters as ProtoForkParameters, ForkSpec as ProtoForkSpec,
@@ -125,9 +125,21 @@ impl ClientState {
     pub fn check_misbehaviour_and_update_state<const L1_SYNC_COMMITTEE_SIZE: usize>(
         &self,
         now: Time,
+        client_id: ClientId,
         trusted_consensus_state: &ConsensusState,
         misbehaviour: Misbehaviour<L1_SYNC_COMMITTEE_SIZE>,
     ) -> Result<ClientState, Error> {
+        if self.frozen {
+            return Err(Error::ClientFrozen(client_id));
+        }
+
+        let misbehaviour_client_id = misbehaviour.client_id().clone();
+        if misbehaviour_client_id != client_id {
+            return Err(
+                Error::UnexpectedClientIdInMisbehaviour(client_id, misbehaviour_client_id).into(),
+            );
+        }
+
         let l1_cons_state = L1Consensus {
             slot: trusted_consensus_state.l1_slot,
             current_sync_committee: trusted_consensus_state.l1_current_sync_committee.clone(),
@@ -336,7 +348,9 @@ impl TryFrom<RawClientState> for ClientState {
 
         let l1_config = value.l1_config.ok_or(Error::MissingL1Config)?;
         let l1_config = L1Config::try_from(l1_config)?;
-        let fault_dispute_game_config = value.fault_dispute_game_config.ok_or(Error::MissingFaultDisputeGameConfig)?;
+        let fault_dispute_game_config = value
+            .fault_dispute_game_config
+            .ok_or(Error::MissingFaultDisputeGameConfig)?;
 
         Ok(Self {
             chain_id: value.chain_id,
@@ -346,7 +360,7 @@ impl TryFrom<RawClientState> for ClientState {
             frozen,
             rollup_config,
             l1_config,
-            fault_dispute_game_config: fault_dispute_game_config.into()
+            fault_dispute_game_config: fault_dispute_game_config.into(),
         })
     }
 }

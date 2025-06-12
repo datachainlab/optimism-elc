@@ -214,6 +214,8 @@ pub enum Error {
     UnexpectedDisputeGameFactoryAddress(L1ConsensusError),
     #[error("UnexpectedClientId: err={0:?}")]
     UnexpectedClientId(TypeError),
+    #[error("UnexpectedClientIdInMisbehaviour: request={0:?} misbehaviour={1:?}")]
+    UnexpectedClientIdInMisbehaviour(ClientId, ClientId),
 
     // Framework
     #[error("LCPError: err={0:?}")]

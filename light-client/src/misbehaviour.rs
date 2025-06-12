@@ -13,10 +13,9 @@ use ethereum_light_client_verifier::execution::ExecutionVerifier;
 use kona_protocol::{OutputRoot, Predeploys};
 use light_client::types::{Any, ClientId, Height};
 use optimism_ibc_proto::google::protobuf::Any as IBCAny;
-use optimism_ibc_proto::ibc::lightclients::optimism::v1::Misbehaviour as RawL2Misbehaviour;
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::FaultDisputeGameConfig as RawFaultDisputeGameConfig;
+use optimism_ibc_proto::ibc::lightclients::optimism::v1::Misbehaviour as RawL2Misbehaviour;
 use prost::Message;
-
 
 const STATUS_DEFENDER_WIN: u8 = 2;
 
@@ -81,13 +80,14 @@ fn unpack_game_id(game_id: [u8; 32]) -> (Vec<u8>, Vec<u8>, [u8; 20]) {
 pub struct FaultDisputeGameConfig {
     dispute_game_factory_target_storage_slot: u32,
     fault_dispute_game_status_slot: u32,
-    fault_dispute_game_status_slot_offset: u32
+    fault_dispute_game_status_slot_offset: u32,
 }
 
 impl From<RawFaultDisputeGameConfig> for FaultDisputeGameConfig {
     fn from(value: RawFaultDisputeGameConfig) -> Self {
         Self {
-            dispute_game_factory_target_storage_slot: value.dispute_game_factory_target_storage_slot,
+            dispute_game_factory_target_storage_slot: value
+                .dispute_game_factory_target_storage_slot,
             fault_dispute_game_status_slot: value.fault_dispute_game_status_slot,
             fault_dispute_game_status_slot_offset: value.fault_dispute_game_status_slot_offset,
         }
@@ -97,7 +97,8 @@ impl From<RawFaultDisputeGameConfig> for FaultDisputeGameConfig {
 impl From<FaultDisputeGameConfig> for RawFaultDisputeGameConfig {
     fn from(value: FaultDisputeGameConfig) -> Self {
         Self {
-            dispute_game_factory_target_storage_slot: value.dispute_game_factory_target_storage_slot,
+            dispute_game_factory_target_storage_slot: value
+                .dispute_game_factory_target_storage_slot,
             fault_dispute_game_status_slot: value.fault_dispute_game_status_slot,
             fault_dispute_game_status_slot_offset: value.fault_dispute_game_status_slot_offset,
         }
@@ -150,8 +151,10 @@ impl<const SYNC_COMMITTEE_SIZE: usize> FaultDisputeGameFactoryProof<SYNC_COMMITT
             B256::from(u64_to_bytes(claimed_l2_number)),
             claimed_output_root,
         );
-        let game_id_key =
-            calculate_mapping_slot_bytes(game_uuid.as_slice(), fault_dispute_game_config.dispute_game_factory_target_storage_slot as u64);
+        let game_id_key = calculate_mapping_slot_bytes(
+            game_uuid.as_slice(),
+            fault_dispute_game_config.dispute_game_factory_target_storage_slot as u64,
+        );
         let execution_verifier = ExecutionVerifier;
         let game_id = execution_verifier
             .verify(
@@ -189,9 +192,8 @@ impl<const SYNC_COMMITTEE_SIZE: usize> FaultDisputeGameFactoryProof<SYNC_COMMITT
         let (_, _, fault_dispute_game_address) = unpack_game_id(left_pad(game_id));
         self.fault_dispute_game_account
             .verify_account_storage(&Address(fault_dispute_game_address), state_root)?;
-        let status_key = u64_to_bytes(
-            fault_dispute_game_config.fault_dispute_game_status_slot as u64,
-        );
+        let status_key =
+            u64_to_bytes(fault_dispute_game_config.fault_dispute_game_status_slot as u64);
         let execution_verifier = ExecutionVerifier;
         let packing_slot_value = execution_verifier
             .verify(
@@ -216,7 +218,8 @@ impl<const SYNC_COMMITTEE_SIZE: usize> FaultDisputeGameFactoryProof<SYNC_COMMITT
             })?;
         let packing_slot_value = left_pad(packing_slot_value);
 
-        let status = packing_slot_value[fault_dispute_game_config.fault_dispute_game_status_slot_offset as usize];
+        let status = packing_slot_value
+            [fault_dispute_game_config.fault_dispute_game_status_slot_offset as usize];
         if status != STATUS_DEFENDER_WIN {
             return Err(Error::UnexpectedResolvedStatus {
                 status,
@@ -413,7 +416,8 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL2Misbehaviour>
             fault_dispute_game_storage_proof: decode_eip1184_rlp_proof(
                 proto_fdg_factory_proof.fault_dispute_game_storage_proof,
             )?,
-            fault_dispute_game_source_game_type: proto_fdg_factory_proof.fault_dispute_game_source_game_type
+            fault_dispute_game_source_game_type: proto_fdg_factory_proof
+                .fault_dispute_game_source_game_type,
         };
 
         Ok(Self {
@@ -459,7 +463,11 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L2Misbehaviour<SYNC_COMMITTEE_SIZE> {
 
         // Ensure the status is not defender win
         self.fault_dispute_game_factory_proof
-            .verify_resolved_status(fault_dispute_game_config, resolved_header.number, self.resolved_output.output_root)?;
+            .verify_resolved_status(
+                fault_dispute_game_config,
+                resolved_header.number,
+                self.resolved_output.output_root,
+            )?;
 
         // Misbehaviour detected
         Ok(())
@@ -472,11 +480,18 @@ pub enum Misbehaviour<const SYNC_COMMITTEE_SIZE: usize> {
     L1(L1Misbehaviour<SYNC_COMMITTEE_SIZE>),
 }
 
-impl <const SYNC_COMMITTEE_SIZE: usize> Misbehaviour<SYNC_COMMITTEE_SIZE> {
+impl<const SYNC_COMMITTEE_SIZE: usize> Misbehaviour<SYNC_COMMITTEE_SIZE> {
     pub fn trusted_height(&self) -> Height {
         match self {
             Misbehaviour::L2(misbehaviour) => misbehaviour.trusted_height,
             Misbehaviour::L1(misbehaviour) => misbehaviour.trusted_height,
+        }
+    }
+
+    pub fn client_id(&self) -> &ClientId {
+        match self {
+            Misbehaviour::L2(misbehaviour) => &misbehaviour.client_id,
+            Misbehaviour::L1(misbehaviour) => &misbehaviour.client_id,
         }
     }
 }
@@ -510,7 +525,10 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<IBCAny> for Misbehaviour<SYNC_COM
 mod test {
     use crate::account::AccountUpdateInfo;
     use crate::l1::{ExecutionUpdateInfo, L1Header, TrustedSyncCommittee};
-    use crate::misbehaviour::{FaultDisputeGameConfig, FaultDisputeGameFactoryProof, OutputRootWithMessagePasser, TrustedToResolvedL2};
+    use crate::misbehaviour::{
+        FaultDisputeGameConfig, FaultDisputeGameFactoryProof, OutputRootWithMessagePasser,
+        TrustedToResolvedL2,
+    };
     use alloc::vec;
     use alloc::vec::Vec;
     use alloy_consensus::Header;

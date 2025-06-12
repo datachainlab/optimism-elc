@@ -4,16 +4,23 @@ use crate::consensus_state::ConsensusState;
 use crate::errors::Error;
 use crate::header::Header;
 use crate::message::ClientMessage;
+use crate::misbehaviour::Misbehaviour;
 use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
-use core::time::Duration;
 use alloy_primitives::keccak256;
+use core::time::Duration;
 use ethereum_consensus::types::H256;
-use light_client::commitments::{gen_state_id_from_any, CommitmentPrefix, EmittedState, MisbehaviourProxyMessage, PrevState, StateID, TrustingPeriodContext, UpdateStateProxyMessage, ValidationContext, VerifyMembershipProxyMessage};
+use light_client::commitments::{
+    gen_state_id_from_any, CommitmentPrefix, EmittedState, MisbehaviourProxyMessage, PrevState,
+    StateID, TrustingPeriodContext, UpdateStateProxyMessage, ValidationContext,
+    VerifyMembershipProxyMessage,
+};
 use light_client::types::{Any, ClientId, Height, Time};
-use light_client::{CreateClientResult, Error as LightClientError, HostClientReader, LightClient, MisbehaviourData, UpdateClientResult, UpdateStateData, VerifyMembershipResult, VerifyNonMembershipResult};
-use crate::misbehaviour::Misbehaviour;
+use light_client::{
+    CreateClientResult, Error as LightClientError, HostClientReader, LightClient, MisbehaviourData,
+    UpdateClientResult, UpdateStateData, VerifyMembershipResult, VerifyNonMembershipResult,
+};
 
 pub struct OptimismLightClient<const L1_SYNC_COMMITTEE_SIZE: usize>;
 
@@ -74,7 +81,9 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> LightClient
     ) -> Result<UpdateClientResult, light_client::Error> {
         match ClientMessage::<L1_SYNC_COMMITTEE_SIZE>::try_from(client_message.clone())? {
             ClientMessage::Header(header) => Ok(self.update_state(ctx, client_id, header)?.into()),
-            ClientMessage::Misbehaviour(misbehaviour) => Ok(self.submit_misbehaviour(ctx, client_id, client_message, misbehaviour)?.into()),
+            ClientMessage::Misbehaviour(misbehaviour) => Ok(self
+                .submit_misbehaviour(ctx, client_id, client_message, misbehaviour)?
+                .into()),
         }
     }
 
@@ -223,16 +232,12 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> OptimismLightClient<L1_SYNC_COMMITTEE_
             .map_err(Error::LCPError)?;
         let trusted_consensus_state = ConsensusState::try_from(any_consensus_state)?;
         let client_state = ClientState::try_from(any_client_state)?;
-        if client_state.frozen {
-            return Err(Error::ClientFrozen(client_id));
-        }
-
-         let new_client_state = client_state
-            .check_misbehaviour_and_update_state(
-                ctx.host_timestamp(),
-                &trusted_consensus_state,
-                misbehaviour,
-            )?;
+        let new_client_state = client_state.check_misbehaviour_and_update_state(
+            ctx.host_timestamp(),
+            client_id,
+            &trusted_consensus_state,
+            misbehaviour,
+        )?;
 
         Ok(MisbehaviourData {
             new_any_client_state: new_client_state.try_into()?,
@@ -417,11 +422,12 @@ mod test {
                 frozen: false,
                 rollup_config: Default::default(),
                 l1_config: get_l1_config(),
-                fault_dispute_game_config:  RawFaultDisputeGameConfig {
+                fault_dispute_game_config: RawFaultDisputeGameConfig {
                     dispute_game_factory_target_storage_slot: 103,
                     fault_dispute_game_status_slot: 0,
                     fault_dispute_game_status_slot_offset: 15,
-                }.into()
+                }
+                .into(),
             }
         }
     }
@@ -445,7 +451,8 @@ mod test {
         let raw_cs = hex!("08e4ab8301121430346563383746363433353343344435433835331a201ee222554989dda120e26ecacf756fe1235cd8d726706b57517715dde4f0c900220310916f32e0097b2267656e65736973223a7b226c31223a7b2268617368223a22307834623265643664313832333330653534656438656537353563643766623566616338383430313430346130303232636630653964306331656565373534363337222c226e756d626572223a31347d2c226c32223a7b2268617368223a22307864646534326639326562396463343535383132653836376133313666393839373831643033356666653735613862333933666139386432313661363131353364222c226e756d626572223a307d2c226c325f74696d65223a313734383234323438392c2273797374656d5f636f6e666967223a7b226261746368657241646472223a22307864336632633561666232643736663535373966333236623063643764613566356134313236633335222c226f76657268656164223a22307830303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030222c227363616c6172223a22307830313030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303063356663353030303030353538222c226761734c696d6974223a36303030303030302c2265697031353539506172616d73223a22307830303030303030303030303030303030222c226f70657261746f72466565506172616d73223a22307830303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030227d7d2c22626c6f636b5f74696d65223a322c226d61785f73657175656e6365725f6472696674223a3630302c227365715f77696e646f775f73697a65223a333630302c226368616e6e656c5f74696d656f7574223a3330302c226c315f636861696e5f6964223a333135313930382c226c325f636861696e5f6964223a323135313930382c227265676f6c6974685f74696d65223a302c2263616e796f6e5f74696d65223a302c2264656c74615f74696d65223a302c2265636f746f6e655f74696d65223a302c22666a6f72645f74696d65223a302c226772616e6974655f74696d65223a302c22686f6c6f63656e655f74696d65223a302c22697374686d75735f74696d65223a302c2262617463685f696e626f785f61646472657373223a22307830306134666534633661616130373239643736393963333837653766323831646436346166613261222c226465706f7369745f636f6e74726163745f61646472657373223a22307836663162666137323138626438373739373235626166656632363137343232353066393134663034222c226c315f73797374656d5f636f6e6669675f61646472657373223a22307837366336396432653931323734346262363461353939643765376234353534346331306437373435222c2270726f746f636f6c5f76657273696f6e735f61646472657373223a22307830303030303030303030303030303030303030303030303030303030303030303030303030303030222c22636861696e5f6f705f636f6e666967223a7b2265697031353539456c6173746963697479223a362c226569703135353944656e6f6d696e61746f72223a35302c226569703135353944656e6f6d696e61746f7243616e796f6e223a3235307d7d3ab3010a20d61ea484febacfae5298d52a2b581f3e305a51f3112a9241b968dccf019f7b11100118e59fd0c106226f0a0410000038120e0a04200000381a0608691036183712140a04300000381a0c08691036183720192812301612140a04400000381a0c08691036183720192812301612140a04500000381a0c08691036183720192822302612150a04600000381a0d08a901105618572019282230262806300838084204080210034a040880a305520410c0843d");
         let raw_cons_state = hex!("0a20000000000000000000000000000000000000000000000000000000000000000010dbfed1c1061a20b3fd51901751662f8d04bba30c658819044aa4b72ede44ea84501028f7b420bd2080252a308582bbad3f9eee79addd939370c7241ee96d425c6a5d6e7fb89e59ad117c38e62064e56821b77b26353be13b86d6a66c32309325339b023fc50bc744ef7fdd824b7b5bc9315244bb0b39914dec4b902c906f064b9c913de3c16a4a505ca75f5bff2f38e5fdd1c106");
         let mut raw_cs = RawClientState::decode(raw_cs.as_slice()).unwrap();
-        raw_cs.fault_dispute_game_config = Some(ClientState::default().fault_dispute_game_config.into());
+        raw_cs.fault_dispute_game_config =
+            Some(ClientState::default().fault_dispute_game_config.into());
         let raw_cons_state = RawConsensusState::decode(raw_cons_state.as_slice()).unwrap();
         let cs = ClientState::try_from(raw_cs).unwrap();
         let cons_state = ConsensusState::try_from(raw_cons_state).unwrap();

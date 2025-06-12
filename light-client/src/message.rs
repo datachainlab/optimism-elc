@@ -1,7 +1,7 @@
 use crate::errors::Error;
 use crate::header::{Header, OPTIMISM_HEADER_TYPE_URL};
-use light_client::types::Any;
 use crate::misbehaviour::Misbehaviour;
+use light_client::types::Any;
 
 #[derive(Clone, Debug)]
 #[allow(clippy::large_enum_variant)]

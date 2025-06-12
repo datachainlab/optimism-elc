@@ -636,7 +636,10 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawFinalizedHeaderMisbehaviour>
             .ok_or(Error::MissingTrustedSyncCommittee)?;
         Ok(Self {
             client_id: ClientId::from_str(&value.client_id).map_err(Error::UnexpectedClientId)?,
-            trusted_height: value.trusted_height.ok_or(Error::MissingTrustedHeight)?.into(),
+            trusted_height: value
+                .trusted_height
+                .ok_or(Error::MissingTrustedHeight)?
+                .into(),
             trusted_sync_committee: TrustedSyncCommittee {
                 sync_committee: convert_proto_to_sync_committee(
                     trusted_sync_committee.sync_committee,
@@ -669,7 +672,10 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawNextSyncCommitteeMisbehaviour>
             .ok_or(Error::MissingTrustedSyncCommittee)?;
         Ok(Self {
             client_id: ClientId::from_str(&value.client_id).map_err(Error::UnexpectedClientId)?,
-            trusted_height: value.trusted_height.ok_or(Error::MissingTrustedHeight)?.into(),
+            trusted_height: value
+                .trusted_height
+                .ok_or(Error::MissingTrustedHeight)?
+                .into(),
             trusted_sync_committee: TrustedSyncCommittee {
                 sync_committee: convert_proto_to_sync_committee(
                     trusted_sync_committee.sync_committee,
