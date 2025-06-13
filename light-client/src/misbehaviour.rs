@@ -447,27 +447,27 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L2Misbehaviour<SYNC_COMMITTEE_SIZE> {
             ));
         }
 
-        // Ensure the trusted is equals to argument
+        // Ensure trusted_header hash is valid
         let trusted_header = &self.trusted_to_resolved_l2.trusted;
         self.trusted_output
             .assert_equals(trusted_header.state_root, trusted_header.hash_slow())?;
-
-        // Ensure the resolved is not equals to argument
-        let resolved_header = &self.trusted_to_resolved_l2.resolved;
-        self.resolved_output
-            .assert_not_equals(resolved_header.state_root, resolved_header.hash_slow())?;
 
         // Ensure the l1 header is finalized
         self.fault_dispute_game_factory_proof
             .verify_l1(now, l1_config, l1_cons_state)?;
 
-        // Ensure the status is not defender win
+        // The status is DEFENDER_WIN then the misbehaviour is detected
+        let resolved_header = &self.trusted_to_resolved_l2.resolved;
         self.fault_dispute_game_factory_proof
             .verify_resolved_status(
                 fault_dispute_game_config,
                 resolved_header.number,
                 self.resolved_output.output_root,
             )?;
+
+        // Ensure the resolved is not equals to argument
+        self.resolved_output
+            .assert_not_equals(resolved_header.state_root, resolved_header.hash_slow())?;
 
         // Misbehaviour detected
         Ok(())
