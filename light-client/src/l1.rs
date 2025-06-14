@@ -37,7 +37,6 @@ use optimism_ibc_proto::ibc::lightclients::ethereum::v1::{
     NextSyncCommitteeMisbehaviour as RawNextSyncCommitteeMisbehaviour,
 };
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::L1Header as RawL1Header;
-use prost::bytes::Buf;
 use prost::Message;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

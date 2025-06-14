@@ -246,7 +246,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> OptimismLightClient<L1_SYNC_COMMITTEE_
                     ctx,
                     &client_id,
                     &client_state,
-                    vec![trusted_height.into()],
+                    vec![trusted_height],
                 )?,
                 // For misbehaviour, it is acceptable if the header's timestamp points to the future.
                 context: ValidationContext::TrustingPeriod(TrustingPeriodContext::new(
@@ -346,12 +346,14 @@ mod test {
     use alloc::collections::BTreeMap;
     use alloc::string::{String, ToString};
     use alloc::vec::Vec;
-    use alloy_primitives::{hex};
+    use alloy_primitives::hex;
     use core::str::FromStr;
     use ethereum_consensus::types::{Address, H256};
     use light_client::commitments::{CommitmentPrefix, ProxyMessage, UpdateStateProxyMessage};
     use light_client::types::{Any, ClientId, Height, Time};
-    use light_client::{ClientReader, HostClientReader, HostContext, LightClient, UpdateClientResult};
+    use light_client::{
+        ClientReader, HostClientReader, HostContext, LightClient, UpdateClientResult,
+    };
     use optimism_ibc_proto::ibc::lightclients::optimism::v1::ClientState as RawClientState;
     use optimism_ibc_proto::ibc::lightclients::optimism::v1::ConsensusState as RawConsensusState;
     use optimism_ibc_proto::ibc::lightclients::optimism::v1::FaultDisputeGameConfig as RawFaultDisputeGameConfig;
@@ -426,7 +428,7 @@ mod test {
                     dispute_game_factory_target_storage_slot: 103,
                     fault_dispute_game_status_slot: 0,
                     fault_dispute_game_status_slot_offset: 15,
-                    status_defender_win: 2
+                    status_defender_win: 2,
                 }
                 .into(),
             }
@@ -552,7 +554,11 @@ mod test {
         let mut raw_cs = RawClientState::decode(raw_cs.as_slice()).unwrap();
 
         // Dummy status
-        raw_cs.fault_dispute_game_config.as_mut().unwrap().status_defender_win = 0;
+        raw_cs
+            .fault_dispute_game_config
+            .as_mut()
+            .unwrap()
+            .status_defender_win = 0;
 
         let cs = ClientState {
             chain_id: raw_cs.chain_id,
@@ -567,7 +573,7 @@ mod test {
         };
 
         let raw_cons_state = hex!("0a2000000000000000000000000000000000000000000000000000000000000000001a20d0ae1681bf5d8cfc84a3fa65167d1d962d6d746f8095335dc999a158e830e70420e81e2a308b42df465af8c15386ed0ba925fee02d6be3630561253388dc189e33d511ddec9de04ad6fe8e64944669bb6561d9fa2f323092660aef41ae914262be0b67ee010713476d1584043ec0255fd6ebefeebd2a6d9acb789a3766b06aeba0c945680311ff38cae2b0c206");
-        let raw_cons_state= RawConsensusState::decode(raw_cons_state.as_slice()).unwrap();
+        let raw_cons_state = RawConsensusState::decode(raw_cons_state.as_slice()).unwrap();
         let cons_state = ConsensusState::try_from(raw_cons_state).unwrap();
 
         let mut cons_states = BTreeMap::new();
@@ -576,7 +582,6 @@ mod test {
         let client_message =
             std::fs::read("../testdata/submit_misbehaviour.bin").expect("file not found");
         let client_message = Any::try_from(client_message).unwrap();
-
 
         let ctx = MockClientReader {
             client_state: Some(cs),
@@ -589,8 +594,10 @@ mod test {
             .update_client(&ctx, client_id, client_message)
             .unwrap();
         match result {
-            UpdateClientResult::Misbehaviour(data)=> {
-                let frozen = ClientState::try_from(data.new_any_client_state).unwrap().frozen;
+            UpdateClientResult::Misbehaviour(data) => {
+                let frozen = ClientState::try_from(data.new_any_client_state)
+                    .unwrap()
+                    .frozen;
                 assert!(frozen, "Client should be frozen after misbehaviour");
             }
             _ => panic!("Expected success result"),

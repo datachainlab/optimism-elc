@@ -5,8 +5,7 @@ use crate::l1::{L1Config, L1Consensus, L1Header, Misbehaviour as L1Misbehaviour}
 use alloc::vec::Vec;
 use alloy_consensus::Header;
 use alloy_primitives::private::alloy_rlp::Decodable;
-use alloy_primitives::{keccak256, Sealable, B256};
-use core::hash::Hash;
+use alloy_primitives::{keccak256, B256};
 use core::str::FromStr;
 use ethereum_consensus::types::{Address, H256};
 use ethereum_light_client_verifier::execution::ExecutionVerifier;
@@ -16,7 +15,6 @@ use optimism_ibc_proto::google::protobuf::Any as IBCAny;
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::FaultDisputeGameConfig as RawFaultDisputeGameConfig;
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::Misbehaviour as RawL2Misbehaviour;
 use prost::Message;
-use optimism_ibc_proto::cosmos::bank::v1beta1::Output;
 
 pub const OPTIMISM_MISBEHAVIOUR_TYPE_URL: &str = "/ibc.lightclients.optimism.v1.Misbehaviour";
 
@@ -165,10 +163,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> FaultDisputeGameFactoryProof<SYNC_COMMITT
                 self.dispute_game_factory_storage_proof.clone(),
             )
             .map_err(|err| Error::UnexpectedDisputeGameFactoryProxyProof {
-                storage_root: self
-                    .dispute_game_factory_account
-                    .account_storage_root
-                    .clone(),
+                storage_root: self.dispute_game_factory_account.account_storage_root,
                 proof: self.dispute_game_factory_storage_proof.clone(),
                 game_uuid,
                 game_id_key,
@@ -178,10 +173,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> FaultDisputeGameFactoryProof<SYNC_COMMITT
             })?;
 
         let game_id = game_id.ok_or_else(|| Error::UnexpectedDisputeGameFactoryProxyProof {
-            storage_root: self
-                .dispute_game_factory_account
-                .account_storage_root
-                .clone(),
+            storage_root: self.dispute_game_factory_account.account_storage_root,
             proof: self.dispute_game_factory_storage_proof.clone(),
             game_uuid,
             game_id_key,
@@ -204,7 +196,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> FaultDisputeGameFactoryProof<SYNC_COMMITT
                 self.fault_dispute_game_storage_proof.clone(),
             )
             .map_err(|err| Error::UnexpectedFaultDisputeGameProof {
-                storage_root: self.fault_dispute_game_account.account_storage_root.clone(),
+                storage_root: self.fault_dispute_game_account.account_storage_root,
                 proof: self.fault_dispute_game_storage_proof.clone(),
                 status_key: B256::from(status_key),
                 address: Address(fault_dispute_game_address),
@@ -212,7 +204,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> FaultDisputeGameFactoryProof<SYNC_COMMITT
             })?;
         let packing_slot_value =
             packing_slot_value.ok_or_else(|| Error::UnexpectedFaultDisputeGameProof {
-                storage_root: self.fault_dispute_game_account.account_storage_root.clone(),
+                storage_root: self.fault_dispute_game_account.account_storage_root,
                 proof: self.fault_dispute_game_storage_proof.clone(),
                 status_key: B256::from(status_key),
                 address: Address(fault_dispute_game_address),
@@ -222,10 +214,10 @@ impl<const SYNC_COMMITTEE_SIZE: usize> FaultDisputeGameFactoryProof<SYNC_COMMITT
 
         let status = packing_slot_value
             [fault_dispute_game_config.fault_dispute_game_status_slot_offset as usize];
-        if status != fault_dispute_game_config.status_defender_win{
+        if status != fault_dispute_game_config.status_defender_win {
             return Err(Error::UnexpectedResolvedStatus {
                 status,
-                storage_root: self.fault_dispute_game_account.account_storage_root.clone(),
+                storage_root: self.fault_dispute_game_account.account_storage_root,
                 proof: self.fault_dispute_game_storage_proof.clone(),
                 status_key: B256::from(status_key),
                 address: Address(fault_dispute_game_address),
@@ -243,7 +235,6 @@ pub struct HeaderWithMessagePasserAccount {
 }
 
 impl HeaderWithMessagePasserAccount {
-
     pub fn compute_output_root(&self) -> Result<B256, Error> {
         Self::compute_output_root_from_state_and_hash(
             &self.account,
@@ -252,22 +243,22 @@ impl HeaderWithMessagePasserAccount {
         )
     }
 
-    fn compute_output_root_from_state_and_hash(account: &AccountUpdateInfo, state_root: &B256, hash: B256) -> Result<B256, Error> {
+    fn compute_output_root_from_state_and_hash(
+        account: &AccountUpdateInfo,
+        state_root: &B256,
+        hash: B256,
+    ) -> Result<B256, Error> {
         // Ensure the account storage root matches the expected state root
-        account
-            .verify_account_storage(
-                &Address(Predeploys::L2_TO_L1_MESSAGE_PASSER.0 .0),
-                state_root.0.into(),
-            )?;
+        account.verify_account_storage(
+            &Address(Predeploys::L2_TO_L1_MESSAGE_PASSER.0 .0),
+            state_root.0.into(),
+        )?;
 
         // Compute the output root from the account storage root and header hash
         Ok(OutputRoot::from_parts(
             state_root.0.into(),
-            account
-                .account_storage_root
-                .0
-                .into(),
-            hash
+            account.account_storage_root.0.into(),
+            hash,
         )
         .hash())
     }
@@ -280,7 +271,11 @@ pub struct L2HeaderHistory {
 }
 
 impl L2HeaderHistory {
-    fn new(value: Vec<Vec<u8>>, first_mp_account: AccountUpdateInfo, last_mp_account: AccountUpdateInfo) -> Result<Self, Error> {
+    fn new(
+        value: Vec<Vec<u8>>,
+        first_mp_account: AccountUpdateInfo,
+        last_mp_account: AccountUpdateInfo,
+    ) -> Result<Self, Error> {
         let mut headers: Vec<Header> = Vec::with_capacity(value.len());
         for rlp in value.into_iter() {
             let mut rlp = rlp.as_slice();
@@ -312,7 +307,7 @@ impl L2HeaderHistory {
             last: HeaderWithMessagePasserAccount {
                 header: headers.last().ok_or(Error::NoHeaderFound)?.clone(),
                 account: last_mp_account,
-            }
+            },
         })
     }
 }
@@ -342,7 +337,9 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL2Misbehaviour>
             .ok_or(Error::proto_missing("trusted_height"))?;
         let proto_trusted_l2_to_l1_message_passer_account = raw
             .first_l2_to_l1_message_passer_account
-            .ok_or(Error::proto_missing("first_l2_to_l1_message_passer_account"))?;
+            .ok_or(Error::proto_missing(
+                "first_l2_to_l1_message_passer_account",
+            ))?;
         let proto_resolved_l2_to_l1_message_passer_account = raw
             .last_l2_to_l1_message_passer_account
             .ok_or(Error::proto_missing("last_l2_to_l1_message_passer_account"))?;
@@ -350,16 +347,19 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL2Misbehaviour>
             .fault_dispute_game_factory_proof
             .ok_or(Error::proto_missing("fault_dispute_game_factory_proof"))?;
 
-        let first_l2_to_l1_message_passer_account = AccountUpdateInfo::try_from(proto_trusted_l2_to_l1_message_passer_account)?;
-        let last_l2_to_l1_message_passer_account = AccountUpdateInfo::try_from(proto_resolved_l2_to_l1_message_passer_account)?;
+        let first_l2_to_l1_message_passer_account =
+            AccountUpdateInfo::try_from(proto_trusted_l2_to_l1_message_passer_account)?;
+        let last_l2_to_l1_message_passer_account =
+            AccountUpdateInfo::try_from(proto_resolved_l2_to_l1_message_passer_account)?;
 
-        let l2_header_history= L2HeaderHistory::new(
+        let l2_header_history = L2HeaderHistory::new(
             raw.l2_header_history,
             first_l2_to_l1_message_passer_account,
-            last_l2_to_l1_message_passer_account
+            last_l2_to_l1_message_passer_account,
         )?;
 
-        let resolved_output_root =B256::try_from(raw.resolved_output_root.as_slice()).map_err(Error::UnexpectedOutputRoot)?;
+        let resolved_output_root = B256::try_from(raw.resolved_output_root.as_slice())
+            .map_err(Error::UnexpectedOutputRoot)?;
 
         let fault_dispute_game_factory_proof = FaultDisputeGameFactoryProof {
             l1_header: L1Header::try_from(proto_fdg_factory_proof.l1_header.ok_or(
@@ -414,7 +414,6 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L2Misbehaviour<SYNC_COMMITTEE_SIZE> {
         l1_cons_state: &L1Consensus,
         consensus_output_root: B256,
     ) -> Result<(), Error> {
-
         // Ensure the canonical output is resolved with DEFENDER_WIN
         self.fault_dispute_game_factory_proof
             .verify_l1(now, l1_config, l1_cons_state)?;
@@ -444,6 +443,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L2Misbehaviour<SYNC_COMMITTEE_SIZE> {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug)]
 pub enum Misbehaviour<const SYNC_COMMITTEE_SIZE: usize> {
     L2(L2Misbehaviour<SYNC_COMMITTEE_SIZE>),
@@ -478,8 +478,6 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<IBCAny> for Misbehaviour<SYNC_COM
     type Error = Error;
 
     fn try_from(raw: IBCAny) -> Result<Self, Self::Error> {
-        use core::ops::Deref;
-
         match raw.type_url.as_str() {
             OPTIMISM_MISBEHAVIOUR_TYPE_URL => {
                 let raw = RawL2Misbehaviour::decode(raw.value.as_slice())
@@ -495,12 +493,15 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<IBCAny> for Misbehaviour<SYNC_COM
 mod test {
     use crate::account::AccountUpdateInfo;
     use crate::l1::{ExecutionUpdateInfo, L1Header, TrustedSyncCommittee};
-    use crate::misbehaviour::{FaultDisputeGameConfig, FaultDisputeGameFactoryProof, HeaderWithMessagePasserAccount, L2HeaderHistory};
+    use crate::misbehaviour::{
+        FaultDisputeGameConfig, FaultDisputeGameFactoryProof, HeaderWithMessagePasserAccount,
+        L2HeaderHistory,
+    };
     use alloc::vec;
     use alloc::vec::Vec;
     use alloy_consensus::Header;
-    use alloy_primitives::{hex, B256};
     use alloy_primitives::private::alloy_rlp::Decodable;
+    use alloy_primitives::{hex, B256};
     use ethereum_consensus::types::Address;
     use light_client::types::Time;
 
@@ -597,13 +598,30 @@ mod test {
             hex!("b93e70c874b195a821574f96a808da20a555f312f9171d215685d7f010da5ffe").into();
 
         // assert equals
-        let l2_head_hash : B256=
+        let l2_head_hash: B256 =
             hex!("12348dc33fa740c5eb9d1d7ba61723ce97bff8499b52dbe402e751f46bed35df").into();
 
-        let output_root : B256 = hex!("5cac0ff77cc47f04bfc4854c798d53a1ec8091297cfe8f560737865a8d386402").into();
+        let output_root: B256 =
+            hex!("5cac0ff77cc47f04bfc4854c798d53a1ec8091297cfe8f560737865a8d386402").into();
 
-        assert_eq!(HeaderWithMessagePasserAccount::compute_output_root_from_state_and_hash(&account, &l2_state_root, l2_head_hash).unwrap(), output_root);
-        assert_ne!(HeaderWithMessagePasserAccount::compute_output_root_from_state_and_hash(&account, &l2_state_root, B256::from([0u8;32])).unwrap(), output_root);
+        assert_eq!(
+            HeaderWithMessagePasserAccount::compute_output_root_from_state_and_hash(
+                &account,
+                &l2_state_root,
+                l2_head_hash
+            )
+            .unwrap(),
+            output_root
+        );
+        assert_ne!(
+            HeaderWithMessagePasserAccount::compute_output_root_from_state_and_hash(
+                &account,
+                &l2_state_root,
+                B256::from([0u8; 32])
+            )
+            .unwrap(),
+            output_root
+        );
     }
 
     #[test]
@@ -627,7 +645,12 @@ mod test {
         let mut rlp = raw.last().unwrap().as_slice();
         let resolved = Header::decode(&mut rlp).unwrap();
 
-        let model = L2HeaderHistory::new(raw, AccountUpdateInfo::default(), AccountUpdateInfo::default()).unwrap();
+        let model = L2HeaderHistory::new(
+            raw,
+            AccountUpdateInfo::default(),
+            AccountUpdateInfo::default(),
+        )
+        .unwrap();
         assert_eq!(model.first.header, trusted);
         assert_eq!(model.last.header, resolved);
     }

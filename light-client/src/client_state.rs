@@ -1,8 +1,7 @@
 use crate::consensus_state::ConsensusState;
 use crate::errors::Error;
 use crate::header::Header;
-use crate::l1;
-use crate::l1::{L1Config, L1Consensus, L1SyncCommittee};
+use crate::l1::{L1Config, L1Consensus};
 use crate::misbehaviour::{FaultDisputeGameConfig, Misbehaviour};
 use crate::misc::{
     new_timestamp, validate_header_timestamp_not_future,
@@ -135,9 +134,10 @@ impl ClientState {
 
         let misbehaviour_client_id = misbehaviour.client_id();
         if misbehaviour_client_id != client_id {
-            return Err(
-                Error::UnexpectedClientIdInMisbehaviour(client_id.clone(), misbehaviour_client_id.clone()).into(),
-            );
+            return Err(Error::UnexpectedClientIdInMisbehaviour(
+                client_id.clone(),
+                misbehaviour_client_id.clone(),
+            ));
         }
 
         let l1_cons_state = L1Consensus {
