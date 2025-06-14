@@ -548,13 +548,13 @@ mod test {
         let client = OptimismLightClient::<
             { ethereum_consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE },
         >;
-        let raw_cs = hex!("220310a6513aaf010a20d61ea484febacfae5298d52a2b581f3e305a51f3112a9241b968dccf019f7b11100118daa9afc206226f0a0410000038120e0a04200000381a0608691036183712140a04300000381a0c08691036183720192812301612140a04400000381a0c08691036183720192812301612140a04500000381a0c08691036183720192822302612150a04600000381a0d08a901105618572019282230262806300838084204080210034a040880a305520042060867180f2002");
+        let raw_cs = hex!("220310a7513aaf010a20d61ea484febacfae5298d52a2b581f3e305a51f3112a9241b968dccf019f7b11100118daa9afc206226f0a0410000038120e0a04200000381a0608691036183712140a04300000381a0c08691036183720192812301612140a04400000381a0c08691036183720192812301612140a04500000381a0c08691036183720192822302612150a04600000381a0d08a901105618572019282230262806300838084204080210034a040880a305520042060867180f2002");
         let mut raw_cs = RawClientState::decode(raw_cs.as_slice()).unwrap();
 
         // Dummy status
         raw_cs.fault_dispute_game_config.as_mut().unwrap().status_defender_win = 0;
 
-        let mut cs = ClientState {
+        let cs = ClientState {
             chain_id: raw_cs.chain_id,
             latest_height: raw_cs.latest_height.unwrap().into(),
             frozen: false,
@@ -566,7 +566,7 @@ mod test {
             ibc_commitments_slot: Default::default(),
         };
 
-        let raw_cons_state = hex!("0a2000000000000000000000000000000000000000000000000000000000000000001a203c2c9abbdf5425daeab73279b9bd1ee798589dc5be3faf7d46132a0af702e5f820e81e2a308b42df465af8c15386ed0ba925fee02d6be3630561253388dc189e33d511ddec9de04ad6fe8e64944669bb6561d9fa2f323092660aef41ae914262be0b67ee010713476d1584043ec0255fd6ebefeebd2a6d9acb789a3766b06aeba0c945680311ff38cae2b0c206");
+        let raw_cons_state = hex!("0a2000000000000000000000000000000000000000000000000000000000000000001a20d0ae1681bf5d8cfc84a3fa65167d1d962d6d746f8095335dc999a158e830e70420e81e2a308b42df465af8c15386ed0ba925fee02d6be3630561253388dc189e33d511ddec9de04ad6fe8e64944669bb6561d9fa2f323092660aef41ae914262be0b67ee010713476d1584043ec0255fd6ebefeebd2a6d9acb789a3766b06aeba0c945680311ff38cae2b0c206");
         let raw_cons_state= RawConsensusState::decode(raw_cons_state.as_slice()).unwrap();
         let cons_state = ConsensusState::try_from(raw_cons_state).unwrap();
 
@@ -581,7 +581,7 @@ mod test {
         let ctx = MockClientReader {
             client_state: Some(cs),
             consensus_state: cons_states,
-            time: Some(Time::from_unix_timestamp(1749878628, 0).unwrap()),
+            time: Some(Time::from_unix_timestamp(1749892296, 0).unwrap()),
         };
 
         let client_id = ClientId::from_str("optimism-01").unwrap();

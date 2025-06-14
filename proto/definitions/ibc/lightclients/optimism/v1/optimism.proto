@@ -103,11 +103,11 @@ message Misbehaviour {
   string client_id = 1;
   ibc.core.client.v1.Height trusted_height = 2;
 
-  AccountUpdate trusted_l2_to_l1_message_passer_account = 3;
-  AccountUpdate resolved_l2_to_l1_message_passer_account = 4;
-  bytes resolved_output_root = 5;
+  AccountUpdate first_l2_to_l1_message_passer_account = 3;
+  AccountUpdate last_l2_to_l1_message_passer_account = 4;
+  repeated bytes l2_header_history = 5;
 
-  repeated bytes trusted_to_resolved_l2_headers = 6;
+  bytes resolved_output_root = 6;
   FaultDisputeGameFactoryProof fault_dispute_game_factory_proof = 7;
 }
 

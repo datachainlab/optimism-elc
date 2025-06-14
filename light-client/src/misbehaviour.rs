@@ -341,11 +341,11 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL2Misbehaviour>
             .trusted_height
             .ok_or(Error::proto_missing("trusted_height"))?;
         let proto_trusted_l2_to_l1_message_passer_account = raw
-            .trusted_l2_to_l1_message_passer_account
-            .ok_or(Error::proto_missing("trusted_l2_to_l1_message_passer_account"))?;
+            .first_l2_to_l1_message_passer_account
+            .ok_or(Error::proto_missing("first_l2_to_l1_message_passer_account"))?;
         let proto_resolved_l2_to_l1_message_passer_account = raw
-            .resolved_l2_to_l1_message_passer_account
-            .ok_or(Error::proto_missing("resolved_l2_to_l1_message_passer_account"))?;
+            .last_l2_to_l1_message_passer_account
+            .ok_or(Error::proto_missing("last_l2_to_l1_message_passer_account"))?;
         let proto_fdg_factory_proof = raw
             .fault_dispute_game_factory_proof
             .ok_or(Error::proto_missing("fault_dispute_game_factory_proof"))?;
@@ -354,7 +354,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL2Misbehaviour>
         let last_l2_to_l1_message_passer_account = AccountUpdateInfo::try_from(proto_resolved_l2_to_l1_message_passer_account)?;
 
         let l2_header_history= L2HeaderHistory::new(
-            raw.trusted_to_resolved_l2_headers,
+            raw.l2_header_history,
             first_l2_to_l1_message_passer_account,
             last_l2_to_l1_message_passer_account
         )?;

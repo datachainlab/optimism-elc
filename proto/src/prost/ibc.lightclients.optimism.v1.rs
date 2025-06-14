@@ -162,15 +162,13 @@ pub struct Misbehaviour {
         super::super::super::core::client::v1::Height,
     >,
     #[prost(message, optional, tag = "3")]
-    pub trusted_l2_to_l1_message_passer_account: ::core::option::Option<AccountUpdate>,
+    pub first_l2_to_l1_message_passer_account: ::core::option::Option<AccountUpdate>,
     #[prost(message, optional, tag = "4")]
-    pub resolved_l2_to_l1_message_passer_account: ::core::option::Option<AccountUpdate>,
-    #[prost(bytes = "vec", tag = "5")]
+    pub last_l2_to_l1_message_passer_account: ::core::option::Option<AccountUpdate>,
+    #[prost(bytes = "vec", repeated, tag = "5")]
+    pub l2_header_history: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
+    #[prost(bytes = "vec", tag = "6")]
     pub resolved_output_root: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", repeated, tag = "6")]
-    pub trusted_to_resolved_l2_headers: ::prost::alloc::vec::Vec<
-        ::prost::alloc::vec::Vec<u8>,
-    >,
     #[prost(message, optional, tag = "7")]
     pub fault_dispute_game_factory_proof: ::core::option::Option<
         FaultDisputeGameFactoryProof,
