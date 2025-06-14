@@ -586,7 +586,7 @@ mod test {
         let ctx = MockClientReader {
             client_state: Some(cs),
             consensus_state: cons_states,
-            time: Some(Time::from_unix_timestamp(1749892296, 0).unwrap()),
+            time: Some(Time::from_unix_timestamp(1749892686, 0).unwrap()),
         };
 
         let client_id = ClientId::from_str("optimism-01").unwrap();
