@@ -547,6 +547,7 @@ mod test {
 
     #[test]
     fn test_submit_misbehaviour() {
+        // All the test parameters are created by optimism-ibc-relay-prover#tools/misbehaviour/l2.go
         let client = OptimismLightClient::<
             { ethereum_consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE },
         >;
