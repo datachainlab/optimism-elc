@@ -426,6 +426,7 @@ mod test {
                     dispute_game_factory_target_storage_slot: 103,
                     fault_dispute_game_status_slot: 0,
                     fault_dispute_game_status_slot_offset: 15,
+                    status_defender_win: 2
                 }
                 .into(),
             }
@@ -547,22 +548,26 @@ mod test {
         let client = OptimismLightClient::<
             { ethereum_consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE },
         >;
-        let raw_cs = hex!("220310e93b3aaf010a20d61ea484febacfae5298d52a2b581f3e305a51f3112a9241b968dccf019f7b11100118daa9afc206226f0a0410000038120e0a04200000381a0608691036183712140a04300000381a0c08691036183720192812301612140a04400000381a0c08691036183720192812301612140a04500000381a0c08691036183720192822302612150a04600000381a0d08a901105618572019282230262806300838084204080210034a040880a305520042040867180f");
-        let raw_cs = RawClientState::decode(raw_cs.as_slice()).unwrap();
-        let cs = ClientState {
+        let raw_cs = hex!("220310a6513aaf010a20d61ea484febacfae5298d52a2b581f3e305a51f3112a9241b968dccf019f7b11100118daa9afc206226f0a0410000038120e0a04200000381a0608691036183712140a04300000381a0c08691036183720192812301612140a04400000381a0c08691036183720192812301612140a04500000381a0c08691036183720192822302612150a04600000381a0d08a901105618572019282230262806300838084204080210034a040880a305520042060867180f2002");
+        let mut raw_cs = RawClientState::decode(raw_cs.as_slice()).unwrap();
+
+        // Dummy status
+        raw_cs.fault_dispute_game_config.as_mut().unwrap().status_defender_win = 0;
+
+        let mut cs = ClientState {
             chain_id: raw_cs.chain_id,
-            ibc_store_address: Default::default(),
-            ibc_commitments_slot: Default::default(),
             latest_height: raw_cs.latest_height.unwrap().into(),
             frozen: false,
-            rollup_config: Default::default(),
             l1_config: raw_cs.l1_config.unwrap().try_into().unwrap(),
             fault_dispute_game_config: raw_cs.fault_dispute_game_config.unwrap().into(),
+            // unused
+            rollup_config: Default::default(),
+            ibc_store_address: Default::default(),
+            ibc_commitments_slot: Default::default(),
         };
 
-        let raw_cons_state = hex!("1a203fa624294ad773f5b979c13487aaee3c2255d6911c5b175e462bdd84eb0843a52098172a30a3e1e3d799bc54b45657fa5b95a3e6f80a83bd0a4f74b2b06715b4cf5d8769620861bd82448910b8b038c6d036ffde643230953f05161bbfb33f91d37556adcc43e560ee1131c8a92c16ce8f6d8924b6a71b8d68061e0c9a39895c76a65124d1001138eab4b0c206");
-        let mut raw_cons_state= RawConsensusState::decode(raw_cons_state.as_slice()).unwrap();
-        raw_cons_state.storage_root = [0u8; 32].into();
+        let raw_cons_state = hex!("0a2000000000000000000000000000000000000000000000000000000000000000001a203c2c9abbdf5425daeab73279b9bd1ee798589dc5be3faf7d46132a0af702e5f820e81e2a308b42df465af8c15386ed0ba925fee02d6be3630561253388dc189e33d511ddec9de04ad6fe8e64944669bb6561d9fa2f323092660aef41ae914262be0b67ee010713476d1584043ec0255fd6ebefeebd2a6d9acb789a3766b06aeba0c945680311ff38cae2b0c206");
+        let raw_cons_state= RawConsensusState::decode(raw_cons_state.as_slice()).unwrap();
         let cons_state = ConsensusState::try_from(raw_cons_state).unwrap();
 
         let mut cons_states = BTreeMap::new();
@@ -576,7 +581,7 @@ mod test {
         let ctx = MockClientReader {
             client_state: Some(cs),
             consensus_state: cons_states,
-            time: Some(Time::from_unix_timestamp(1749818129, 0).unwrap()),
+            time: Some(Time::from_unix_timestamp(1749878628, 0).unwrap()),
         };
 
         let client_id = ClientId::from_str("optimism-01").unwrap();

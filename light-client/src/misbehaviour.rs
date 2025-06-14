@@ -16,8 +16,7 @@ use optimism_ibc_proto::google::protobuf::Any as IBCAny;
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::FaultDisputeGameConfig as RawFaultDisputeGameConfig;
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::Misbehaviour as RawL2Misbehaviour;
 use prost::Message;
-
-const STATUS_DEFENDER_WIN: u8 = 2;
+use optimism_ibc_proto::cosmos::bank::v1beta1::Output;
 
 pub const OPTIMISM_MISBEHAVIOUR_TYPE_URL: &str = "/ibc.lightclients.optimism.v1.Misbehaviour";
 
@@ -81,6 +80,7 @@ pub struct FaultDisputeGameConfig {
     dispute_game_factory_target_storage_slot: u32,
     fault_dispute_game_status_slot: u32,
     fault_dispute_game_status_slot_offset: u32,
+    status_defender_win: u8,
 }
 
 impl From<RawFaultDisputeGameConfig> for FaultDisputeGameConfig {
@@ -90,6 +90,7 @@ impl From<RawFaultDisputeGameConfig> for FaultDisputeGameConfig {
                 .dispute_game_factory_target_storage_slot,
             fault_dispute_game_status_slot: value.fault_dispute_game_status_slot,
             fault_dispute_game_status_slot_offset: value.fault_dispute_game_status_slot_offset,
+            status_defender_win: value.status_defender_win as u8,
         }
     }
 }
@@ -101,6 +102,7 @@ impl From<FaultDisputeGameConfig> for RawFaultDisputeGameConfig {
                 .dispute_game_factory_target_storage_slot,
             fault_dispute_game_status_slot: value.fault_dispute_game_status_slot,
             fault_dispute_game_status_slot_offset: value.fault_dispute_game_status_slot_offset,
+            status_defender_win: value.status_defender_win as u32,
         }
     }
 }
@@ -220,7 +222,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> FaultDisputeGameFactoryProof<SYNC_COMMITT
 
         let status = packing_slot_value
             [fault_dispute_game_config.fault_dispute_game_status_slot_offset as usize];
-        if status != STATUS_DEFENDER_WIN {
+        if status != fault_dispute_game_config.status_defender_win{
             return Err(Error::UnexpectedResolvedStatus {
                 status,
                 storage_root: self.fault_dispute_game_account.account_storage_root.clone(),
@@ -235,54 +237,35 @@ impl<const SYNC_COMMITTEE_SIZE: usize> FaultDisputeGameFactoryProof<SYNC_COMMITT
 }
 
 #[derive(Clone, Debug)]
-pub struct OutputRootWithMessagePasser {
-    output_root: B256,
-    l2_to_l1_message_passer_account: AccountUpdateInfo,
+pub struct MessagePasserAccount {
+    inner: AccountUpdateInfo,
 }
 
-impl OutputRootWithMessagePasser {
-    pub fn assert_equals(&self, l2_state_root: B256, header_hash: B256) -> Result<(), Error> {
-        let computed_output_root = self.compute_output_root(l2_state_root, header_hash)?;
-        if computed_output_root != self.output_root {
-            return Err(Error::UnexpectedComputedOutputRoot {
-                expected: self.output_root,
-                actual: computed_output_root,
-                state_root: l2_state_root,
-                hash: header_hash,
-            });
-        }
-        Ok(())
+impl MessagePasserAccount {
+
+    pub fn compute_output_root(&self, l2_header: &Header) -> Result<B256, Error> {
+        self.compute_output_root_from_state_and_hash(
+            &l2_header.state_root,
+            l2_header.hash_slow(),
+        )
     }
 
-    pub fn assert_not_equals(&self, l2_state_root: B256, header_hash: B256) -> Result<(), Error> {
-        let computed_output_root = self.compute_output_root(l2_state_root, header_hash)?;
-        if computed_output_root == self.output_root {
-            return Err(Error::UnexpectedComputedOutputRoot {
-                expected: self.output_root,
-                actual: computed_output_root,
-                state_root: l2_state_root,
-                hash: header_hash,
-            });
-        }
-        Ok(())
-    }
-
-    fn compute_output_root(&self, l2_state_root: B256, header_hash: B256) -> Result<B256, Error> {
+    fn compute_output_root_from_state_and_hash(&self, state_root: &B256, hash: B256) -> Result<B256, Error> {
         // Ensure the account storage root matches the expected state root
-        self.l2_to_l1_message_passer_account
+        self.inner
             .verify_account_storage(
                 &Address(Predeploys::L2_TO_L1_MESSAGE_PASSER.0 .0),
-                l2_state_root.0.into(),
+                state_root.0.into(),
             )?;
 
         // Compute the output root from the account storage root and header hash
         Ok(OutputRoot::from_parts(
-            l2_state_root,
-            self.l2_to_l1_message_passer_account
+            state_root.0.into(),
+            self.inner
                 .account_storage_root
                 .0
                 .into(),
-            header_hash,
+            hash
         )
         .hash())
     }
@@ -333,9 +316,10 @@ pub struct L2Misbehaviour<const SYNC_COMMITTEE_SIZE: usize> {
     client_id: ClientId,
     trusted_height: Height,
     /// L2 output in consensus state
-    trusted_output: OutputRootWithMessagePasser,
+    trusted_l2_to_l1_message_passer_account: MessagePasserAccount,
     /// Resolved L2 output in FaultDisputeGame
-    resolved_output: OutputRootWithMessagePasser,
+    resolved_l2_to_l1_message_passer_account: MessagePasserAccount,
+    resolved_output_root: B256,
     /// Headers from trusted to resolved
     trusted_to_resolved_l2: TrustedToResolvedL2,
     /// Proof of fault dispute game
@@ -352,39 +336,22 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL2Misbehaviour>
         let trusted_height = raw
             .trusted_height
             .ok_or(Error::proto_missing("trusted_height"))?;
-        let proto_trusted_output = raw
-            .trusted_output
-            .ok_or(Error::proto_missing("trusted_output"))?;
-        let proto_resolved_output = raw
-            .resolved_output
-            .ok_or(Error::proto_missing("resolved_output"))?;
+        let proto_trusted_l2_to_l1_message_passer_account = raw
+            .trusted_l2_to_l1_message_passer_account
+            .ok_or(Error::proto_missing("trusted_l2_to_l1_message_passer_account"))?;
+        let proto_resolved_l2_to_l1_message_passer_account = raw
+            .resolved_l2_to_l1_message_passer_account
+            .ok_or(Error::proto_missing("resolved_l2_to_l1_message_passer_account"))?;
         let proto_fdg_factory_proof = raw
             .fault_dispute_game_factory_proof
             .ok_or(Error::proto_missing("fault_dispute_game_factory_proof"))?;
 
-        let trusted_output = OutputRootWithMessagePasser {
-            output_root: B256::try_from(proto_trusted_output.output_root.as_slice())
-                .map_err(Error::UnexpectedOutputRoot)?,
-            l2_to_l1_message_passer_account: AccountUpdateInfo::try_from(
-                proto_trusted_output.l2_to_l1_message_passer_account.ok_or(
-                    Error::proto_missing("trusted_output.l2_to_l1_message_passer_account"),
-                )?,
-            )?,
-        };
+        let trusted_l2_to_l1_message_passer_account = AccountUpdateInfo::try_from(proto_trusted_l2_to_l1_message_passer_account)?;
+        let resolved_l2_to_l1_message_passer_account = AccountUpdateInfo::try_from(proto_resolved_l2_to_l1_message_passer_account)?;
 
-        let resolved_output = OutputRootWithMessagePasser {
-            output_root: B256::try_from(proto_resolved_output.output_root.as_slice())
-                .map_err(Error::UnexpectedOutputRoot)?,
-            l2_to_l1_message_passer_account: AccountUpdateInfo::try_from(
-                proto_resolved_output
-                    .l2_to_l1_message_passer_account
-                    .ok_or(Error::proto_missing(
-                        "resolved_output.l2_to_l1_message_passer_account",
-                    ))?,
-            )?,
-        };
+        let trusted_to_resolved_l2 = TrustedToResolvedL2::try_from(raw.trusted_to_resolved_l2_headers)?;
 
-        let trusted_to_resolved_l2 = TrustedToResolvedL2::try_from(raw.trusted_to_resolved_l2)?;
+        let resolved_output_root =B256::try_from(raw.resolved_output_root.as_slice()).map_err(Error::UnexpectedOutputRoot)?;
 
         let fault_dispute_game_factory_proof = FaultDisputeGameFactoryProof {
             l1_header: L1Header::try_from(proto_fdg_factory_proof.l1_header.ok_or(
@@ -423,8 +390,13 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL2Misbehaviour>
         Ok(Self {
             client_id,
             trusted_height: Height::from(trusted_height),
-            trusted_output,
-            resolved_output,
+            trusted_l2_to_l1_message_passer_account: MessagePasserAccount {
+                inner: trusted_l2_to_l1_message_passer_account,
+            },
+            resolved_l2_to_l1_message_passer_account: MessagePasserAccount {
+                inner: resolved_l2_to_l1_message_passer_account,
+            },
+            resolved_output_root,
             trusted_to_resolved_l2,
             fault_dispute_game_factory_proof,
         })
@@ -440,34 +412,30 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L2Misbehaviour<SYNC_COMMITTEE_SIZE> {
         l1_cons_state: &L1Consensus,
         consensus_output_root: B256,
     ) -> Result<(), Error> {
-        if self.trusted_output.output_root != consensus_output_root {
-            return Err(Error::UnexpectedTrustedOutputRoot(
-                self.trusted_output.output_root,
-                consensus_output_root,
-            ));
-        }
 
-        // Ensure trusted_header hash is valid
-        let trusted_header = &self.trusted_to_resolved_l2.trusted;
-        self.trusted_output
-            .assert_equals(trusted_header.state_root, trusted_header.hash_slow())?;
-
-        // Ensure the l1 header is finalized
+        // Ensure the status is expected for resolved l2 block
         self.fault_dispute_game_factory_proof
             .verify_l1(now, l1_config, l1_cons_state)?;
-
-        // The status is DEFENDER_WIN then the misbehaviour is detected
-        let resolved_header = &self.trusted_to_resolved_l2.resolved;
         self.fault_dispute_game_factory_proof
             .verify_resolved_status(
                 fault_dispute_game_config,
-                resolved_header.number,
-                self.resolved_output.output_root,
+                self.trusted_to_resolved_l2.resolved.number,
+                self.resolved_output_root,
             )?;
 
-        // Ensure the resolved is not equals to argument
-        self.resolved_output
-            .assert_not_equals(resolved_header.state_root, resolved_header.hash_slow())?;
+        // Ensured trusted
+        let trusted_output_root = self.trusted_l2_to_l1_message_passer_account.compute_output_root(&self.trusted_to_resolved_l2.trusted)?;
+        if trusted_output_root != consensus_output_root {
+            return Err(Error::UnexpectedTrustedOutputRoot(
+                trusted_output_root,
+                consensus_output_root,
+            ));
+        }
+        // Calculate the resolved output from cons state
+        let calculated_resolved_output_root = self.resolved_l2_to_l1_message_passer_account.compute_output_root(&self.trusted_to_resolved_l2.resolved)?;
+        if calculated_resolved_output_root == self.resolved_output_root {
+            return Err(Error::NotMisbehaviour(calculated_resolved_output_root));
+        }
 
         // Misbehaviour detected
         Ok(())
@@ -525,14 +493,11 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<IBCAny> for Misbehaviour<SYNC_COM
 mod test {
     use crate::account::AccountUpdateInfo;
     use crate::l1::{ExecutionUpdateInfo, L1Header, TrustedSyncCommittee};
-    use crate::misbehaviour::{
-        FaultDisputeGameConfig, FaultDisputeGameFactoryProof, OutputRootWithMessagePasser,
-        TrustedToResolvedL2,
-    };
+    use crate::misbehaviour::{FaultDisputeGameConfig, FaultDisputeGameFactoryProof, MessagePasserAccount, TrustedToResolvedL2};
     use alloc::vec;
     use alloc::vec::Vec;
     use alloy_consensus::Header;
-    use alloy_primitives::hex;
+    use alloy_primitives::{hex, B256};
     use alloy_primitives::private::alloy_rlp::Decodable;
     use ethereum_consensus::types::Address;
     use light_client::types::Time;
@@ -603,6 +568,7 @@ mod test {
                     // status offset = 16, bytes = 1 -> [15]
                     fault_dispute_game_status_slot: 0,
                     fault_dispute_game_status_slot_offset: 15,
+                    status_defender_win: 2,
                 },
                 28191582,
                 hex!("f0d512abcee62939dbf802954c5202629e81d7e46423ce86ac789613b5668222").into(),
@@ -612,9 +578,8 @@ mod test {
 
     #[test]
     fn test_output_root_with_message_passer_success() {
-        let model = OutputRootWithMessagePasser {
-            output_root: hex!("5cac0ff77cc47f04bfc4854c798d53a1ec8091297cfe8f560737865a8d386402").into(),
-            l2_to_l1_message_passer_account: AccountUpdateInfo {
+        let model = MessagePasserAccount {
+            inner: AccountUpdateInfo {
                 account_proof: vec![
                     hex!("f90211a0fedfd67eb63d2d5d81361cd0efa93b8c19c38b2838e66854dc475214c88a8693a000134375175777be53b0d1af72f12bd8fa34c3dafa8bd44dd92ef936e3540e9aa0ff4a57ded01f08fde62f7c373059169ea60bb3a03217c72b8f21432f07a0259ea0c32527cf8224f51b3e77e6afbdeec3e5bb18bebf00b99ee5aa2066a2c846e1a0a01663c7d41a0d8ab245f13afdbf19519a2100b17589ded43eb528c0d5a21eb2c5a0f5bbe0f614e4391bb30390b5cfee195a2f1be56bbf53f96284b5c2f0d0ce557aa06e71b868c4808116de92d1e5650441e24fa5ec1ab307b4bfa9a86ce224c8f0aea075fb503743549641cbcfed0923b8d79f25dba6670ffc15a2e2ea20f4fe777405a0948f7c61a467181e4a4abcd54fa627a74d000a270d89497c10d91989c557327aa00606954a134a292547f114ed152c90e80d0fe431169aa31b2b4125f44c27acc5a0431a9f228ff8c81fca407432a936b14bfeb03a7d22184f8d6984d04d757d9530a0659c59af8b9133666ad5559cc2d39296f506c266be4cb25bb312d5867533f5a1a0beddc79fb8645745353c9f3c3fffb05e955a27f8104066952a55284624cc863fa0ec7d1e36b540a1cac24175a0cb9799bf334b278091a97f73b030eddc2b5b33e7a0fe2a532a0b1818083e5e4c9150daeab9253906f8736a719d912d1e03b836c4d1a052037c066fb5a794a9c7f9830594d59de36880414d46b9cbed831e6842cc652480").into(),
                     hex!("f90211a08db9bcd64b6153797290b23cb6bbd1299f485bdde3d76ad33f695c1075c43950a0fd395c56d8c35e215e05b63e1e3fe1dab26e638992c1667b35465f9fae64ceb3a01c6bdaa1f02aebd9a0907ca2a9cd097b3419cd7e030f49240fe3755fcaedc7eaa0ddde23a2eeea98adf8767903f920f19eaf99ffe8f51cd09e2a6b03bbd743bc8ca01df1919ccafaa6e2b0ce64c6fb82acb76e129fd837874f1db1bb4889d12eb84aa0b1973fbeb518540caf89538a6a03f1c1f0c16bd1e3d72383c10a19ea11a543cfa005d8b0b296111bada8a6a27cf10a63cb7fe329cf0a61195451e0fc5322db6e3da04a6e33ce0093cbe0cc571f49fb0f0c5a1991b81807b20a47ae3b7bd6a3f3264ca013f146bc1697c279d014c61e2ce8f7588f0078e1588a51114d67d20459ad3644a04b579879faa16e0709cb3bd072b35d82321fdb6f7b948cd4e85cfcfbe2fd114ea0865d212791df9e0572301bb291f3590bdc58d0775084bd2e8ede9a9b0d2e540ca067eb5fa3bbb5fb1042176f18a595918917bb55e9b6e76e312aab3a9475cef130a06f3d1ad50fd8760f4b3d3c958091686503902dba318a3346bda90b58d8ec9384a0dfdc20fc7809b7826a24c4e41cb39cc89081b6eb4a63c96403c386178c4f347ba024b331c177c713e464d67cb8d41ab63de1dd5c16149ceec89bcf19e7f6b9e3b9a09e0228c4ecaeacbaed895cb63c4d638090efb09c2af832724b52d7100d68608480").into(),
@@ -628,18 +593,17 @@ mod test {
                 account_storage_root: hex!("3476605a8835d26d43b140c732ee51181df216c2d1041b6c661feda6c0c0c8a0").into(),
             }
         };
-        let l2_state_root =
+        let l2_state_root : B256=
             hex!("b93e70c874b195a821574f96a808da20a555f312f9171d215685d7f010da5ffe").into();
 
         // assert equals
-        let l2_head_hash =
+        let l2_head_hash : B256=
             hex!("12348dc33fa740c5eb9d1d7ba61723ce97bff8499b52dbe402e751f46bed35df").into();
-        model.assert_equals(l2_state_root, l2_head_hash).unwrap();
 
-        // assert not equals
-        model
-            .assert_not_equals(l2_state_root, [0u8; 32].into())
-            .unwrap();
+        let output_root : B256 = hex!("5cac0ff77cc47f04bfc4854c798d53a1ec8091297cfe8f560737865a8d386402").into();
+
+        assert_eq!(model.compute_output_root_from_state_and_hash(&l2_state_root, l2_head_hash).unwrap(), output_root);
+        assert_ne!(model.compute_output_root_from_state_and_hash(&l2_state_root, B256::from([0u8;32])).unwrap(), output_root);
     }
 
     #[test]

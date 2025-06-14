@@ -191,21 +191,6 @@ pub enum Error {
         address: Address,
         packing_slot_value: [u8; 32],
     },
-    #[error("UnexpectedComputedOutputRoot: expected={expected:?} actual={actual:?} state_root={state_root:?} hash={hash:?}")]
-    UnexpectedComputedOutputRoot {
-        expected: B256,
-        actual: B256,
-        state_root: B256,
-        hash: B256,
-    },
-    #[error("UnexpectedComputedResolvedOutputRoot: expected={expected:?} actual={actual:?} number={number} state_root={state_root:?} hash={hash:?}")]
-    UnexpectedComputedResolvedOutputRoot {
-        expected: B256,
-        actual: B256,
-        number: u64,
-        state_root: B256,
-        hash: B256,
-    },
     #[error("L1VerifyMisbehaviourError: err={0:?}")]
     L1VerifyMisbehaviourError(L1VerifyError),
     #[error("UnknownMisbehaviourType: type={0:?}")]
@@ -216,6 +201,8 @@ pub enum Error {
     UnexpectedClientId(TypeError),
     #[error("UnexpectedClientIdInMisbehaviour: request={0:?} misbehaviour={1:?}")]
     UnexpectedClientIdInMisbehaviour(ClientId, ClientId),
+    #[error("NotMisbehaviour: resolved_output_root={0:?}")]
+    NotMisbehaviour(B256),
 
     // Framework
     #[error("LCPError: err={0:?}")]

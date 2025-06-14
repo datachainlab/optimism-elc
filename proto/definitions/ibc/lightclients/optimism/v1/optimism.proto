@@ -28,6 +28,7 @@ message FaultDisputeGameConfig {
   uint32 dispute_game_factory_target_storage_slot = 1;
   uint32 fault_dispute_game_status_slot = 2;
   uint32 fault_dispute_game_status_slot_offset = 3;
+  uint32 status_defender_win = 4;
 }
 
 message ClientState {
@@ -98,17 +99,15 @@ message FaultDisputeGameFactoryProof {
   uint64 fault_dispute_game_source_game_type = 7;
 }
 
-message OutputRootWithMessagePasser {
-  bytes output_root = 1;
-  AccountUpdate l2_to_l1_message_passer_account = 2;
-}
-
 message Misbehaviour {
   string client_id = 1;
   ibc.core.client.v1.Height trusted_height = 2;
-  OutputRootWithMessagePasser trusted_output = 3;
-  OutputRootWithMessagePasser resolved_output = 4;
-  repeated bytes trusted_to_resolved_l2 = 5;
-  FaultDisputeGameFactoryProof fault_dispute_game_factory_proof = 6;
+
+  AccountUpdate trusted_l2_to_l1_message_passer_account = 3;
+  AccountUpdate resolved_l2_to_l1_message_passer_account = 4;
+  bytes resolved_output_root = 5;
+
+  repeated bytes trusted_to_resolved_l2_headers = 6;
+  FaultDisputeGameFactoryProof fault_dispute_game_factory_proof = 7;
 }
 
