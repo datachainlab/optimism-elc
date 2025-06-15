@@ -2,14 +2,15 @@ use crate::l1::L1Consensus;
 use alloc::boxed::Box;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
+use alloy_primitives::private::alloy_rlp;
 use alloy_primitives::B256;
 use core::array::TryFromSliceError;
 use ethereum_consensus::bls::PublicKey;
 use ethereum_consensus::errors::{Error as L1ConsensusError, MerkleError};
 use ethereum_consensus::sync_protocol::SyncCommitteePeriod;
-use ethereum_consensus::types::H256;
+use ethereum_consensus::types::{Address, H256};
 use ethereum_light_client_verifier::errors::Error as L1VerifyError;
-use light_client::types::{ClientId, Height, Time, TimeError};
+use light_client::types::{ClientId, Height, Time, TimeError, TypeError};
 use optimism_derivation::derivation::Derivation;
 
 #[derive(thiserror::Error, Debug)]
@@ -69,6 +70,8 @@ pub enum Error {
     // Update
     #[error("MissingL1Config")]
     MissingL1Config,
+    #[error("MissingFaultDisputeGameConfig")]
+    MissingFaultDisputeGameConfig,
     #[error("MissingForkSpec")]
     MissingForkSpec,
     #[error("MissingL1Head")]
@@ -146,6 +149,60 @@ pub enum Error {
     ZeroL1ExecutionBlockNumberError,
     #[error("SyncCommitteeValidateError: err={0:?}")]
     SyncCommitteeValidateError(L1ConsensusError),
+
+    // Misbehaviour
+    #[error("NoHeaderFound")]
+    NoHeaderFound,
+    #[error("UnexpectedHeaderRelation: expected_parent_hash={expected_parent_hash:?} actual_parent_hash={actual_parent_hash:?} header_number={header_number} parent_number={parent_number}")]
+    UnexpectedHeaderRelation {
+        expected_parent_hash: B256,
+        actual_parent_hash: B256,
+        header_number: u64,
+        parent_number: u64,
+    },
+    #[error("UnexpectedHeaderRLPError err={0:?}")]
+    UnexpectedHeaderRLPError(alloy_rlp::Error),
+    #[error("UnexpectedDisputeGameFactoryProxyProof: storage_root={storage_root:?} proof={proof:?} game_uuid={game_uuid:?} game_id_key={game_id_key:?} output_root={output_root:?} l2_block_number={l2_block_number} err={err:?}")]
+    UnexpectedDisputeGameFactoryProxyProof {
+        storage_root: H256,
+        proof: Vec<Vec<u8>>,
+        game_uuid: B256,
+        game_id_key: B256,
+        output_root: B256,
+        l2_block_number: u64,
+        err: Option<L1VerifyError>,
+    },
+    #[error("UnexpectedFaultDisputeGameProof: storage_root={storage_root:?} proof={proof:?} status_key={status_key:?} address={address:?} err={err:?}")]
+    UnexpectedFaultDisputeGameProof {
+        storage_root: H256,
+        proof: Vec<Vec<u8>>,
+        status_key: B256,
+        address: Address,
+        err: Option<L1VerifyError>,
+    },
+    #[error("UnexpectedGameID: game_id={0:?}")]
+    UnexpectedGameID(Vec<u8>),
+    #[error("UnexpectedResolvedStatus: status={status} storage_root={storage_root:?} proof={proof:?} status_key={status_key:?} address={address:?} packing_slot_value={packing_slot_value:?}")]
+    UnexpectedResolvedStatus {
+        status: u8,
+        storage_root: H256,
+        proof: Vec<Vec<u8>>,
+        status_key: B256,
+        address: Address,
+        packing_slot_value: [u8; 32],
+    },
+    #[error("L1VerifyMisbehaviourError: err={0:?}")]
+    L1VerifyMisbehaviourError(L1VerifyError),
+    #[error("UnknownMisbehaviourType: type={0:?}")]
+    UnknownMisbehaviourType(String),
+    #[error("UnexpectedDisputeGameFactoryAddress: err={0:?}")]
+    UnexpectedDisputeGameFactoryAddress(L1ConsensusError),
+    #[error("UnexpectedClientId: err={0:?}")]
+    UnexpectedClientId(TypeError),
+    #[error("UnexpectedClientIdInMisbehaviour: request={0:?} misbehaviour={1:?}")]
+    UnexpectedClientIdInMisbehaviour(ClientId, ClientId),
+    #[error("NotMisbehaviour: resolved_output_root={0:?}")]
+    NotMisbehaviour(B256),
 
     // Framework
     #[error("LCPError: err={0:?}")]

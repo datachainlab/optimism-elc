@@ -2556,6 +2556,7 @@ dependencies = [
  "ethereum-consensus",
  "ethereum-light-client-verifier",
  "kona-genesis",
+ "kona-protocol",
  "light-client",
  "optimism-derivation",
  "optimism-ibc-proto",

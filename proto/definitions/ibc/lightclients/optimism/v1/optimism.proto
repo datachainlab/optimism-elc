@@ -24,6 +24,13 @@ message L1Config {
   google.protobuf.Duration max_clock_drift = 10 [(gogoproto.nullable) = false, (gogoproto.stdduration) = true];
 }
 
+message FaultDisputeGameConfig {
+  uint32 dispute_game_factory_target_storage_slot = 1;
+  uint32 fault_dispute_game_status_slot = 2;
+  uint32 fault_dispute_game_status_slot_offset = 3;
+  uint32 status_defender_win = 4;
+}
+
 message ClientState {
   uint64 chain_id = 1;
 
@@ -37,6 +44,7 @@ message ClientState {
   bytes rollup_config_json = 6;
 
   L1Config l1_config = 7;
+  FaultDisputeGameConfig fault_dispute_game_config = 8;
 
 }
 
@@ -74,13 +82,32 @@ message ConsensusState {
   uint64 l1_timestamp = 7;
 }
 
-message Misbehaviour {
-  string client_id = 1;
-  Header header_1 = 2;
-  Header header_2 = 3;
-}
-
 message AccountUpdate {
   bytes account_proof = 1;
   bytes account_storage_root = 2;
 }
+
+message FaultDisputeGameFactoryProof {
+  L1Header l1_header = 1;
+
+  bytes dispute_game_factory_address = 2;
+  AccountUpdate dispute_game_factory_account = 3;
+  bytes dispute_game_factory_storage_proof = 4;
+
+  AccountUpdate fault_dispute_game_account = 5;
+  bytes fault_dispute_game_storage_proof = 6;
+  uint64 fault_dispute_game_source_game_type = 7;
+}
+
+message Misbehaviour {
+  string client_id = 1;
+  ibc.core.client.v1.Height trusted_height = 2;
+
+  AccountUpdate first_l2_to_l1_message_passer_account = 3;
+  AccountUpdate last_l2_to_l1_message_passer_account = 4;
+  repeated bytes l2_header_history = 5;
+
+  bytes resolved_output_root = 6;
+  FaultDisputeGameFactoryProof fault_dispute_game_factory_proof = 7;
+}
+

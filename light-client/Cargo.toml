@@ -23,6 +23,7 @@ ethereum-light-client-verifier = { workspace = true }
 
 # Kona
 kona-genesis = { workspace = true}
+kona-protocol = { workspace = true}
 
 # Alloy
 alloy-consensus = { workspace = true}
