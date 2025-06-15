@@ -18,6 +18,17 @@ use prost::Message;
 
 pub const OPTIMISM_MISBEHAVIOUR_TYPE_URL: &str = "/ibc.lightclients.optimism.v1.Misbehaviour";
 
+fn u64_to_bytes(n: u64) -> [u8; 32] {
+    left_pad(n.to_be_bytes().to_vec())
+}
+
+fn left_pad(n: Vec<u8>) -> [u8; 32] {
+    let mut buf = [0u8; 32];
+    buf[32 - n.len()..].copy_from_slice(&n);
+    buf
+}
+
+/// slot = keccak256([key, mappingSlot])
 fn calculate_mapping_slot_bytes(key_bytes: &[u8], mapping_slot: u64) -> B256 {
     let mapping_slot_bytes = u64_to_bytes(mapping_slot);
 
@@ -28,43 +39,33 @@ fn calculate_mapping_slot_bytes(key_bytes: &[u8], mapping_slot: u64) -> B256 {
     keccak256(&concatenated)
 }
 
-fn calc_game_uuid(source_game_type: u64, l2_block_num: B256, output_root: B256) -> B256 {
-    // Define constants
+/// Calculate the game UUID.
+/// https://github.com/ethereum-optimism/optimism/blob/b2a5bc202c267ea91176676e43e8e9b217d20680/packages/contracts-bedrock/src/dispute/DisputeGameFactory.sol#L198
+fn get_game_uuid(source_game_type: u64, l2_block_num: B256, output_root: B256) -> B256 {
+    // Build the source array
+    let mut source = Vec::new();
+
+    source.extend_from_slice(u64_to_bytes(source_game_type).as_slice());
+    source.extend_from_slice(output_root.0.as_slice());
+
+    // extra data part
     // We can split this into words that are 32 bytes long to get:
-    // 0000000000000000000000000000000000000000000000000000000000000060  // offset
-    // 000000000000000000000000000000000000000000000000000000000000000b  // length
-    // 48656c6c6f20576f726c64000000000000000000000000000000000000000000  // extra_data
-    let source_game_type = u64_to_bytes(source_game_type);
+    // 0000000000000000000000000000000000000000000000000000000000000060  // extra_offset
+    // 000000000000000000000000000000000000000000000000000000000000000b  // extra_length
+    // 48656c6c6f20576f726c64000000000000000000000000000000000000000000  // l2_block_num(_extraData)
+
     // start position of extra_data length
     // 32 (gameType) + 32(rootClaim) + extraOffset(32)
     let extra_offset = u64_to_bytes(96);
     let extra_len = u64_to_bytes(l2_block_num.len() as u64);
-
-    // Build the source array
-    let mut source = Vec::new();
-    source.extend_from_slice(source_game_type.as_slice());
-    source.extend_from_slice(output_root.0.as_slice());
     source.extend_from_slice(extra_offset.as_slice());
     source.extend_from_slice(extra_len.as_slice());
     source.extend_from_slice(l2_block_num.as_slice());
 
-    // Calculate and return the Keccak256 hash
     keccak256(&source)
 }
 
-fn u64_to_bytes(n: u64) -> [u8; 32] {
-    let mut buf = [0u8; 32];
-    let bytes = n.to_be_bytes();
-    buf[32 - bytes.len()..].copy_from_slice(&bytes);
-    buf
-}
-
-fn left_pad(n: Vec<u8>) -> [u8; 32] {
-    let mut buf = [0u8; 32];
-    buf[32 - n.len()..].copy_from_slice(&n);
-    buf
-}
-
+/// https://github.com/ethereum-optimism/optimism/blob/b2a5bc202c267ea91176676e43e8e9b217d20680/packages/contracts-bedrock/src/dispute/lib/LibUDT.sol#L108
 fn unpack_game_id(game_id: [u8; 32]) -> (Vec<u8>, Vec<u8>, [u8; 20]) {
     let game_type = game_id[0..4].to_vec();
     let timestamp = game_id[4..12].to_vec();
@@ -157,7 +158,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> FaultDisputeGameFactoryProof<SYNC_COMMITT
             .verify_account_storage(&self.dispute_game_factory_address, state_root)?;
 
         // Extract game id from DisputeGameFactoryProxy by output_root.
-        let game_uuid = calc_game_uuid(
+        let game_uuid = get_game_uuid(
             self.fault_dispute_game_source_game_type,
             B256::from(u64_to_bytes(claimed_l2_number)),
             claimed_output_root,
