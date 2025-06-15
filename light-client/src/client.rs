@@ -346,22 +346,19 @@ mod test {
     use alloc::collections::BTreeMap;
     use alloc::string::{String, ToString};
     use alloc::vec::Vec;
-    use alloy_primitives::{hex};
+    use alloy_primitives::hex;
     use core::str::FromStr;
-    use ethereum_consensus::types::{Address, H256, U64};
+    use ethereum_consensus::types::{Address, H256};
     use light_client::commitments::{CommitmentPrefix, ProxyMessage, UpdateStateProxyMessage};
     use light_client::types::{Any, ClientId, Height, Time};
-    use light_client::{ClientReader, HostClientReader, HostContext, LightClient, MisbehaviourData, UpdateClientResult};
+    use light_client::{
+        ClientReader, HostClientReader, HostContext, LightClient, UpdateClientResult,
+    };
     use optimism_ibc_proto::ibc::lightclients::optimism::v1::ClientState as RawClientState;
     use optimism_ibc_proto::ibc::lightclients::optimism::v1::ConsensusState as RawConsensusState;
     use prost::Message;
-    use crate::l1::{ConsensusUpdateInfo, L1SyncCommittee, L1Verifier};
+
     use crate::misbehaviour::FaultDisputeGameConfig;
-    use ethereum_light_client_verifier::misbehaviour::{
-        FinalizedHeaderMisbehaviour, Misbehaviour as L1Misbehaviour, NextSyncCommitteeMisbehaviour,
-    };
-    use ethereum_light_client_verifier::updates::ConsensusUpdate;
-    use crate::errors::Error;
 
     extern crate std;
 
@@ -644,7 +641,11 @@ mod test {
         let err = client
             .update_client(&ctx, client_id, client_message)
             .unwrap_err();
-        assert!(err.to_string().contains("L1VerifyMisbehaviourError"), "{:?}", err);
+        assert!(
+            err.to_string().contains("L1VerifyMisbehaviourError"),
+            "{:?}",
+            err
+        );
     }
 
     #[test]

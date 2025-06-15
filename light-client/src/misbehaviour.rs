@@ -516,7 +516,6 @@ mod test {
     use ethereum_consensus::types::Address;
     use light_client::types::Time;
 
-
     #[test]
     fn test_verify_resolved_status_defender_win() {
         // op-sepolia
