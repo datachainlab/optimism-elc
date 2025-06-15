@@ -288,9 +288,9 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL1Header> for L1Header<SYNC_CO
 
 #[derive(Clone, Debug, Default)]
 pub struct L1SyncCommittee<const SYNC_COMMITTEE_SIZE: usize> {
-    slot: Slot,
-    next_sync_committee: Option<SyncCommittee<SYNC_COMMITTEE_SIZE>>,
-    current_sync_committee: Option<SyncCommittee<SYNC_COMMITTEE_SIZE>>,
+    pub(crate) slot: Slot,
+    pub(crate) next_sync_committee: Option<SyncCommittee<SYNC_COMMITTEE_SIZE>>,
+    pub(crate) current_sync_committee: Option<SyncCommittee<SYNC_COMMITTEE_SIZE>>,
 }
 
 impl<const SYNC_COMMITTEE_SIZE: usize> L1SyncCommittee<SYNC_COMMITTEE_SIZE> {

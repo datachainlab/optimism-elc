@@ -81,6 +81,17 @@ pub struct FaultDisputeGameConfig {
     status_defender_win: u8,
 }
 
+impl Default for FaultDisputeGameConfig {
+    fn default() -> Self {
+        Self {
+            dispute_game_factory_target_storage_slot: 103,
+            fault_dispute_game_status_slot: 0,
+            fault_dispute_game_status_slot_offset: 15,
+            status_defender_win: 2,
+        }
+    }
+}
+
 impl From<RawFaultDisputeGameConfig> for FaultDisputeGameConfig {
     fn from(value: RawFaultDisputeGameConfig) -> Self {
         Self {
@@ -563,18 +574,7 @@ mod test {
         };
         model
             .verify_resolved_status(
-                &FaultDisputeGameConfig {
-                    // Confirmed slot of DisputeGameFactoryProxy contract by forge
-                    dispute_game_factory_target_storage_slot: 103,
-                    // Confirmed slot of FaultDisputeGame contract by forge
-                    // storage layout of forge is reverse position
-                    // created_at offset = 0, bytes = 8 -> [24:32]
-                    // resoled_at offset = 8, bytes = 8 -> [16:23]
-                    // status offset = 16, bytes = 1 -> [15]
-                    fault_dispute_game_status_slot: 0,
-                    fault_dispute_game_status_slot_offset: 15,
-                    status_defender_win: 2,
-                },
+                &FaultDisputeGameConfig::default(),
                 28191582,
                 hex!("f0d512abcee62939dbf802954c5202629e81d7e46423ce86ac789613b5668222").into(),
             )

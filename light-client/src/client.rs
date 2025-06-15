@@ -346,18 +346,22 @@ mod test {
     use alloc::collections::BTreeMap;
     use alloc::string::{String, ToString};
     use alloc::vec::Vec;
-    use alloy_primitives::hex;
+    use alloy_primitives::{hex};
     use core::str::FromStr;
-    use ethereum_consensus::types::{Address, H256};
+    use ethereum_consensus::types::{Address, H256, U64};
     use light_client::commitments::{CommitmentPrefix, ProxyMessage, UpdateStateProxyMessage};
     use light_client::types::{Any, ClientId, Height, Time};
-    use light_client::{
-        ClientReader, HostClientReader, HostContext, LightClient, UpdateClientResult,
-    };
+    use light_client::{ClientReader, HostClientReader, HostContext, LightClient, MisbehaviourData, UpdateClientResult};
     use optimism_ibc_proto::ibc::lightclients::optimism::v1::ClientState as RawClientState;
     use optimism_ibc_proto::ibc::lightclients::optimism::v1::ConsensusState as RawConsensusState;
-    use optimism_ibc_proto::ibc::lightclients::optimism::v1::FaultDisputeGameConfig as RawFaultDisputeGameConfig;
     use prost::Message;
+    use crate::l1::{ConsensusUpdateInfo, L1SyncCommittee, L1Verifier};
+    use crate::misbehaviour::FaultDisputeGameConfig;
+    use ethereum_light_client_verifier::misbehaviour::{
+        FinalizedHeaderMisbehaviour, Misbehaviour as L1Misbehaviour, NextSyncCommitteeMisbehaviour,
+    };
+    use ethereum_light_client_verifier::updates::ConsensusUpdate;
+    use crate::errors::Error;
 
     extern crate std;
 
@@ -424,13 +428,7 @@ mod test {
                 frozen: false,
                 rollup_config: Default::default(),
                 l1_config: get_l1_config(),
-                fault_dispute_game_config: RawFaultDisputeGameConfig {
-                    dispute_game_factory_target_storage_slot: 103,
-                    fault_dispute_game_status_slot: 0,
-                    fault_dispute_game_status_slot_offset: 15,
-                    status_defender_win: 2,
-                }
-                .into(),
+                fault_dispute_game_config: Default::default(),
             }
         }
     }
@@ -547,7 +545,7 @@ mod test {
 
     #[test]
     fn test_submit_misbehaviour() {
-        // All the test parameters are created by optimism-ibc-relay-prover#tools/misbehaviour/l2.go
+        // All the test parameters are created by optimism-ibc-relay-prover#tools/misbehaviour/l2
         let client = OptimismLightClient::<
             { ethereum_consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE },
         >;
@@ -603,6 +601,50 @@ mod test {
             }
             _ => panic!("Expected success result"),
         }
+    }
+    #[test]
+    fn test_submit_misbehaviour_l1error() {
+        // All the test parameters are created by optimism-ibc-relay-prover#tools/misbehaviour/l1
+        let client = OptimismLightClient::<
+            { ethereum_consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE },
+        >;
+        let raw_cs = hex!("220210643aaf010a20d61ea484febacfae5298d52a2b581f3e305a51f3112a9241b968dccf019f7b11100118daa9afc206226f0a0410000038120e0a04200000381a0608691036183712140a04300000381a0c08691036183720192812301612140a04400000381a0c08691036183720192812301612140a04500000381a0c08691036183720192822302612150a04600000381a0d08a901105618572019282230262806300838084204080210034a040880a3055200");
+        let raw_cs = RawClientState::decode(raw_cs.as_slice()).unwrap();
+
+        let cs = ClientState {
+            chain_id: raw_cs.chain_id,
+            latest_height: raw_cs.latest_height.unwrap().into(),
+            frozen: false,
+            l1_config: raw_cs.l1_config.unwrap().try_into().unwrap(),
+            fault_dispute_game_config: FaultDisputeGameConfig::default(),
+            // unused
+            rollup_config: Default::default(),
+            ibc_store_address: Default::default(),
+            ibc_commitments_slot: Default::default(),
+        };
+
+        let raw_cons_state = hex!("0a2000000000000000000000000000000000000000000000000000000000000000001a20000000000000000000000000000000000000000000000000000000000000000020e81e2a308b42df465af8c15386ed0ba925fee02d6be3630561253388dc189e33d511ddec9de04ad6fe8e64944669bb6561d9fa2f323092660aef41ae914262be0b67ee010713476d1584043ec0255fd6ebefeebd2a6d9acb789a3766b06aeba0c945680311ff38cae2b0c206");
+        let raw_cons_state = RawConsensusState::decode(raw_cons_state.as_slice()).unwrap();
+        let cons_state = ConsensusState::try_from(raw_cons_state).unwrap();
+
+        let mut cons_states = BTreeMap::new();
+        cons_states.insert(cs.latest_height, cons_state.clone());
+
+        let client_message =
+            std::fs::read("../testdata/submit_misbehaviour_l1.bin").expect("file not found");
+        let client_message = Any::try_from(client_message).unwrap();
+
+        let ctx = MockClientReader {
+            client_state: Some(cs),
+            consensus_state: cons_states,
+            time: Some(Time::from_unix_timestamp(1749894353, 0).unwrap()),
+        };
+
+        let client_id = ClientId::from_str("optimism-01").unwrap();
+        let err = client
+            .update_client(&ctx, client_id, client_message)
+            .unwrap_err();
+        assert!(err.to_string().contains("L1VerifyMisbehaviourError"), "{:?}", err);
     }
 
     #[test]
