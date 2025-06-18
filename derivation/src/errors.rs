@@ -40,6 +40,8 @@ pub enum Error {
     NoPreimageDataFoundInVerifyBlob(Vec<u8>, Box<Error>),
     #[error("NoPreimageKeyFoundInPrecompile: err={0:?}")]
     NoPreimageKeyFoundInPrecompile(Box<Error>),
+    #[error("UnexpectedBlobKey: blob_key={0:?}")]
+    UnexpectedBlobKey(Vec<u8>),
     #[error("UnexpectedSliceLength: {0} {1}")]
     UnexpectedSliceLength(usize, usize),
     #[error("OracleProviderError: err={0:?}")]
@@ -48,4 +50,6 @@ pub enum Error {
     DriverError(#[from] kona_driver::DriverError<kona_executor::ExecutorError>),
     #[error("PipelineError: err={0:?}")]
     PipelineError(#[from] kona_derive::errors::PipelineErrorKind),
+    #[error("UnexpectedBlobSidecarLength: size={0}")]
+    UnexpectedBlobSidecarLength(usize),
 }
