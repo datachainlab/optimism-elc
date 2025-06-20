@@ -102,11 +102,13 @@ impl TryFrom<Vec<Preimage>> for MemoryOracleClient {
             inner.insert(preimage_key, preimage.data);
         }
 
+        let roots_of_unity = roots_of_unity();
+
         // Ensure blob preimage is valid
         let mut kzg_cache = HashSet::<Vec<u8>>::new();
         for (key, data) in inner.iter() {
             if key.key_type() == PreimageKeyType::Blob {
-                verify_blob_preimage(key, data, &inner, &mut kzg_cache)?
+                verify_blob_preimage(key, data, &inner, &mut kzg_cache, &roots_of_unity)?
             } else if key.key_type() == PreimageKeyType::Precompile {
                 verify_precompile(key, &inner)?
             }
@@ -172,11 +174,12 @@ fn verify_blob_preimage(
     data: &[u8],
     preimages: &HashMap<PreimageKey, Vec<u8>>,
     kzg_cache: &mut HashSet<Vec<u8>>,
+    roots_of_unity: &Vec<Vec<u8>>,
 ) -> Result<(), Error> {
     let blob_key = get_data_by_hash_key(key, preimages)
         .map_err(|e| Error::NoPreimageKeyFoundInVerifyBlob(Box::new(e)))?;
     // Ensure blob key is valid
-    if !is_allowed_blob_key(blob_key) {
+    if !is_allowed_blob_key(blob_key, roots_of_unity) {
         return Err(Error::UnexpectedPreimageBlobResult(key.clone()));
     }
     let kzg_commitment = &blob_key[..BYTES_PER_COMMITMENT];
@@ -189,13 +192,7 @@ fn verify_blob_preimage(
     let mut blob = [0u8; kzg_rs::BYTES_PER_BLOB];
     for i in 0..FIELD_ELEMENTS_PER_BLOB {
         let slice = &mut blob_key[BYTES_PER_COMMITMENT..];
-        try_copy_slice(
-            slice,
-            ROOTS_OF_UNITY[i as usize]
-                .into_bigint()
-                .to_bytes_be()
-                .as_ref(),
-        )?;
+        try_copy_slice(slice, roots_of_unity[i as usize].as_ref())?;
         let sidecar_blob = get_data_by_blob_key(blob_key, preimages)?;
         blob[(i as usize) << 5..(i as usize + 1) << 5].copy_from_slice(sidecar_blob);
     }
@@ -233,20 +230,20 @@ fn verify_blob_preimage(
 
     Ok(())
 }
-fn is_allowed_blob_key(blob_key: &[u8]) -> bool {
+fn is_allowed_blob_key(blob_key: &[u8], roots_of_unity: &Vec<Vec<u8>>) -> bool {
     let root_of_unity_part = &blob_key[BYTES_PER_COMMITMENT..];
     for i in 0..FIELD_ELEMENTS_PER_BLOB {
-        let root_of_unity= ROOTS_OF_UNITY[i as usize].into_bigint().to_bytes_be();
-        if root_of_unity_part == &root_of_unity {
+        let root_of_unity = &roots_of_unity[i as usize];
+        if root_of_unity_part == root_of_unity {
             return true;
         }
     }
 
-    let mut last_part = ROOTS_OF_UNITY[FIELD_ELEMENTS_PER_BLOB as usize - 1].into_bigint().to_bytes_be();
-    let field_element_index_position= last_part.len() - 8;
-    last_part[field_element_index_position..].copy_from_slice(&FIELD_ELEMENTS_PER_BLOB.to_be_bytes());
+    let mut last_part = roots_of_unity[FIELD_ELEMENTS_PER_BLOB as usize - 1].clone();
+    let field_element_index_position = last_part.len() - 8;
+    last_part[field_element_index_position..]
+        .copy_from_slice(&FIELD_ELEMENTS_PER_BLOB.to_be_bytes());
     root_of_unity_part == last_part
-
 }
 
 fn verify_precompile(
@@ -267,10 +264,16 @@ fn try_copy_slice(slice: &mut [u8], value: &[u8]) -> Result<(), Error> {
     }
 }
 
+fn roots_of_unity() -> Vec<Vec<u8>> {
+    (0..FIELD_ELEMENTS_PER_BLOB)
+        .map(|i| ROOTS_OF_UNITY[i as usize].into_bigint().to_bytes_be())
+        .collect()
+}
+
 #[cfg(test)]
 mod test {
     use crate::errors::Error;
-    use crate::oracle::{try_copy_slice, verify_blob_preimage, MemoryOracleClient};
+    use crate::oracle::{roots_of_unity, try_copy_slice, verify_blob_preimage, MemoryOracleClient};
     use crate::types::Preimage;
     use crate::POSITION_FIELD_ELEMENT;
     use alloc::vec;
@@ -375,7 +378,14 @@ mod test {
 
         let first_key = PreimageKey::new(*blob_key_hash, PreimageKeyType::Blob);
         let mut cache = HashSet::new();
-        let err = verify_blob_preimage(&first_key, &[0u8; 10], &preimages, &mut cache).unwrap_err();
+        let err = verify_blob_preimage(
+            &first_key,
+            &[0u8; 10],
+            &preimages,
+            &mut cache,
+            &roots_of_unity(),
+        )
+        .unwrap_err();
         match err {
             Error::NoPreimageDataFoundInVerifyBlob(_, _) => {}
             _ => panic!("Unexpected error, got: {:?}", err),
@@ -419,7 +429,14 @@ mod test {
 
         let first_key = PreimageKey::new(*blob_key_hash, PreimageKeyType::Blob);
         let mut cache = HashSet::new();
-        let err = verify_blob_preimage(&first_key, &[0u8; 10], &preimages, &mut cache).unwrap_err();
+        let err = verify_blob_preimage(
+            &first_key,
+            &[0u8; 10],
+            &preimages,
+            &mut cache,
+            &roots_of_unity(),
+        )
+        .unwrap_err();
         match err {
             Error::UnexpectedPreimageBlob(_) => {}
             _ => panic!("Unexpected error, got: {:?}", err),
