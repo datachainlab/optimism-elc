@@ -175,6 +175,10 @@ fn verify_blob_preimage(
 ) -> Result<(), Error> {
     let blob_key = get_data_by_hash_key(key, preimages)
         .map_err(|e| Error::NoPreimageKeyFoundInVerifyBlob(Box::new(e)))?;
+    // Ensure blob key is valid
+    if !is_allowed_blob_key(blob_key) {
+        return Err(Error::UnexpectedPreimageBlobResult(key.clone()));
+    }
     let kzg_commitment = &blob_key[..BYTES_PER_COMMITMENT];
     if kzg_cache.contains(kzg_commitment) {
         return Ok(());
@@ -228,6 +232,21 @@ fn verify_blob_preimage(
     kzg_cache.insert(kzg_commitment.to_vec());
 
     Ok(())
+}
+fn is_allowed_blob_key(blob_key: &[u8]) -> bool {
+    let root_of_unity_part = &blob_key[BYTES_PER_COMMITMENT..];
+    for i in 0..FIELD_ELEMENTS_PER_BLOB {
+        let root_of_unity= ROOTS_OF_UNITY[i as usize].into_bigint().to_bytes_be();
+        if root_of_unity_part == &root_of_unity {
+            return true;
+        }
+    }
+
+    let mut last_part = ROOTS_OF_UNITY[FIELD_ELEMENTS_PER_BLOB as usize - 1].into_bigint().to_bytes_be();
+    let field_element_index_position= last_part.len() - 8;
+    last_part[field_element_index_position..].copy_from_slice(&FIELD_ELEMENTS_PER_BLOB.to_be_bytes());
+    root_of_unity_part == last_part
+
 }
 
 fn verify_precompile(
