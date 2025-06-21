@@ -504,6 +504,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<IBCAny> for Misbehaviour<SYNC_COM
 #[cfg(test)]
 mod test {
     use crate::account::AccountUpdateInfo;
+    use crate::errors::Error;
     use crate::l1::{ExecutionUpdateInfo, L1Header, TrustedSyncCommittee};
     use crate::misbehaviour::{
         FaultDisputeGameConfig, FaultDisputeGameFactoryProof, HeaderWithMessagePasserAccount,
@@ -517,10 +518,15 @@ mod test {
     use ethereum_consensus::types::Address;
     use light_client::types::Time;
 
-    #[test]
-    fn test_verify_resolved_status_defender_win() {
+    fn default_valid_claim() -> (u64, B256) {
+        (
+            28191582,
+            hex!("f0d512abcee62939dbf802954c5202629e81d7e46423ce86ac789613b5668222").into(),
+        )
+    }
+    fn default_fault_dispute_game_factory_proof() -> FaultDisputeGameFactoryProof<32> {
         // op-sepolia
-        let model= FaultDisputeGameFactoryProof {
+        FaultDisputeGameFactoryProof {
             l1_header: L1Header {
                 trusted_sync_committee: TrustedSyncCommittee::<32> { sync_committee: Default::default(), is_next: false },
                 consensus_update: Default::default(),
@@ -571,14 +577,93 @@ mod test {
                 hex!("f5a0200decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e56393920102000000006837d1040000000068333388").into(),
             ],
             fault_dispute_game_source_game_type: 0
-        };
+        }
+    }
+
+    #[test]
+    fn test_verify_resolved_status_defender_win() {
+        let model = default_fault_dispute_game_factory_proof();
+        let claim = default_valid_claim();
         model
-            .verify_resolved_status(
-                &FaultDisputeGameConfig::default(),
-                28191582,
-                hex!("f0d512abcee62939dbf802954c5202629e81d7e46423ce86ac789613b5668222").into(),
-            )
+            .verify_resolved_status(&FaultDisputeGameConfig::default(), claim.0, claim.1)
             .unwrap()
+    }
+
+    #[test]
+    fn test_verify_resolved_status_error_not_defender_win() {
+        let model = default_fault_dispute_game_factory_proof();
+        let config = FaultDisputeGameConfig {
+            status_defender_win: 1,
+            ..Default::default()
+        };
+
+        let claim = default_valid_claim();
+        let err = model
+            .verify_resolved_status(&config, claim.0, claim.1)
+            .unwrap_err();
+        match err {
+            Error::UnexpectedResolvedStatus { status, .. } => {
+                assert_eq!(status, 2);
+            }
+            _ => panic!("Unexpected error, got: {:?}", err),
+        }
+    }
+
+    #[test]
+    fn test_verify_resolved_status_invalid_factory_account() {
+        let mut model = default_fault_dispute_game_factory_proof();
+        model.dispute_game_factory_account.account_proof = vec![];
+
+        let claim = default_valid_claim();
+        let err = model
+            .verify_resolved_status(&FaultDisputeGameConfig::default(), claim.0, claim.1)
+            .unwrap_err();
+        match err {
+            Error::MPTVerificationError(_, _, _, _) => {}
+            _ => panic!("Unexpected error, got: {:?}", err),
+        }
+    }
+
+    #[test]
+    fn test_verify_resolved_status_error_invalid_factory_proof() {
+        let model = default_fault_dispute_game_factory_proof();
+        let claim = default_valid_claim();
+        let err = model
+            .verify_resolved_status(&FaultDisputeGameConfig::default(), claim.0 + 1, claim.1)
+            .unwrap_err();
+        match err {
+            Error::UnexpectedDisputeGameFactoryProxyProof { .. } => {}
+            _ => panic!("Unexpected error, got: {:?}", err),
+        }
+    }
+
+    #[test]
+    fn test_verify_resolved_status_error_invalid_game_proof() {
+        let mut model = default_fault_dispute_game_factory_proof();
+        model.fault_dispute_game_storage_proof.pop();
+        let claim = default_valid_claim();
+        let err = model
+            .verify_resolved_status(&FaultDisputeGameConfig::default(), claim.0, claim.1)
+            .unwrap_err();
+        match err {
+            Error::UnexpectedFaultDisputeGameProof { .. } => {}
+            _ => panic!("Unexpected error, got: {:?}", err),
+        }
+    }
+
+    #[test]
+    fn test_verify_resolved_status_invalid_game_account() {
+        let mut model = default_fault_dispute_game_factory_proof();
+        model.fault_dispute_game_account.account_proof = vec![];
+
+        let claim = default_valid_claim();
+        let err = model
+            .verify_resolved_status(&FaultDisputeGameConfig::default(), claim.0, claim.1)
+            .unwrap_err();
+        match err {
+            Error::MPTVerificationError(_, _, _, _) => {}
+            _ => panic!("Unexpected error, got: {:?}", err),
+        }
     }
 
     #[test]
@@ -657,5 +742,24 @@ mod test {
         .unwrap();
         assert_eq!(model.first.header, trusted);
         assert_eq!(model.last.header, resolved);
+    }
+
+    #[test]
+    fn test_trusted_to_resolved_l2_error() {
+        // op-sepolia
+        let raw : Vec<Vec<u8>>= vec![
+            hex!("f9026ca02b1328386eafe47f7ee204efbe56d2e4e887f0c6ec3c8af09d3645e1a2f047ada01dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347944200000000000000000000000000000000000011a0449a87a92b6e564947325c980fab3c0402e8469bd65d585460a8f6f90ec1c76fa06b14d5021010a6af0b06e259cfd57bd0c6259e5c1fccc3014c8fd5afcba2d09da01a93eebc5b6ec6993b78e6e4101fe334f738c6fd11e18b5b777590c17461325bb90100080085040000005e18000009002000005000008400100100000001000000000400080008462041002200010101002800a40210004040100400400e04018620000900700000040220800028201002220000c00000810440000108001002832009480401c0020802488600200000022800002800002040003200010080010200008000404080000020220820080000001004002a00100488902010100004400003010900028000010000500000000300400000000100e402000005420028000100000281220c00084000295400000000100100000c0804100000000100000060901060040100100e0040000000002088211a8000100001080801210001a0081000808401b67a3d8402625a0083fb8334846843d0268900000000fa00000002a0c704ae5ae3caf7cd72682fc2527737863b5ded45bf4118223d9fc12238bc383188000000000000000081fca0fd86ea0f27301509e13b73ad83c33f8eb14cdb93d8ee68a1b373ae709c1f50b38080a0a97030baf503d279e7910eb1ef2990e619066be4eeb7690e1d07f4b7594b44f8a0e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855").into(),
+            hex!("f9026ca0f3f8c94178667d3a5daa1d14df3d178140e60bef3ab4a59da107f8492489e78fa01dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347944200000000000000000000000000000000000011a0c0f7f14c1b0d1af04f2a5a39dd54ff3544bba4bfe18f54e6c87be116f6a8c676a06a2e9831e63915133efafd1fe5b47c28797d58d475c2ebe7a45b69ff9a340ca1a0c7a493947485a43033edcfa8736b0eddf806adb7248b45b8a5273b084e1746d2b901002800000018000000900000090082020010002080000000080005000080001000010000184430000000240201010000003000201000000004004000000106900000100000100400080000000000000081000000000004000200000000020200080800000000000000000040000022040020002000404000020000014a0400022100000000028108000400300000001500000001000004000000001600020011009000000040205000200000000180005c000a000500008040002003120400020100001102000000200c04001048000010030000088800000000100000000040003000008200000a10100000000021000000000020002000000008010100800000808401b67a348402625a0083e45ac9846843d0148900000000fa00000002a0bdc6c6d4c6b093c8d03c43d3d4b1b3583a61afc79ae21c26c0c03b049b62782688000000000000000081fda0fd86ea0f27301509e13b73ad83c33f8eb14cdb93d8ee68a1b373ae709c1f50b38080a072fdb3daec9a0a6dda140967c9d7f5c1c49acba14c0199d1681f643e23834e9fa0e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855").into(),
+        ];
+        let err = L2HeaderHistory::new(
+            raw,
+            AccountUpdateInfo::default(),
+            AccountUpdateInfo::default(),
+        )
+        .unwrap_err();
+        match err {
+            Error::UnexpectedHeaderRelation { .. } => {}
+            _ => panic!("Unexpected error, got: {:?}", err),
+        }
     }
 }
