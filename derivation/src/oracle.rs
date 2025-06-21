@@ -78,6 +78,29 @@ impl HintWriterClient for MemoryOracleClient {
     }
 }
 
+fn generate_valid_suffixes() -> (HashSet<Vec<u8>>, Vec<Vec<u8>>) {
+    let mut valid_suffixes = HashSet::<Vec<u8>>::with_capacity(FIELD_ELEMENTS_PER_BLOB as usize);
+    let mut roots_of_unity = Vec::<Vec<u8>>::with_capacity(FIELD_ELEMENTS_PER_BLOB as usize);
+
+    for i in 0..FIELD_ELEMENTS_PER_BLOB {
+        let blob_suffix = ROOTS_OF_UNITY[i as usize].into_bigint().to_bytes_be();
+        roots_of_unity.push(blob_suffix.clone());
+        valid_suffixes.insert(blob_suffix);
+    }
+
+    let proof_suffix = {
+        let mut last_root_of_unity = ROOTS_OF_UNITY[FIELD_ELEMENTS_PER_BLOB as usize - 1]
+            .into_bigint()
+            .to_bytes_be();
+        last_root_of_unity[(POSITION_FIELD_ELEMENT - BYTES_PER_COMMITMENT)..]
+            .copy_from_slice(&FIELD_ELEMENTS_PER_BLOB.to_be_bytes());
+        last_root_of_unity
+    };
+    valid_suffixes.insert(proof_suffix);
+
+    (valid_suffixes, roots_of_unity)
+}
+
 impl TryFrom<Vec<Preimage>> for MemoryOracleClient {
     type Error = Error;
 
@@ -103,10 +126,18 @@ impl TryFrom<Vec<Preimage>> for MemoryOracleClient {
         }
 
         // Ensure blob preimage is valid
+        let (valid_suffixes, roots_of_unity) = generate_valid_suffixes();
         let mut kzg_cache = HashSet::<Vec<u8>>::new();
         for (key, data) in inner.iter() {
             if key.key_type() == PreimageKeyType::Blob {
-                verify_blob_preimage(key, data, &inner, &mut kzg_cache)?
+                verify_blob_preimage(
+                    key,
+                    data,
+                    &inner,
+                    &mut kzg_cache,
+                    &valid_suffixes,
+                    &roots_of_unity,
+                )?
             } else if key.key_type() == PreimageKeyType::Precompile {
                 verify_precompile(key, &inner)?
             }
@@ -172,9 +203,14 @@ fn verify_blob_preimage(
     data: &[u8],
     preimages: &HashMap<PreimageKey, Vec<u8>>,
     kzg_cache: &mut HashSet<Vec<u8>>,
+    valid_suffixes: &HashSet<Vec<u8>>,
+    roots_of_unity: &[Vec<u8>],
 ) -> Result<(), Error> {
     let blob_key = get_data_by_hash_key(key, preimages)
         .map_err(|e| Error::NoPreimageKeyFoundInVerifyBlob(Box::new(e)))?;
+    if !valid_suffixes.contains(&blob_key[BYTES_PER_COMMITMENT..]) {
+        return Err(Error::UnexpectedBlobKeySuffix(blob_key.to_vec()));
+    }
     let kzg_commitment = &blob_key[..BYTES_PER_COMMITMENT];
     if kzg_cache.contains(kzg_commitment) {
         return Ok(());
@@ -185,13 +221,7 @@ fn verify_blob_preimage(
     let mut blob = [0u8; kzg_rs::BYTES_PER_BLOB];
     for i in 0..FIELD_ELEMENTS_PER_BLOB {
         let slice = &mut blob_key[BYTES_PER_COMMITMENT..];
-        try_copy_slice(
-            slice,
-            ROOTS_OF_UNITY[i as usize]
-                .into_bigint()
-                .to_bytes_be()
-                .as_ref(),
-        )?;
+        try_copy_slice(slice, roots_of_unity[i as usize].as_ref())?;
         let sidecar_blob = get_data_by_blob_key(blob_key, preimages)?;
         blob[(i as usize) << 5..(i as usize + 1) << 5].copy_from_slice(sidecar_blob);
     }
@@ -251,7 +281,9 @@ fn try_copy_slice(slice: &mut [u8], value: &[u8]) -> Result<(), Error> {
 #[cfg(test)]
 mod test {
     use crate::errors::Error;
-    use crate::oracle::{try_copy_slice, verify_blob_preimage, MemoryOracleClient};
+    use crate::oracle::{
+        generate_valid_suffixes, try_copy_slice, verify_blob_preimage, MemoryOracleClient,
+    };
     use crate::types::Preimage;
     use crate::POSITION_FIELD_ELEMENT;
     use alloc::vec;
@@ -355,8 +387,17 @@ mod test {
         );
 
         let first_key = PreimageKey::new(*blob_key_hash, PreimageKeyType::Blob);
+        let (valid_suffixes, roots_of_unity) = generate_valid_suffixes();
         let mut cache = HashSet::new();
-        let err = verify_blob_preimage(&first_key, &[0u8; 10], &preimages, &mut cache).unwrap_err();
+        let err = verify_blob_preimage(
+            &first_key,
+            &[0u8; 10],
+            &preimages,
+            &mut cache,
+            &valid_suffixes,
+            &roots_of_unity,
+        )
+        .unwrap_err();
         match err {
             Error::NoPreimageDataFoundInVerifyBlob(_, _) => {}
             _ => panic!("Unexpected error, got: {:?}", err),
@@ -399,8 +440,17 @@ mod test {
         );
 
         let first_key = PreimageKey::new(*blob_key_hash, PreimageKeyType::Blob);
+        let (valid_suffixes, roots_of_unity) = generate_valid_suffixes();
         let mut cache = HashSet::new();
-        let err = verify_blob_preimage(&first_key, &[0u8; 10], &preimages, &mut cache).unwrap_err();
+        let err = verify_blob_preimage(
+            &first_key,
+            &[0u8; 10],
+            &preimages,
+            &mut cache,
+            &valid_suffixes,
+            &roots_of_unity,
+        )
+        .unwrap_err();
         match err {
             Error::UnexpectedPreimageBlob(_) => {}
             _ => panic!("Unexpected error, got: {:?}", err),
@@ -414,6 +464,33 @@ mod test {
         let err = try_copy_slice(&mut slice, &value).unwrap_err();
         match err {
             Error::UnexpectedSliceLength(4, 5) => {}
+            _ => panic!("Unexpected error, got: {:?}", err),
+        }
+    }
+
+    #[test]
+    fn test_try_from_blob_key_suffix_error() {
+        let blob_key = [0u8; POSITION_FIELD_ELEMENT + 8];
+        let blob_key_hash = keccak256(blob_key);
+        let mut preimages = HashMap::new();
+        preimages.insert(
+            PreimageKey::new(*blob_key_hash, PreimageKeyType::Keccak256),
+            blob_key.to_vec(),
+        );
+
+        let (valid_suffixes, roots_of_unity) = generate_valid_suffixes();
+        let mut cache = HashSet::new();
+        let err = verify_blob_preimage(
+            &PreimageKey::new(*blob_key_hash, PreimageKeyType::Blob),
+            &[0u8; 10],
+            &preimages,
+            &mut cache,
+            &valid_suffixes,
+            &roots_of_unity,
+        )
+        .unwrap_err();
+        match err {
+            Error::UnexpectedBlobKeySuffix(_) => {}
             _ => panic!("Unexpected error, got: {:?}", err),
         }
     }
