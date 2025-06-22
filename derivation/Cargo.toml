@@ -32,6 +32,3 @@ kzg-rs = { version = "0.2.3", default-features = false }
 serde = { workspace = true, features = ["derive"] }
 prost-derive = "0.11.9"
 
-[dev-dependencies]
-spin = "0.10.0"
-revm = { workspace = true, features = ["c-kzg"] }
