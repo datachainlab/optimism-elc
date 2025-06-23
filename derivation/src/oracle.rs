@@ -97,7 +97,9 @@ impl TryFrom<Vec<Preimage>> for MemoryOracleClient {
                     verify_keccak256_preimage(&preimage_key, &preimage.data)?
                 }
                 PreimageKeyType::Sha256 => verify_sha256_preimage(&preimage_key, &preimage.data)?,
-                _ => {}
+                PreimageKeyType::Blob => {}
+                PreimageKeyType::Precompile => {}
+                _ => continue,
             }
             inner.insert(preimage_key, preimage.data);
         }
