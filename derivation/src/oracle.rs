@@ -99,7 +99,9 @@ impl TryFrom<Vec<Preimage>> for MemoryOracleClient {
                 PreimageKeyType::Sha256 => verify_sha256_preimage(&preimage_key, &preimage.data)?,
                 _ => {}
             }
-            inner.insert(preimage_key, preimage.data);
+            if inner.insert(preimage_key, preimage.data).is_some() {
+                return Err(Error::UnexpectedDuplicatePreimageKey(preimage_key));
+            }
         }
 
         // Ensure blob preimage is valid
@@ -262,6 +264,7 @@ mod test {
     use hashbrown::HashSet;
     use kona_preimage::{PreimageKey, PreimageKeyType};
     use kona_proof::l1::ROOTS_OF_UNITY;
+    use sha2::{Digest, Sha256};
 
     #[test]
     fn test_try_from_key_error() {
@@ -272,6 +275,24 @@ mod test {
         let err = MemoryOracleClient::try_from(preimage).unwrap_err();
         match err {
             Error::UnexpectedPreimageKeySize(_) => {}
+            _ => panic!("Unexpected error, got: {:?}", err),
+        }
+    }
+
+    #[test]
+    fn test_try_from_duplicate_preimage_error() {
+        let value = vec![0u8; 10];
+        let key: [u8; 32] = Sha256::digest(&value).try_into().unwrap();
+        let preimage = vec![
+            Preimage::new(
+                PreimageKey::new(key, PreimageKeyType::Sha256),
+                value.clone(),
+            ),
+            Preimage::new(PreimageKey::new(key, PreimageKeyType::Sha256), value),
+        ];
+        let err = MemoryOracleClient::try_from(preimage).unwrap_err();
+        match err {
+            Error::UnexpectedDuplicatePreimageKey(_) => {}
             _ => panic!("Unexpected error, got: {:?}", err),
         }
     }
