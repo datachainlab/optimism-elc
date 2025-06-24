@@ -309,6 +309,16 @@ mod test {
     }
 
     #[test]
+    fn test_try_from_invalid_local_key() {
+        let preimage = vec![Preimage::new(PreimageKey::new_local(0), vec![0u8; 10])];
+        let err = MemoryOracleClient::try_from(preimage).unwrap_err();
+        match err {
+            Error::UnexpectedLocalPreimageKey(_) => {}
+            _ => panic!("Unexpected error, got: {:?}", err),
+        }
+    }
+
+    #[test]
     fn test_try_from_precompile_error() {
         let preimage = vec![Preimage::new(
             PreimageKey::new([0u8; 32], PreimageKeyType::Precompile),

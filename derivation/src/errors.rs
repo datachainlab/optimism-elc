@@ -7,8 +7,8 @@ use kona_preimage::PreimageKey;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error("InvalidRollupConfig: saved={0}, requested={1}")]
-    InvalidRollupConfig(B256, B256),
+    #[error("InvalidRollupConfig: in_preimage={0:?}, in_state={1:?}")]
+    InvalidRollupConfig(Vec<u8>, Vec<u8>),
     #[error("InvalidClaim actual={0}, expected={1}")]
     InvalidClaim(B256, B256),
     #[error("UnexpectedKZGCommitment: err={0:?}")]
@@ -53,5 +53,5 @@ pub enum Error {
     #[error("SerdeError: err={0:?}")]
     SerdeError(#[from] serde_json::Error),
     #[error("UnexpectedLocalPreimageKey: key={0:?}")]
-    UnexpectedLocalPreimageKey(PreimageKey)
+    UnexpectedLocalPreimageKey(PreimageKey),
 }
