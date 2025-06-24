@@ -13,6 +13,7 @@ use ark_ff::BigInteger;
 use hashbrown::{HashMap, HashSet};
 use kona_preimage::errors::{PreimageOracleError, PreimageOracleResult};
 use kona_preimage::{HintWriterClient, PreimageKey, PreimageKeyType, PreimageOracleClient};
+use kona_proof::boot::L2_ROLLUP_CONFIG_KEY;
 use kona_proof::l1::ROOTS_OF_UNITY;
 use kona_proof::FlushableCache;
 use sha2::{Digest, Sha256};
@@ -97,6 +98,11 @@ impl TryFrom<Vec<Preimage>> for MemoryOracleClient {
                     verify_keccak256_preimage(&preimage_key, &preimage.data)?
                 }
                 PreimageKeyType::Sha256 => verify_sha256_preimage(&preimage_key, &preimage.data)?,
+                PreimageKeyType::Local => {
+                    if preimage_key.key_value() != L2_ROLLUP_CONFIG_KEY {
+                        return Err(Error::UnexpectedLocalPreimageKey(preimage_key));
+                    }
+                }
                 _ => {}
             }
             inner.insert(preimage_key, preimage.data);

@@ -3,7 +3,7 @@ use crate::errors::Error;
 use crate::oracle::{MemoryOracleClient, NopeHintWriter};
 use alloc::sync::Arc;
 use alloy_consensus::Header;
-use alloy_primitives::{Sealed, B256};
+use alloy_primitives::{keccak256, Sealed, B256};
 use core::clone::Clone;
 use core::fmt::Debug;
 use kona_client::fpvm_evm::FpvmOpEvmFactory;
@@ -12,6 +12,7 @@ use kona_derive::sources::EthereumDataSource;
 use kona_driver::Driver;
 use kona_executor::TrieDBProvider;
 use kona_genesis::RollupConfig;
+use kona_preimage::{PreimageKey, PreimageOracleClient};
 use kona_proof::sync::new_oracle_pipeline_cursor;
 use kona_proof::{
     executor::KonaExecutor,
@@ -19,6 +20,7 @@ use kona_proof::{
     l2::OracleL2ChainProvider,
     BootInfo,
 };
+use kona_proof::boot::L2_ROLLUP_CONFIG_KEY;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -61,6 +63,8 @@ impl Derivation {
         rollup_config: &RollupConfig,
         oracle: MemoryOracleClient,
     ) -> Result<Header, Error> {
+        verify_config(rollup_config, &oracle).await?;
+
         let boot = &BootInfo {
             l1_head: self.l1_head_hash,
             agreed_l2_output_root: self.agreed_l2_output_root,
@@ -134,4 +138,23 @@ impl Derivation {
         let header = read.l2_safe_head_header().clone().unseal();
         Ok(header)
     }
+
 }
+
+async fn verify_config(
+    rollup_config: &RollupConfig,
+    oracle: &MemoryOracleClient,
+) -> Result<(), Error> {
+    let config_key = PreimageKey::new_local(L2_ROLLUP_CONFIG_KEY.to());
+    let local_config = oracle.get(config_key.clone()).await.map_err(|e| Error::UnexpectedPreimageKey {
+        source: e,
+        key: config_key.key_value().to_be_bytes(),
+    })?;
+    let requested = keccak256(local_config);
+    let saved = keccak256(serde_json::to_vec(rollup_config)?);
+    if saved != requested {
+        return Err(Error::InvalidRollupConfig(saved, requested));
+    }
+    Ok(())
+}
+
