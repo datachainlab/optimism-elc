@@ -212,7 +212,7 @@ fn verify_blob_preimage(
             })?
         }
     };
-    // Ensure valida blob
+    // Ensure valid blob
     let kzg_blob = kzg_rs::Blob::from_slice(&blob).map_err(Error::UnexpectedKZGBlob)?;
     let settings = kzg_rs::get_kzg_settings();
     let result = kzg_rs::kzg_proof::KzgProof::verify_blob_kzg_proof(
