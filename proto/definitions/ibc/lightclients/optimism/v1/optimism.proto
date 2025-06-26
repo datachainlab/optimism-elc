@@ -99,6 +99,7 @@ message FaultDisputeGameFactoryProof {
   AccountUpdate fault_dispute_game_account = 5;
   bytes fault_dispute_game_storage_proof = 6;
   uint64 fault_dispute_game_source_game_type = 7;
+
 }
 
 message Misbehaviour {
@@ -107,9 +108,15 @@ message Misbehaviour {
 
   AccountUpdate first_l2_to_l1_message_passer_account = 3;
   AccountUpdate last_l2_to_l1_message_passer_account = 4;
-  repeated bytes l2_header_history = 5;
+  bytes resolved_output_root = 5;
+  FaultDisputeGameFactoryProof fault_dispute_game_factory_proof = 6;
 
-  bytes resolved_output_root = 6;
-  FaultDisputeGameFactoryProof fault_dispute_game_factory_proof = 7;
+  // Only for past game
+  repeated bytes l2_header_history = 7;
+
+  // Only for future game
+  // L1 block which the resolved FaultDisputeGameFactory.create(gameType, output, l2_num) is called at
+  FaultDisputeGameFactoryProof sealed_l1_block_proof = 10;
+  FaultDisputeGameFactoryProof sealed_l1_block_parent_proof = 11;
 }
 
