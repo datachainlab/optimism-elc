@@ -125,6 +125,8 @@ pub struct ConsensusState {
     pub l1_next_sync_committee: ::prost::alloc::vec::Vec<u8>,
     #[prost(uint64, tag = "7")]
     pub l1_timestamp: u64,
+    #[prost(uint64, tag = "8")]
+    pub l1_origin: u64,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

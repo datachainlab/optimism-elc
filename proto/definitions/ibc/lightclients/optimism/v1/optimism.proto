@@ -80,6 +80,8 @@ message ConsensusState {
   bytes l1_current_sync_committee = 5;
   bytes l1_next_sync_committee = 6;
   uint64 l1_timestamp = 7;
+
+  uint64 l1_origin = 8;
 }
 
 message AccountUpdate {

@@ -78,7 +78,7 @@ impl ClientState {
         )?;
 
         // Ensure L2 header is valid
-        let (l2_header, l2_output_root) = header.verify_l2(
+        let (l2_header, l1_origin, l2_output_root) = header.verify_l2(
             self.chain_id,
             trusted_consensus_state.output_root,
             &self.rollup_config,
@@ -117,6 +117,7 @@ impl ClientState {
             l1_current_sync_committee: l1_consensus.current_sync_committee,
             l1_next_sync_committee: l1_consensus.next_sync_committee,
             l1_timestamp: l1_consensus.timestamp,
+            l1_origin,
         };
 
         Ok((new_client_state, new_consensus_state, header_height))
