@@ -160,29 +160,23 @@ impl ClientState {
                 &self.l1_config,
                 &l1_cons_state,
             ),
-            Misbehaviour::L2(l2) => {
-                match l2.verifier() {
-                    Verifier::Future(v) => {
-                        v.verify(
-                            now.as_unix_timestamp_secs(),
-                            &self.l1_config,
-                            &self.fault_dispute_game_config,
-                            &l1_cons_state,
-                            self.latest_height.revision_height(),
-                            trusted_consensus_state.l1_origin,
-                        )
-                    }
-                    Verifier::Past(v) => {
-                        v.verify(
-                            now.as_unix_timestamp_secs(),
-                            &self.l1_config,
-                            &self.fault_dispute_game_config,
-                            &l1_cons_state,
-                            trusted_consensus_state.output_root
-                        )
-                    }
-                }
-            }
+            Misbehaviour::L2(l2) => match l2.verifier() {
+                Verifier::Future(v) => v.verify(
+                    now.as_unix_timestamp_secs(),
+                    &self.l1_config,
+                    &self.fault_dispute_game_config,
+                    &l1_cons_state,
+                    self.latest_height.revision_height(),
+                    trusted_consensus_state.l1_origin,
+                ),
+                Verifier::Past(v) => v.verify(
+                    now.as_unix_timestamp_secs(),
+                    &self.l1_config,
+                    &self.fault_dispute_game_config,
+                    &l1_cons_state,
+                    trusted_consensus_state.output_root,
+                ),
+            },
         }?;
 
         Ok(Self {
@@ -377,7 +371,7 @@ impl TryFrom<RawClientState> for ClientState {
             frozen,
             rollup_config,
             l1_config,
-            fault_dispute_game_config: fault_dispute_game_config.try_into()?
+            fault_dispute_game_config: fault_dispute_game_config.try_into()?,
         })
     }
 }

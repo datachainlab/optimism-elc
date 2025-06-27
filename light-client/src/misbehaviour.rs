@@ -92,12 +92,14 @@ impl TryFrom<RawFaultDisputeGameConfig> for FaultDisputeGameConfig {
         Ok(Self {
             dispute_game_factory_address: Address::try_from(
                 value.dispute_game_factory_address.as_slice(),
-            ).map_err(Error::UnexpectedDisputeGameFactoryAddress)?,
+            )
+            .map_err(Error::UnexpectedDisputeGameFactoryAddress)?,
             dispute_game_factory_target_storage_slot: value
                 .dispute_game_factory_target_storage_slot,
             fault_dispute_game_status_slot: value.fault_dispute_game_status_slot,
             fault_dispute_game_status_slot_offset: value.fault_dispute_game_status_slot_offset,
-            fault_dispute_game_created_at_slot_offset: value.fault_dispute_game_created_at_slot_offset,
+            fault_dispute_game_created_at_slot_offset: value
+                .fault_dispute_game_created_at_slot_offset,
             status_defender_win: value.status_defender_win as u8,
         })
     }
@@ -107,10 +109,12 @@ impl From<FaultDisputeGameConfig> for RawFaultDisputeGameConfig {
     fn from(value: FaultDisputeGameConfig) -> Self {
         Self {
             dispute_game_factory_address: value.dispute_game_factory_address.0.to_vec(),
-            dispute_game_factory_target_storage_slot: value.dispute_game_factory_target_storage_slot,
+            dispute_game_factory_target_storage_slot: value
+                .dispute_game_factory_target_storage_slot,
             fault_dispute_game_status_slot: value.fault_dispute_game_status_slot,
             fault_dispute_game_status_slot_offset: value.fault_dispute_game_status_slot_offset,
-            fault_dispute_game_created_at_slot_offset: value.fault_dispute_game_created_at_slot_offset,
+            fault_dispute_game_created_at_slot_offset: value
+                .fault_dispute_game_created_at_slot_offset,
             status_defender_win: value.status_defender_win as u32,
         }
     }
@@ -130,12 +134,12 @@ pub struct FaultDisputeGameFactoryProof {
     fault_dispute_game_source_game_type: u64,
 }
 
-impl TryFrom<RawFaultDisputeGameFactoryProof> for FaultDisputeGameFactoryProof
-{
+impl TryFrom<RawFaultDisputeGameFactoryProof> for FaultDisputeGameFactoryProof {
     type Error = Error;
 
     fn try_from(value: RawFaultDisputeGameFactoryProof) -> Result<Self, Self::Error> {
-        let state_root = B256::try_from(value.state_root.as_slice()).map_err(|_| Error::UnexpectedStateRoot(value.state_root))?;
+        let state_root = B256::try_from(value.state_root.as_slice())
+            .map_err(|_| Error::UnexpectedStateRoot(value.state_root))?;
         let dispute_game_factory_account = AccountUpdateInfo::try_from(
             value
                 .dispute_game_factory_account
@@ -170,7 +174,6 @@ pub struct GameStatus {
 }
 
 impl FaultDisputeGameFactoryProof {
-
     pub fn get_game_id(
         &self,
         fault_dispute_game_config: &FaultDisputeGameConfig,
@@ -180,8 +183,10 @@ impl FaultDisputeGameFactoryProof {
         let state_root: H256 = self.state_root.0.into();
 
         // Ensure valid account proof
-        self.dispute_game_factory_account
-            .verify_account_storage(&fault_dispute_game_config.dispute_game_factory_address, state_root)?;
+        self.dispute_game_factory_account.verify_account_storage(
+            &fault_dispute_game_config.dispute_game_factory_address,
+            state_root,
+        )?;
 
         // Extract game id from DisputeGameFactoryProxy by output_root.
         let game_uuid = get_game_uuid(
@@ -196,8 +201,7 @@ impl FaultDisputeGameFactoryProof {
         let execution_verifier = ExecutionVerifier;
         execution_verifier
             .verify(
-                self.dispute_game_factory_account
-                    .account_storage_root,
+                self.dispute_game_factory_account.account_storage_root,
                 game_id_key.as_slice(),
                 self.dispute_game_factory_storage_proof.clone(),
             )
@@ -237,8 +241,7 @@ impl FaultDisputeGameFactoryProof {
         let execution_verifier = ExecutionVerifier;
         let packing_slot_value = execution_verifier
             .verify(
-                self.fault_dispute_game_account
-                    .account_storage_root,
+                self.fault_dispute_game_account.account_storage_root,
                 status_key.as_slice(),
                 self.fault_dispute_game_storage_proof.clone(),
             )
@@ -266,7 +269,7 @@ impl FaultDisputeGameFactoryProof {
         claimed_output_root: B256,
         l1_timestamp: u64,
     ) -> Result<(), Error> {
-        let game_status= self.get_game_status(
+        let game_status = self.get_game_status(
             fault_dispute_game_config,
             claimed_l2_number,
             claimed_output_root,
@@ -274,7 +277,7 @@ impl FaultDisputeGameFactoryProof {
         let created_at = &game_status.packing_slot_value[24..];
         let created_at = u64::from_be_bytes(created_at.try_into().unwrap());
         if l1_timestamp != created_at {
-            return Err(Error::UnexpectedGameCreatedAt(created_at, l1_timestamp))
+            return Err(Error::UnexpectedGameCreatedAt(created_at, l1_timestamp));
         }
         Ok(())
     }
@@ -384,7 +387,6 @@ impl L2HeaderHistory {
     }
 }
 
-
 #[derive(Clone, Debug)]
 struct ResolvedData<const SYNC_COMMITTEE_SIZE: usize> {
     resolved_l2_number: u64,
@@ -401,8 +403,7 @@ pub struct L2FutureMisbehaviour<const SYNC_COMMITTEE_SIZE: usize> {
     submitted_l1_proof: FaultDisputeGameFactoryProof,
 }
 
-impl<const SYNC_COMMITTEE_SIZE: usize> L2FutureMisbehaviour<SYNC_COMMITTEE_SIZE>
-    {
+impl<const SYNC_COMMITTEE_SIZE: usize> L2FutureMisbehaviour<SYNC_COMMITTEE_SIZE> {
     pub fn verify(
         &self,
         now: u64,
@@ -412,10 +413,13 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L2FutureMisbehaviour<SYNC_COMMITTEE_SIZE>
         consensus_l2_number: u64,
         consensus_l1_origin: u64,
     ) -> Result<(), Error> {
-        self.resolved.latest_l1_header.verify(now, l1_config, l1_cons_state)?;
+        self.resolved
+            .latest_l1_header
+            .verify(now, l1_config, l1_cons_state)?;
 
         // Ensure the output is resolved with DEFENDER_WIN
-        self.resolved.fault_dispute_game_factory_proof
+        self.resolved
+            .fault_dispute_game_factory_proof
             .verify_resolved_status(
                 fault_dispute_game_config,
                 self.resolved.resolved_l2_number,
@@ -434,7 +438,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L2FutureMisbehaviour<SYNC_COMMITTEE_SIZE>
         if self.submitted_l1_number >= consensus_l1_origin {
             return Err(Error::UnexpectedPastL1Header(
                 consensus_l1_origin,
-                self.submitted_l1_number
+                self.submitted_l1_number,
             ));
         }
 
@@ -457,7 +461,6 @@ pub struct L2PastMisbehaviour<const SYNC_COMMITTEE_SIZE: usize> {
 }
 
 impl<const SYNC_COMMITTEE_SIZE: usize> L2PastMisbehaviour<SYNC_COMMITTEE_SIZE> {
-
     pub fn verify(
         &self,
         now: u64,
@@ -466,11 +469,13 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L2PastMisbehaviour<SYNC_COMMITTEE_SIZE> {
         l1_cons_state: &L1Consensus,
         consensus_output_root: B256,
     ) -> Result<(), Error> {
-
-        self.resolved.latest_l1_header.verify(now, l1_config, l1_cons_state)?;
+        self.resolved
+            .latest_l1_header
+            .verify(now, l1_config, l1_cons_state)?;
 
         // Ensure the output is resolved with DEFENDER_WIN
-        self.resolved.fault_dispute_game_factory_proof
+        self.resolved
+            .fault_dispute_game_factory_proof
             .verify_resolved_status(
                 fault_dispute_game_config,
                 self.resolved.resolved_l2_number,
@@ -496,8 +501,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L2PastMisbehaviour<SYNC_COMMITTEE_SIZE> {
     }
 }
 
-
-
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug)]
 pub enum Verifier<const SYNC_COMMITTEE_SIZE: usize> {
     Future(L2FutureMisbehaviour<SYNC_COMMITTEE_SIZE>),
@@ -539,23 +543,22 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL2Misbehaviour>
         let fault_dispute_game_factory_proof =
             FaultDisputeGameFactoryProof::try_from(proto_fdg_factory_proof)?;
 
-        let latest_l1_header= L1Header::<SYNC_COMMITTEE_SIZE>::try_from( raw
-            .latest_l1_header
-            .ok_or(Error::proto_missing("latest_l1_header"))?)?;
+        let latest_l1_header = L1Header::<SYNC_COMMITTEE_SIZE>::try_from(
+            raw.latest_l1_header
+                .ok_or(Error::proto_missing("latest_l1_header"))?,
+        )?;
 
-        let latest_state_root : B256 = latest_l1_header.execution_update.state_root.0.into();
+        let latest_state_root: B256 = latest_l1_header.execution_update.state_root.0.into();
         if fault_dispute_game_factory_proof.state_root != latest_state_root {
             return Err(Error::UnexpectedL1HeaderStateRoot(
                 fault_dispute_game_factory_proof.state_root,
-                latest_state_root
+                latest_state_root,
             ));
         }
 
         // Check for future game verification
         let submitted_l1_proof = if let Some(submitted_l1_proof) = raw.submitted_l1_proof {
-            Some(FaultDisputeGameFactoryProof::try_from(
-                submitted_l1_proof,
-            )?)
+            Some(FaultDisputeGameFactoryProof::try_from(submitted_l1_proof)?)
         } else {
             None
         };
@@ -564,13 +567,19 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL2Misbehaviour>
             let l1_headers = decode_headers(raw.l1_header_history)?;
 
             // Ensure collect order
-            let submitted= &l1_headers.last().ok_or(Error::NoHeaderFound)?;
-            let latest= l1_headers.first().ok_or(Error::NoHeaderFound)?;
+            let submitted = &l1_headers.last().ok_or(Error::NoHeaderFound)?;
+            let latest = l1_headers.first().ok_or(Error::NoHeaderFound)?;
             if latest_l1_header.execution_update.block_number.0 != latest.number {
-                return Err(Error::UnexpectedL1HeaderNumber( latest_l1_header.execution_update.block_number.0, latest.number));
+                return Err(Error::UnexpectedL1HeaderNumber(
+                    latest_l1_header.execution_update.block_number.0,
+                    latest.number,
+                ));
             }
             if submitted_l1_proof.state_root != submitted.state_root {
-                return Err(Error::UnexpectedL1HeaderStateRoot( submitted_l1_proof.state_root, submitted.state_root));
+                return Err(Error::UnexpectedL1HeaderStateRoot(
+                    submitted_l1_proof.state_root,
+                    submitted.state_root,
+                ));
             }
             Ok(Self {
                 client_id,
@@ -587,7 +596,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL2Misbehaviour>
                     submitted_l1_proof,
                 }),
             })
-        }else {
+        } else {
             // For past check
             let proto_trusted_l2_to_l1_message_passer_account = raw
                 .first_l2_to_l1_message_passer_account
@@ -625,11 +634,9 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL2Misbehaviour>
                         latest_l1_header,
                     },
                     l2_header_history,
-                })
+                }),
             })
         }
-
-
     }
 }
 
@@ -709,10 +716,9 @@ fn decode_headers(value: Vec<Vec<u8>>) -> Result<Vec<Header>, Error> {
 mod test {
     use crate::account::AccountUpdateInfo;
     use crate::errors::Error;
-    use crate::l1::{ExecutionUpdateInfo, L1Header, TrustedSyncCommittee};
     use crate::misbehaviour::{
-        FaultDisputeGameConfig, FaultDisputeGameFactoryProof,
-        HeaderWithMessagePasserAccount, L2HeaderHistory,
+        FaultDisputeGameConfig, FaultDisputeGameFactoryProof, HeaderWithMessagePasserAccount,
+        L2HeaderHistory,
     };
     use alloc::vec;
     use alloc::vec::Vec;
@@ -720,12 +726,13 @@ mod test {
     use alloy_primitives::private::alloy_rlp::Decodable;
     use alloy_primitives::{hex, B256};
     use ethereum_consensus::types::Address;
-    use light_client::types::Time;
 
     impl Default for FaultDisputeGameConfig {
         fn default() -> Self {
             Self {
-                dispute_game_factory_address:  Address(hex!("05F9613aDB30026FFd634f38e5C4dFd30a197Fa1")),
+                dispute_game_factory_address: Address(hex!(
+                    "05F9613aDB30026FFd634f38e5C4dFd30a197Fa1"
+                )),
                 dispute_game_factory_target_storage_slot: 103,
                 fault_dispute_game_status_slot: 0,
                 fault_dispute_game_status_slot_offset: 15,

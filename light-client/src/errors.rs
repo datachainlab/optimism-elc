@@ -1,5 +1,5 @@
 use crate::l1::L1Consensus;
-use crate::misbehaviour::{FaultDisputeGameFactoryProof};
+use crate::misbehaviour::FaultDisputeGameFactoryProof;
 use alloc::boxed::Box;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
@@ -215,7 +215,6 @@ pub enum Error {
     UnexpectedStateRoot(Vec<u8>),
     #[error("UnexpectedGameCreatedAt: created_at={0} l1_timestamp={1}")]
     UnexpectedGameCreatedAt(u64, u64),
-
 
     // Framework
     #[error("LCPError: err={0:?}")]

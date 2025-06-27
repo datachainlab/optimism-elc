@@ -545,7 +545,7 @@ mod test {
         let client = OptimismLightClient::<
             { ethereum_consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE },
         >;
-        let (now, cs, cons_state, client_message, _,) = get_misbehaviour_data();
+        let (now, cs, cons_state, client_message, _) = get_misbehaviour_data();
         let mut cons_states = BTreeMap::new();
         cons_states.insert(cs.latest_height, cons_state.clone());
 
@@ -905,10 +905,10 @@ mod test {
             std::fs::read("../testdata/submit_misbehaviour.bin").expect("file not found");
         let client_message = Any::try_from(client_message).unwrap();
 
-        let client_message_not=
+        let client_message_not =
             std::fs::read("../testdata/submit_misbehaviour_not_misbehaviour.bin")
                 .expect("file not found");
-        let client_message_not= Any::try_from(client_message_not).unwrap();
+        let client_message_not = Any::try_from(client_message_not).unwrap();
 
         (
             1751064827,
@@ -919,7 +919,7 @@ mod test {
         )
     }
 
-    fn to_misbehaviour_client_state(mut raw_cs: RawClientState) -> ClientState{
+    fn to_misbehaviour_client_state(mut raw_cs: RawClientState) -> ClientState {
         // Dummy status
         raw_cs
             .fault_dispute_game_config
@@ -932,7 +932,11 @@ mod test {
             latest_height: raw_cs.latest_height.unwrap().into(),
             frozen: false,
             l1_config: raw_cs.l1_config.unwrap().try_into().unwrap(),
-            fault_dispute_game_config: raw_cs.fault_dispute_game_config.unwrap().try_into().unwrap(),
+            fault_dispute_game_config: raw_cs
+                .fault_dispute_game_config
+                .unwrap()
+                .try_into()
+                .unwrap(),
             // unused
             rollup_config: Default::default(),
             ibc_store_address: Default::default(),
