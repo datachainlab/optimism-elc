@@ -541,11 +541,11 @@ mod test {
     }
 
     #[test]
-    fn test_submit_misbehaviour_success() {
+    fn test_submit_misbehaviour_past_success() {
         let client = OptimismLightClient::<
             { ethereum_consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE },
         >;
-        let (now, cs, cons_state, client_message, _) = get_misbehaviour_data();
+        let (now, cs, cons_state, client_message, _, _) = get_misbehaviour_data();
         let mut cons_states = BTreeMap::new();
         cons_states.insert(cs.latest_height, cons_state.clone());
 
@@ -569,12 +569,43 @@ mod test {
             _ => panic!("Expected success result"),
         }
     }
+
+    #[test]
+    fn test_submit_misbehaviour_future_success() {
+        let client = OptimismLightClient::<
+            { ethereum_consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE },
+        >;
+        let (now, cs, cons_state, _ , _, client_message) = get_misbehaviour_data();
+        let mut cons_states = BTreeMap::new();
+        cons_states.insert(cs.latest_height, cons_state.clone());
+
+        let ctx = MockClientReader {
+            client_state: Some(cs),
+            consensus_state: cons_states,
+            time: Some(Time::from_unix_timestamp(now, 0).unwrap()),
+        };
+
+        let client_id = ClientId::from_str("optimism-01").unwrap();
+        let result = client
+            .update_client(&ctx, client_id, client_message)
+            .unwrap();
+        match result {
+            UpdateClientResult::Misbehaviour(data) => {
+                let frozen = ClientState::try_from(data.new_any_client_state)
+                    .unwrap()
+                    .frozen;
+                assert!(frozen, "Client should be frozen after misbehaviour");
+            }
+            _ => panic!("Expected success result"),
+        }
+    }
+
     #[test]
     fn test_submit_misbehaviour_error() {
         let client = OptimismLightClient::<
             { ethereum_consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE },
         >;
-        let (now, cs, mut cons_state, client_message, _) = get_misbehaviour_data();
+        let (now, cs, mut cons_state, client_message, _, _) = get_misbehaviour_data();
 
         // empty output root to simulate a misbehaviour
         cons_state.output_root = B256::default();
@@ -604,7 +635,7 @@ mod test {
         let client = OptimismLightClient::<
             { ethereum_consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE },
         >;
-        let (now, cs, mut cons_state, _, client_message) = get_misbehaviour_data();
+        let (now, cs, mut cons_state, _, client_message,_) = get_misbehaviour_data();
 
         cons_state.output_root =
             hex!("19f2e424a8ea00699396a2aba2319cf539173766421f02a5d5711efbb6bfa15e").into();
@@ -843,9 +874,9 @@ mod test {
         )
     }
 
-    fn get_misbehaviour_data() -> (i64, ClientState, ConsensusState, Any, Any) {
+    fn get_misbehaviour_data() -> (i64, ClientState, ConsensusState, Any, Any, Any) {
         // All the test parameters are created by optimism-ibc-relay-prover#tools/misbehaviour/l2
-        let raw_cs = hex!("220310800c3aaf010a20d61ea484febacfae5298d52a2b581f3e305a51f3112a9241b968dccf019f7b1110011885e2d8c206226f0a0410000038120e0a04200000381a0608691036183712140a04300000381a0c08691036183720192812301612140a04400000381a0c08691036183720192812301612140a04500000381a0c08691036183720192822302612150a04600000381a0d08a901105618572019282230262806300838084204080210034a040880a305520042060867180f2002");
+        let raw_cs = hex!("220310e11c3aaf010a20d61ea484febacfae5298d52a2b581f3e305a51f3112a9241b968dccf019f7b11100118c1ecf8c206226f0a0410000038120e0a04200000381a0608691036183712140a04300000381a0c08691036183720192812301612140a04400000381a0c08691036183720192812301612140a04500000381a0c08691036183720192822302612150a04600000381a0d08a901105618572019282230262806300838084204080210034a040880a305520042060867180f2002");
         let mut raw_cs = RawClientState::decode(raw_cs.as_slice()).unwrap();
 
         // Dummy status
@@ -867,7 +898,7 @@ mod test {
             ibc_commitments_slot: Default::default(),
         };
 
-        let raw_cons_state = hex!("0a2000000000000000000000000000000000000000000000000000000000000000001a20220e6eabdb482723e018befaaccf4c077e64c19129a45c5017d50f488295356320c8072a30b0cbdcb981db88f72a2fe1750f40399df0d13611db585c822025a6dedc778ff9e388aaf67cae7b94d089470d0f9584f7323090555ba2cbee5d2b59cbb0c4bf2142d8bc00213f810bad6cc7f5c8aba7777b74469a69a12c0262827c022bd9b1c4e91438b58fd9c206");
+        let raw_cons_state = hex!("0a2000000000000000000000000000000000000000000000000000000000000000001a20000000000000000000000000000000000000000000000000000000000000000020e0092a30968ff7d270a72094ee09473d4594d3730aa35211034805a69dbda1950b80a79eb8688bd7d15de2d27bda7fd7c951e77e3230a4c91ae6719efcc913689570ae8e1b6648bc97808bd9555844929ca5dc117868106f36976022df4801815843aff589713881a7f9c20640de09");
         let raw_cons_state = RawConsensusState::decode(raw_cons_state.as_slice()).unwrap();
         let cons_state = ConsensusState::try_from(raw_cons_state).unwrap();
 
@@ -875,17 +906,23 @@ mod test {
             std::fs::read("../testdata/submit_misbehaviour.bin").expect("file not found");
         let client_message = Any::try_from(client_message).unwrap();
 
-        let client_message_err =
+
+        let client_message_not=
             std::fs::read("../testdata/submit_misbehaviour_not_misbehaviour.bin")
                 .expect("file not found");
-        let client_message_err = Any::try_from(client_message_err).unwrap();
+        let client_message_not= Any::try_from(client_message_not).unwrap();
+
+        let client_message_future =
+            std::fs::read("../testdata/submit_misbehaviour_future.bin").expect("file not found");
+        let client_message_future = Any::try_from(client_message_future).unwrap();
 
         (
-            1750485032,
+            1751012368,
             cs,
             cons_state,
             client_message,
-            client_message_err,
+            client_message_not,
+            client_message_future,
         )
     }
 }

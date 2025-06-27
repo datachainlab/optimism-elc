@@ -154,6 +154,10 @@ pub enum Error {
     // Misbehaviour
     #[error("NoHeaderFound")]
     NoHeaderFound,
+    #[error("MissingL2History")]
+    MissingL2History,
+    #[error("UnexpectedResolvedL2Number: expected={0} actual={1}")]
+    UnexpectedResolvedL2Number(u64, u64),
     #[error("UnexpectedHeaderRelation: expected_parent_hash={expected_parent_hash:?} actual_parent_hash={actual_parent_hash:?} header_number={header_number} parent_number={parent_number}")]
     UnexpectedHeaderRelation {
         expected_parent_hash: B256,

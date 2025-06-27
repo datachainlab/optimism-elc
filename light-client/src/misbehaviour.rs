@@ -415,16 +415,18 @@ pub struct L2Misbehaviour<const SYNC_COMMITTEE_SIZE: usize> {
     trusted_height: Height,
 
     /// Resolved L2 output in FaultDisputeGame
+    resolved_l2_number: u64,
     resolved_output_root: B256,
     fault_dispute_game_factory_proof: FaultDisputeGameFactoryProof<SYNC_COMMITTEE_SIZE>,
 
     /// Only for past game
     /// L2 headers that can be traversed from ConsState
-    l2_header_history: L2HeaderHistory,
+    l2_header_history: Option<L2HeaderHistory>,
 
     /// Only for future game
-    sealed_l1_block_proof: Option<FaultDisputeGameFactoryProof<SYNC_COMMITTEE_SIZE>>,
-    sealed_l1_block_parent_proof: Option<FaultDisputeGameFactoryProof<SYNC_COMMITTEE_SIZE>>,
+    submitted_l1_proof: Option<FaultDisputeGameFactoryProof<SYNC_COMMITTEE_SIZE>>,
+    submitted_l1_parent_proof: Option<FaultDisputeGameFactoryProof<SYNC_COMMITTEE_SIZE>>,
+
 }
 
 impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL2Misbehaviour>
@@ -437,28 +439,10 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL2Misbehaviour>
         let trusted_height = raw
             .trusted_height
             .ok_or(Error::proto_missing("trusted_height"))?;
-        let proto_trusted_l2_to_l1_message_passer_account = raw
-            .first_l2_to_l1_message_passer_account
-            .ok_or(Error::proto_missing(
-                "first_l2_to_l1_message_passer_account",
-            ))?;
-        let proto_resolved_l2_to_l1_message_passer_account = raw
-            .last_l2_to_l1_message_passer_account
-            .ok_or(Error::proto_missing("last_l2_to_l1_message_passer_account"))?;
+
         let proto_fdg_factory_proof = raw
             .fault_dispute_game_factory_proof
             .ok_or(Error::proto_missing("fault_dispute_game_factory_proof"))?;
-
-        let first_l2_to_l1_message_passer_account =
-            AccountUpdateInfo::try_from(proto_trusted_l2_to_l1_message_passer_account)?;
-        let last_l2_to_l1_message_passer_account =
-            AccountUpdateInfo::try_from(proto_resolved_l2_to_l1_message_passer_account)?;
-
-        let l2_header_history = L2HeaderHistory::new(
-            raw.l2_header_history,
-            first_l2_to_l1_message_passer_account,
-            last_l2_to_l1_message_passer_account,
-        )?;
 
         let resolved_output_root = B256::try_from(raw.resolved_output_root.as_slice())
             .map_err(Error::UnexpectedOutputRoot)?;
@@ -467,36 +451,38 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL2Misbehaviour>
             FaultDisputeGameFactoryProof::try_from(proto_fdg_factory_proof)?;
 
         // Check for future game verification
-        let sealed_l1_block_proof = if let Some(sealed_l1_block_proof) = raw.sealed_l1_block_proof {
+        let submitted_l1_proof = if let Some(submitted_l1_proof) = raw.submitted_l1_proof {
             Some(FaultDisputeGameFactoryProof::try_from(
-                sealed_l1_block_proof,
+                submitted_l1_proof,
             )?)
         } else {
             None
         };
-        let sealed_l1_block_parent_proof =
-            if let Some(sealed_l1_block_parent_proof) = raw.sealed_l1_block_parent_proof {
+        let submitted_l1_parent_proof =
+            if let Some(submitted_l1_parent_proof) = raw.submitted_l1_parent_proof {
                 Some(FaultDisputeGameFactoryProof::try_from(
-                    sealed_l1_block_parent_proof,
+                    submitted_l1_parent_proof,
                 )?)
             } else {
                 None
             };
-        if sealed_l1_block_proof.is_some() != sealed_l1_block_parent_proof.is_some() {
+        if submitted_l1_proof.is_some() != submitted_l1_parent_proof.is_some() {
             return Err(Error::UnexpectedSealedL1(
-                sealed_l1_block_proof.is_some(),
-                sealed_l1_block_parent_proof.is_some(),
+                submitted_l1_proof.is_some(),
+                submitted_l1_parent_proof.is_some(),
             ));
         }
-        if sealed_l1_block_proof.is_some() && sealed_l1_block_parent_proof.is_some() {
+
+        // For future check
+        if submitted_l1_proof.is_some() && submitted_l1_parent_proof.is_some() {
             // Ensure collect order
-            let target = sealed_l1_block_proof
+            let target = submitted_l1_proof
                 .as_ref()
                 .unwrap()
                 .l1_header
                 .execution_update
                 .block_number;
-            let parent = sealed_l1_block_parent_proof
+            let parent = submitted_l1_parent_proof
                 .as_ref()
                 .unwrap()
                 .l1_header
@@ -507,34 +493,73 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL2Misbehaviour>
             }
 
             let l1_headers = decode_headers(raw.l1_header_history)?;
-            let expected_latest_number = l1_headers.first().ok_or(Error::NoHeaderFound)?.number;
+            let expected_latest_number = l1_headers.last().ok_or(Error::NoHeaderFound)?.number;
             let actual_latest_number = fault_dispute_game_factory_proof.l1_header.execution_update.block_number.0;
             // Ensure first is latest L1
             if expected_latest_number != actual_latest_number {
                 return Err(Error::UnexpectedL1HeaderNumber(expected_latest_number, actual_latest_number));
             }
             // Ensure last is submitted L1
-            let expected_target_number = l1_headers.last().ok_or(Error::NoHeaderFound)?.number;
+            let expected_target_number = l1_headers.first().ok_or(Error::NoHeaderFound)?.number;
             if expected_target_number != target.0 {
                 return Err(Error::UnexpectedL1HeaderNumber(expected_target_number, target.0));
             }
+            Ok(Self {
+                client_id,
+                trusted_height: Height::from(trusted_height),
+                resolved_l2_number: raw.resolved_l2_number,
+                resolved_output_root,
+                fault_dispute_game_factory_proof,
+                l2_header_history: None,
+                submitted_l1_proof,
+                submitted_l1_parent_proof
+            })
+        }else {
+            // For past check
+            let proto_trusted_l2_to_l1_message_passer_account = raw
+                .first_l2_to_l1_message_passer_account
+                .ok_or(Error::proto_missing(
+                    "first_l2_to_l1_message_passer_account",
+                ))?;
+            let proto_resolved_l2_to_l1_message_passer_account = raw
+                .last_l2_to_l1_message_passer_account
+                .ok_or(Error::proto_missing("last_l2_to_l1_message_passer_account"))?;
+
+            let first_l2_to_l1_message_passer_account =
+                AccountUpdateInfo::try_from(proto_trusted_l2_to_l1_message_passer_account)?;
+            let last_l2_to_l1_message_passer_account =
+                AccountUpdateInfo::try_from(proto_resolved_l2_to_l1_message_passer_account)?;
+
+            let l2_header_history = L2HeaderHistory::new(
+                raw.l2_header_history,
+                first_l2_to_l1_message_passer_account,
+                last_l2_to_l1_message_passer_account,
+            )?;
+            if l2_header_history.last.header.number != raw.resolved_l2_number {
+                return Err(Error::UnexpectedResolvedL2Number(
+                    l2_header_history.last.header.number,
+                    raw.resolved_l2_number,
+                ));
+            }
+            Ok(Self {
+                client_id,
+                trusted_height: Height::from(trusted_height),
+                resolved_l2_number: raw.resolved_l2_number,
+                resolved_output_root,
+                fault_dispute_game_factory_proof,
+                l2_header_history: Some(l2_header_history),
+                submitted_l1_proof: None,
+                submitted_l1_parent_proof:None
+            })
         }
 
-        Ok(Self {
-            client_id,
-            trusted_height: Height::from(trusted_height),
-            l2_header_history,
-            resolved_output_root,
-            fault_dispute_game_factory_proof,
-            sealed_l1_block_proof,
-            sealed_l1_block_parent_proof,
-        })
+
     }
 }
 
 impl<const SYNC_COMMITTEE_SIZE: usize> L2Misbehaviour<SYNC_COMMITTEE_SIZE> {
     pub fn should_verify_future(&self) -> bool {
-        self.sealed_l1_block_proof.is_some() && self.sealed_l1_block_parent_proof.is_some()
+        self.submitted_l1_proof.is_some() && self.submitted_l1_parent_proof.is_some()
     }
     pub fn verify_future(
         &self,
@@ -545,8 +570,8 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L2Misbehaviour<SYNC_COMMITTEE_SIZE> {
         consensus_l2_number: u64,
         consensus_l1_origin: u64,
     ) -> Result<(), Error> {
-        let sealed_l1_block_proof = self.sealed_l1_block_proof.as_ref().unwrap();
-        let sealed_l1_block_parent_proof = self.sealed_l1_block_parent_proof.as_ref().unwrap();
+        let submitted_l1_proof = self.submitted_l1_proof.as_ref().unwrap();
+        let submitted_l1_parent_proof = self.submitted_l1_parent_proof.as_ref().unwrap();
 
         // Ensure the output is resolved with DEFENDER_WIN
         self.fault_dispute_game_factory_proof
@@ -554,46 +579,39 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L2Misbehaviour<SYNC_COMMITTEE_SIZE> {
         self.fault_dispute_game_factory_proof
             .verify_resolved_status(
                 fault_dispute_game_config,
-                self.l2_header_history.last.header.number,
+                self.resolved_l2_number,
                 self.resolved_output_root,
             )?;
 
         // Ensure sealed_l1_block_proof is the number which the game was created at
-        sealed_l1_block_proof.verify_l1(now, l1_config, l1_cons_state)?;
-        sealed_l1_block_proof.verify_game_created(
+        submitted_l1_proof.verify_game_created(
             fault_dispute_game_config,
-            self.l2_header_history.last.header.number,
+            self.resolved_l2_number,
             self.resolved_output_root,
         )?;
-        sealed_l1_block_parent_proof.verify_l1(now, l1_config, l1_cons_state)?;
-        sealed_l1_block_parent_proof.verify_game_not_created(
+        submitted_l1_parent_proof.verify_game_not_created(
             fault_dispute_game_config,
-            self.l2_header_history.last.header.number,
+            self.resolved_l2_number,
             self.resolved_output_root,
         )?;
 
         // Ensure trusted l1 origin is less than the sealed l1 block number
-        if consensus_l1_origin
-            >= sealed_l1_block_proof
-                .l1_header
-                .execution_update
-                .block_number
-                .0
-        {
+        let submitted_l1_number = submitted_l1_proof
+            .l1_header
+            .execution_update
+            .block_number
+            .0;
+        if consensus_l1_origin >= submitted_l1_number {
             return Err(Error::UnexpectedPastL1Header(
                 consensus_l1_origin,
-                sealed_l1_block_proof
-                    .l1_header
-                    .execution_update
-                    .block_number
-                    .0,
+                submitted_l1_number
             ));
         }
 
-        if consensus_l2_number >= self.l2_header_history.last.header.number {
+        if consensus_l2_number >= self.resolved_l2_number {
             return Err(Error::NotMisbehaviourForFutureL2Block(
                 consensus_l2_number,
-                self.l2_header_history.last.header.number,
+                self.resolved_l2_number,
             ));
         }
 
@@ -608,26 +626,30 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L2Misbehaviour<SYNC_COMMITTEE_SIZE> {
         l1_cons_state: &L1Consensus,
         consensus_output_root: B256,
     ) -> Result<(), Error> {
+        let l2_header_history = self.l2_header_history.as_ref().ok_or(
+            Error::MissingL2History
+        )?;
+
         // Ensure the output is resolved with DEFENDER_WIN
         self.fault_dispute_game_factory_proof
             .verify_l1(now, l1_config, l1_cons_state)?;
         self.fault_dispute_game_factory_proof
             .verify_resolved_status(
                 fault_dispute_game_config,
-                self.l2_header_history.last.header.number,
+                self.resolved_l2_number,
                 self.resolved_output_root,
             )?;
 
         // Ensure the headers for calculating contradict output can be traversed from consensus state
-        let trusted_output_root = self.l2_header_history.first.compute_output_root()?;
-        if self.l2_header_history.first.compute_output_root()? != consensus_output_root {
+        let trusted_output_root = l2_header_history.first.compute_output_root()?;
+        if l2_header_history.first.compute_output_root()? != consensus_output_root {
             return Err(Error::UnexpectedTrustedOutputRoot(
                 trusted_output_root,
                 consensus_output_root,
             ));
         }
         // Calculate the resolved output from cons state
-        let contradict_resolved_output_root = self.l2_header_history.last.compute_output_root()?;
+        let contradict_resolved_output_root = l2_header_history.last.compute_output_root()?;
         if contradict_resolved_output_root == self.resolved_output_root {
             return Err(Error::NotMisbehaviour(contradict_resolved_output_root));
         }
