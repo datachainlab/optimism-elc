@@ -1,4 +1,5 @@
 use crate::l1::L1Consensus;
+use crate::misbehaviour::FaultDisputeGameFactoryProofAttribute;
 use alloc::boxed::Box;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
@@ -162,32 +163,25 @@ pub enum Error {
     },
     #[error("UnexpectedHeaderRLPError err={0:?}")]
     UnexpectedHeaderRLPError(alloy_rlp::Error),
-    #[error("UnexpectedDisputeGameFactoryProxyProof: storage_root={storage_root:?} proof={proof:?} game_uuid={game_uuid:?} game_id_key={game_id_key:?} output_root={output_root:?} l2_block_number={l2_block_number} err={err:?}")]
+    #[error("UnexpectedDisputeGameFactoryProxyProof: proof={proof:?} output_root={output_root:?} l2_block_number={l2_block_number} err={err:?}")]
     UnexpectedDisputeGameFactoryProxyProof {
-        storage_root: H256,
-        proof: Vec<Vec<u8>>,
-        game_uuid: B256,
-        game_id_key: B256,
+        proof: FaultDisputeGameFactoryProofAttribute,
         output_root: B256,
         l2_block_number: u64,
         err: Option<L1VerifyError>,
     },
-    #[error("UnexpectedFaultDisputeGameProof: storage_root={storage_root:?} proof={proof:?} status_key={status_key:?} address={address:?} err={err:?}")]
+    #[error("UnexpectedFaultDisputeGameProof: proof={proof:?} address={address:?} err={err:?}")]
     UnexpectedFaultDisputeGameProof {
-        storage_root: H256,
-        proof: Vec<Vec<u8>>,
-        status_key: B256,
+        proof: FaultDisputeGameFactoryProofAttribute,
         address: Address,
         err: Option<L1VerifyError>,
     },
     #[error("UnexpectedGameID: game_id={0:?}")]
     UnexpectedGameID(Vec<u8>),
-    #[error("UnexpectedResolvedStatus: status={status} storage_root={storage_root:?} proof={proof:?} status_key={status_key:?} address={address:?} packing_slot_value={packing_slot_value:?}")]
+    #[error("UnexpectedResolvedStatus: proof={proof:?} status={status} address={address:?} packing_slot_value={packing_slot_value:?}")]
     UnexpectedResolvedStatus {
+        proof: FaultDisputeGameFactoryProofAttribute,
         status: u8,
-        storage_root: H256,
-        proof: Vec<Vec<u8>>,
-        status_key: B256,
         address: Address,
         packing_slot_value: [u8; 32],
     },
@@ -203,6 +197,18 @@ pub enum Error {
     UnexpectedClientIdInMisbehaviour(ClientId, ClientId),
     #[error("NotMisbehaviour: resolved_output_root={0:?}")]
     NotMisbehaviour(B256),
+    #[error("NotMisbehaviourForFutureL2Block: trusted_l1_origin={0} requested={1}")]
+    UnexpectedPastL1Header(u64, u64),
+    #[error("UnexpectedSealedL1: target={0} parent={1}")]
+    UnexpectedSealedL1(bool, bool),
+    #[error("UnexpectedSealedL1Relation: target={0} parent={1}")]
+    UnexpectedSealedL1Relation(u64, u64),
+    #[error("UnexpectedSealedL1Number: expected={0} actual={1}")]
+    UnexpectedL1HeaderNumber(u64, u64),
+    #[error("NotMisbehaviourForFutureL2Block: trusted={0} requested={1}")]
+    NotMisbehaviourForFutureL2Block(u64, u64),
+    #[error("UnexpectedGameExists: game_id={0:?}")]
+    UnexpectedGameExists(Vec<u8>),
 
     // Framework
     #[error("LCPError: err={0:?}")]

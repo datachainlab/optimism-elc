@@ -439,6 +439,7 @@ mod test {
                 l1_current_sync_committee: Default::default(),
                 l1_next_sync_committee: Default::default(),
                 l1_timestamp: Time::now(),
+                l1_origin: Default::default(),
             }
         }
     }

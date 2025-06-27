@@ -110,13 +110,13 @@ message Misbehaviour {
   AccountUpdate last_l2_to_l1_message_passer_account = 4;
   bytes resolved_output_root = 5;
   FaultDisputeGameFactoryProof fault_dispute_game_factory_proof = 6;
-
-  // Only for past game
   repeated bytes l2_header_history = 7;
 
   // Only for future game
   // L1 block which the resolved FaultDisputeGameFactory.create(gameType, output, l2_num) is called at
-  FaultDisputeGameFactoryProof sealed_l1_block_proof = 10;
-  FaultDisputeGameFactoryProof sealed_l1_block_parent_proof = 11;
+  FaultDisputeGameFactoryProof sealed_l1_block_proof = 8;
+  FaultDisputeGameFactoryProof sealed_l1_block_parent_proof = 9;
+  // latest finalized L1 to sealed_l1_block_l1
+  repeated bytes l1_header_history = 10;
 }
 

@@ -160,13 +160,26 @@ impl ClientState {
                 &self.l1_config,
                 &l1_cons_state,
             ),
-            Misbehaviour::L2(l2) => l2.verify(
-                now.as_unix_timestamp_secs(),
-                &self.l1_config,
-                &self.fault_dispute_game_config,
-                &l1_cons_state,
-                trusted_consensus_state.output_root,
-            ),
+            Misbehaviour::L2(l2) => {
+                if l2.should_verify_future() {
+                    l2.verify_future(
+                        now.as_unix_timestamp_secs(),
+                        &self.l1_config,
+                        &self.fault_dispute_game_config,
+                        &l1_cons_state,
+                        self.latest_height.revision_height(),
+                        trusted_consensus_state.l1_origin,
+                    )
+                } else {
+                    l2.verify_past(
+                        now.as_unix_timestamp_secs(),
+                        &self.l1_config,
+                        &self.fault_dispute_game_config,
+                        &l1_cons_state,
+                        trusted_consensus_state.output_root,
+                    )
+                }
+            }
         }?;
 
         Ok(Self {

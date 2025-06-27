@@ -60,7 +60,7 @@ impl Derivation {
         chain_id: u64,
         rollup_config: &RollupConfig,
         oracle: MemoryOracleClient,
-    ) -> Result<(Header,u64), Error> {
+    ) -> Result<(Header, u64), Error> {
         let boot = &BootInfo {
             l1_head: self.l1_head_hash,
             agreed_l2_output_root: self.agreed_l2_output_root,

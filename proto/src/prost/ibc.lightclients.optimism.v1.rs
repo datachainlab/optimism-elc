@@ -167,12 +167,23 @@ pub struct Misbehaviour {
     pub first_l2_to_l1_message_passer_account: ::core::option::Option<AccountUpdate>,
     #[prost(message, optional, tag = "4")]
     pub last_l2_to_l1_message_passer_account: ::core::option::Option<AccountUpdate>,
-    #[prost(bytes = "vec", repeated, tag = "5")]
-    pub l2_header_history: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
-    #[prost(bytes = "vec", tag = "6")]
+    #[prost(bytes = "vec", tag = "5")]
     pub resolved_output_root: ::prost::alloc::vec::Vec<u8>,
-    #[prost(message, optional, tag = "7")]
+    #[prost(message, optional, tag = "6")]
     pub fault_dispute_game_factory_proof: ::core::option::Option<
         FaultDisputeGameFactoryProof,
     >,
+    #[prost(bytes = "vec", repeated, tag = "7")]
+    pub l2_header_history: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
+    /// Only for future game
+    /// L1 block which the resolved FaultDisputeGameFactory.create(gameType, output, l2_num) is called at
+    #[prost(message, optional, tag = "8")]
+    pub sealed_l1_block_proof: ::core::option::Option<FaultDisputeGameFactoryProof>,
+    #[prost(message, optional, tag = "9")]
+    pub sealed_l1_block_parent_proof: ::core::option::Option<
+        FaultDisputeGameFactoryProof,
+    >,
+    /// latest finalized L1 to sealed_l1_block_l1
+    #[prost(bytes = "vec", repeated, tag = "10")]
+    pub l1_header_history: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
 }

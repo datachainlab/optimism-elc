@@ -36,7 +36,7 @@ pub struct ConsensusState {
     pub l1_timestamp: Time,
 
     /// L1 origin block number for output_root
-    pub l1_origin: u64
+    pub l1_origin: u64,
 }
 
 impl ConsensusState {
