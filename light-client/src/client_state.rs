@@ -2,7 +2,7 @@ use crate::consensus_state::ConsensusState;
 use crate::errors::Error;
 use crate::header::Header;
 use crate::l1::{L1Config, L1Consensus};
-use crate::misbehaviour::{FaultDisputeGameConfig, Misbehaviour};
+use crate::misbehaviour::{FaultDisputeGameConfig, Misbehaviour, Verifier};
 use crate::misc::{
     new_timestamp, validate_header_timestamp_not_future,
     validate_state_timestamp_within_trusting_period,
@@ -161,23 +161,26 @@ impl ClientState {
                 &l1_cons_state,
             ),
             Misbehaviour::L2(l2) => {
-                if l2.should_verify_future() {
-                    l2.verify_future(
-                        now.as_unix_timestamp_secs(),
-                        &self.l1_config,
-                        &self.fault_dispute_game_config,
-                        &l1_cons_state,
-                        self.latest_height.revision_height(),
-                        trusted_consensus_state.l1_origin,
-                    )
-                } else {
-                    l2.verify_past(
-                        now.as_unix_timestamp_secs(),
-                        &self.l1_config,
-                        &self.fault_dispute_game_config,
-                        &l1_cons_state,
-                        trusted_consensus_state.output_root,
-                    )
+                match l2.verifier() {
+                    Verifier::Future(v) => {
+                        v.verify(
+                            now.as_unix_timestamp_secs(),
+                            &self.l1_config,
+                            &self.fault_dispute_game_config,
+                            &l1_cons_state,
+                            self.latest_height.revision_height(),
+                            trusted_consensus_state.l1_origin,
+                        )
+                    }
+                    Verifier::Past(v) => {
+                        v.verify(
+                            now.as_unix_timestamp_secs(),
+                            &self.l1_config,
+                            &self.fault_dispute_game_config,
+                            &l1_cons_state,
+                            trusted_consensus_state.output_root
+                        )
+                    }
                 }
             }
         }?;
@@ -374,7 +377,7 @@ impl TryFrom<RawClientState> for ClientState {
             frozen,
             rollup_config,
             l1_config,
-            fault_dispute_game_config: fault_dispute_game_config.into(),
+            fault_dispute_game_config: fault_dispute_game_config.try_into()?
         })
     }
 }

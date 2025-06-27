@@ -31,13 +31,17 @@ pub struct L1Config {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct FaultDisputeGameConfig {
-    #[prost(uint32, tag = "1")]
-    pub dispute_game_factory_target_storage_slot: u32,
+    #[prost(bytes = "vec", tag = "1")]
+    pub dispute_game_factory_address: ::prost::alloc::vec::Vec<u8>,
     #[prost(uint32, tag = "2")]
-    pub fault_dispute_game_status_slot: u32,
+    pub dispute_game_factory_target_storage_slot: u32,
     #[prost(uint32, tag = "3")]
-    pub fault_dispute_game_status_slot_offset: u32,
+    pub fault_dispute_game_status_slot: u32,
     #[prost(uint32, tag = "4")]
+    pub fault_dispute_game_status_slot_offset: u32,
+    #[prost(uint32, tag = "5")]
+    pub fault_dispute_game_created_at_slot_offset: u32,
+    #[prost(uint32, tag = "6")]
     pub status_defender_win: u32,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -139,10 +143,8 @@ pub struct AccountUpdate {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct FaultDisputeGameFactoryProof {
-    #[prost(message, optional, tag = "1")]
-    pub l1_header: ::core::option::Option<L1Header>,
-    #[prost(bytes = "vec", tag = "2")]
-    pub dispute_game_factory_address: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "1")]
+    pub state_root: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, optional, tag = "3")]
     pub dispute_game_factory_account: ::core::option::Option<AccountUpdate>,
     #[prost(bytes = "vec", tag = "4")]
@@ -171,19 +173,19 @@ pub struct Misbehaviour {
     pub fault_dispute_game_factory_proof: ::core::option::Option<
         FaultDisputeGameFactoryProof,
     >,
-    /// Only for past game
     #[prost(message, optional, tag = "6")]
-    pub first_l2_to_l1_message_passer_account: ::core::option::Option<AccountUpdate>,
+    pub latest_l1_header: ::core::option::Option<L1Header>,
+    /// Only for past game
     #[prost(message, optional, tag = "7")]
+    pub first_l2_to_l1_message_passer_account: ::core::option::Option<AccountUpdate>,
+    #[prost(message, optional, tag = "8")]
     pub last_l2_to_l1_message_passer_account: ::core::option::Option<AccountUpdate>,
-    #[prost(bytes = "vec", repeated, tag = "8")]
+    #[prost(bytes = "vec", repeated, tag = "9")]
     pub l2_header_history: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
     /// Only for future game
     /// L1 block which the resolved FaultDisputeGameFactory.create(gameType, output, l2_num) is called at
-    #[prost(message, optional, tag = "9")]
-    pub submitted_l1_proof: ::core::option::Option<FaultDisputeGameFactoryProof>,
     #[prost(message, optional, tag = "10")]
-    pub submitted_l1_parent_proof: ::core::option::Option<FaultDisputeGameFactoryProof>,
+    pub submitted_l1_proof: ::core::option::Option<FaultDisputeGameFactoryProof>,
     #[prost(bytes = "vec", repeated, tag = "11")]
     pub l1_header_history: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
 }

@@ -1,5 +1,5 @@
 use crate::l1::L1Consensus;
-use crate::misbehaviour::FaultDisputeGameFactoryProofAttribute;
+use crate::misbehaviour::{FaultDisputeGameFactoryProof};
 use alloc::boxed::Box;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
@@ -169,14 +169,14 @@ pub enum Error {
     UnexpectedHeaderRLPError(alloy_rlp::Error),
     #[error("UnexpectedDisputeGameFactoryProxyProof: proof={proof:?} output_root={output_root:?} l2_block_number={l2_block_number} err={err:?}")]
     UnexpectedDisputeGameFactoryProxyProof {
-        proof: FaultDisputeGameFactoryProofAttribute,
+        proof: FaultDisputeGameFactoryProof,
         output_root: B256,
         l2_block_number: u64,
         err: Option<L1VerifyError>,
     },
     #[error("UnexpectedFaultDisputeGameProof: proof={proof:?} address={address:?} err={err:?}")]
     UnexpectedFaultDisputeGameProof {
-        proof: FaultDisputeGameFactoryProofAttribute,
+        proof: FaultDisputeGameFactoryProof,
         address: Address,
         err: Option<L1VerifyError>,
     },
@@ -184,7 +184,7 @@ pub enum Error {
     UnexpectedGameID(Vec<u8>),
     #[error("UnexpectedResolvedStatus: proof={proof:?} status={status} address={address:?} packing_slot_value={packing_slot_value:?}")]
     UnexpectedResolvedStatus {
-        proof: FaultDisputeGameFactoryProofAttribute,
+        proof: FaultDisputeGameFactoryProof,
         status: u8,
         address: Address,
         packing_slot_value: [u8; 32],
@@ -201,18 +201,21 @@ pub enum Error {
     UnexpectedClientIdInMisbehaviour(ClientId, ClientId),
     #[error("NotMisbehaviour: resolved_output_root={0:?}")]
     NotMisbehaviour(B256),
-    #[error("NotMisbehaviourForFutureL2Block: trusted_l1_origin={0} requested={1}")]
+    #[error("UnexpectedPastL1Header: trusted_l1_origin={0} requested={1}")]
     UnexpectedPastL1Header(u64, u64),
-    #[error("UnexpectedSealedL1: target={0} parent={1}")]
-    UnexpectedSealedL1(bool, bool),
-    #[error("UnexpectedSealedL1Relation: target={0} parent={1}")]
-    UnexpectedSealedL1Relation(u64, u64),
     #[error("UnexpectedSealedL1Number: expected={0} actual={1}")]
     UnexpectedL1HeaderNumber(u64, u64),
+    #[error("UnexpectedL1HeaderStateRoot: expected={0:?} actual={1:?}")]
+    UnexpectedL1HeaderStateRoot(B256, B256),
     #[error("NotMisbehaviourForFutureL2Block: trusted={0} requested={1}")]
     NotMisbehaviourForFutureL2Block(u64, u64),
     #[error("UnexpectedGameExists: game_id={0:?}")]
     UnexpectedGameExists(Vec<u8>),
+    #[error("UnexpectedStateRoot: state_root={0:?}")]
+    UnexpectedStateRoot(Vec<u8>),
+    #[error("UnexpectedGameCreatedAt: created_at={0} l1_timestamp={1}")]
+    UnexpectedGameCreatedAt(u64, u64),
+
 
     // Framework
     #[error("LCPError: err={0:?}")]

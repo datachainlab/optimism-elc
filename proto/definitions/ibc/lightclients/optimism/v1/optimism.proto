@@ -25,10 +25,12 @@ message L1Config {
 }
 
 message FaultDisputeGameConfig {
-  uint32 dispute_game_factory_target_storage_slot = 1;
-  uint32 fault_dispute_game_status_slot = 2;
-  uint32 fault_dispute_game_status_slot_offset = 3;
-  uint32 status_defender_win = 4;
+  bytes dispute_game_factory_address = 1;
+  uint32 dispute_game_factory_target_storage_slot = 2;
+  uint32 fault_dispute_game_status_slot = 3;
+  uint32 fault_dispute_game_status_slot_offset = 4;
+  uint32 fault_dispute_game_created_at_slot_offset = 5;
+  uint32 status_defender_win = 6;
 }
 
 message ClientState {
@@ -90,9 +92,8 @@ message AccountUpdate {
 }
 
 message FaultDisputeGameFactoryProof {
-  L1Header l1_header = 1;
+  bytes state_root = 1;
 
-  bytes dispute_game_factory_address = 2;
   AccountUpdate dispute_game_factory_account = 3;
   bytes dispute_game_factory_storage_proof = 4;
 
@@ -109,16 +110,16 @@ message Misbehaviour {
   uint64 resolved_l2_number = 3;
   bytes resolved_output_root = 4;
   FaultDisputeGameFactoryProof fault_dispute_game_factory_proof = 5;
+  L1Header latest_l1_header = 6;
 
   // Only for past game
-  AccountUpdate first_l2_to_l1_message_passer_account = 6;
-  AccountUpdate last_l2_to_l1_message_passer_account = 7;
-  repeated bytes l2_header_history = 8;
+  AccountUpdate first_l2_to_l1_message_passer_account = 7;
+  AccountUpdate last_l2_to_l1_message_passer_account = 8;
+  repeated bytes l2_header_history = 9;
 
   // Only for future game
   // L1 block which the resolved FaultDisputeGameFactory.create(gameType, output, l2_num) is called at
-  FaultDisputeGameFactoryProof submitted_l1_proof = 9;
-  FaultDisputeGameFactoryProof submitted_l1_parent_proof = 10;
+  FaultDisputeGameFactoryProof submitted_l1_proof = 10;
   repeated bytes l1_header_history = 11;
 }
 
