@@ -23,6 +23,8 @@ pub enum Error {
     UnexpectedPreimageBlobResult(PreimageKey),
     #[error("UnexpectedBlobFieldIndex: err={0:?}")]
     UnexpectedBlobFieldIndex(TryFromSliceError),
+    #[error("UnexpectedBlobKeySuffix: blobKey={0:?}")]
+    UnexpectedBlobKeySuffix(Vec<u8>),
     #[error("UnexpectedPreimageKeySize: size={0}")]
     UnexpectedPreimageKeySize(usize),
     #[error("UnexpectedPreimageKey: err={source:?} key={key:?}")]
