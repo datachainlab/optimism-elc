@@ -13,6 +13,7 @@ use ark_ff::BigInteger;
 use hashbrown::{HashMap, HashSet};
 use kona_preimage::errors::{PreimageOracleError, PreimageOracleResult};
 use kona_preimage::{HintWriterClient, PreimageKey, PreimageKeyType, PreimageOracleClient};
+use kona_proof::boot::L2_ROLLUP_CONFIG_KEY;
 use kona_proof::l1::ROOTS_OF_UNITY;
 use kona_proof::FlushableCache;
 use sha2::{Digest, Sha256};
@@ -122,6 +123,11 @@ impl TryFrom<Vec<Preimage>> for MemoryOracleClient {
                     verify_keccak256_preimage(&preimage_key, &preimage.data)?
                 }
                 PreimageKeyType::Sha256 => verify_sha256_preimage(&preimage_key, &preimage.data)?,
+                PreimageKeyType::Local => {
+                    if preimage_key.key_value() != L2_ROLLUP_CONFIG_KEY {
+                        return Err(Error::UnexpectedLocalPreimageKey(preimage_key));
+                    }
+                }
                 PreimageKeyType::Blob => {}
                 PreimageKeyType::Precompile => {}
                 _ => continue,
@@ -352,6 +358,16 @@ mod test {
         let err = MemoryOracleClient::try_from(preimage).unwrap_err();
         match err {
             Error::UnexpectedKeccak256PreimageValue { value: _, key: _ } => {}
+            _ => panic!("Unexpected error, got: {:?}", err),
+        }
+    }
+
+    #[test]
+    fn test_try_from_invalid_local_key() {
+        let preimage = vec![Preimage::new(PreimageKey::new_local(0), vec![0u8; 10])];
+        let err = MemoryOracleClient::try_from(preimage).unwrap_err();
+        match err {
+            Error::UnexpectedLocalPreimageKey(_) => {}
             _ => panic!("Unexpected error, got: {:?}", err),
         }
     }

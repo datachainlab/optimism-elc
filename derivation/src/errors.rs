@@ -7,6 +7,8 @@ use kona_preimage::PreimageKey;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
+    #[error("InvalidRollupConfig: in_preimage={0:?}, in_state={1:?}")]
+    InvalidRollupConfig(Vec<u8>, Vec<u8>),
     #[error("DuplicatePreimageKey: key={0:?}")]
     UnexpectedDuplicatePreimageKey(PreimageKey),
     #[error("InvalidClaim actual={0}, expected={1}")]
@@ -54,6 +56,10 @@ pub enum Error {
     DriverError(#[from] kona_driver::DriverError<kona_executor::ExecutorError>),
     #[error("PipelineError: err={0:?}")]
     PipelineError(#[from] kona_derive::errors::PipelineErrorKind),
+    #[error("SerdeError: err={0:?}")]
+    SerdeError(#[from] serde_json::Error),
+    #[error("UnexpectedLocalPreimageKey: key={0:?}")]
+    UnexpectedLocalPreimageKey(PreimageKey),
     #[error("UnexpectedBlobSidecarLength: size={0}")]
     UnexpectedBlobSidecarLength(usize),
 }
