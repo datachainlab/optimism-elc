@@ -7,6 +7,8 @@ use kona_preimage::PreimageKey;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
+    #[error("DuplicatePreimageKey: key={0:?}")]
+    UnexpectedDuplicatePreimageKey(PreimageKey),
     #[error("InvalidClaim actual={0}, expected={1}")]
     InvalidClaim(B256, B256),
     #[error("UnexpectedKZGCommitment: err={0:?}")]
