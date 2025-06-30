@@ -7,6 +7,8 @@ use kona_preimage::PreimageKey;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
+    #[error("DuplicatePreimageKey: key={0:?}")]
+    UnexpectedDuplicatePreimageKey(PreimageKey),
     #[error("InvalidClaim actual={0}, expected={1}")]
     InvalidClaim(B256, B256),
     #[error("UnexpectedKZGCommitment: err={0:?}")]
@@ -21,6 +23,8 @@ pub enum Error {
     UnexpectedPreimageBlobResult(PreimageKey),
     #[error("UnexpectedBlobFieldIndex: err={0:?}")]
     UnexpectedBlobFieldIndex(TryFromSliceError),
+    #[error("UnexpectedBlobKeySuffix: blobKey={0:?}")]
+    UnexpectedBlobKeySuffix(Vec<u8>),
     #[error("UnexpectedPreimageKeySize: size={0}")]
     UnexpectedPreimageKeySize(usize),
     #[error("UnexpectedPreimageKey: err={source:?} key={key:?}")]

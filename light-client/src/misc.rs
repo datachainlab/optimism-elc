@@ -11,6 +11,12 @@ pub fn validate_state_timestamp_within_trusting_period(
     trusting_period: Duration,
     trusted_consensus_state_timestamp: Time,
 ) -> Result<(), Error> {
+    if current_timestamp.lt(&trusted_consensus_state_timestamp) {
+        return Err(Error::CurrentTimeBeforeTrustedState(
+            current_timestamp,
+            trusted_consensus_state_timestamp,
+        ));
+    }
     let trusting_period_end =
         (trusted_consensus_state_timestamp + trusting_period).map_err(Error::TimeError)?;
     if !trusting_period_end.gt(&current_timestamp) {
@@ -80,6 +86,11 @@ mod test {
                 current_timestamp,
                 3,
                 trusted_state_timestamp,
+            );
+            validate_and_assert_trusted_ts_error(
+                current_timestamp,
+                3,
+                current_timestamp + Duration::new(0, 1),
             );
         }
 
@@ -168,6 +179,28 @@ mod test {
         if let Err(e) = result {
             match e {
                 Error::HeaderFromFuture(_, _, _) => {}
+                _ => panic!("unexpected error: {e}"),
+            }
+        } else {
+            panic!("expected error");
+        }
+    }
+
+    fn validate_and_assert_trusted_ts_error(
+        current_timestamp: OffsetDateTime,
+        trusting_period: u64,
+        trusted_state_timestamp: OffsetDateTime,
+    ) {
+        let result = validate_state_timestamp_within_trusting_period(
+            Time::from_unix_timestamp_nanos(current_timestamp.unix_timestamp_nanos() as u128)
+                .unwrap(),
+            Duration::from_nanos(trusting_period),
+            Time::from_unix_timestamp_nanos(trusted_state_timestamp.unix_timestamp_nanos() as u128)
+                .unwrap(),
+        );
+        if let Err(e) = result {
+            match e {
+                Error::CurrentTimeBeforeTrustedState(_, _) => {}
                 _ => panic!("unexpected error: {e}"),
             }
         } else {
