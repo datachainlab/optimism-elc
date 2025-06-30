@@ -1,5 +1,5 @@
 use crate::client_state::ClientState;
-use crate::commitment::{calculate_ibc_commitment_storage_location, decode_eip1184_rlp_proof};
+use crate::commitment::{calculate_ibc_commitment_storage_location, decode_rlp_proof};
 use crate::consensus_state::ConsensusState;
 use crate::errors::Error;
 use crate::header::Header;
@@ -245,7 +245,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> OptimismLightClient<L1_SYNC_COMMITTEE_
                 .map_err(Error::LCPError)?,
         )?;
         let root = consensus_state.storage_root;
-        let proof = decode_eip1184_rlp_proof(proof)?;
+        let proof = decode_rlp_proof(proof)?;
         if root.is_zero() {
             return Err(Error::UnexpectedStorageRoot(
                 proof_height,
