@@ -1,5 +1,5 @@
 use crate::client_state::ClientState;
-use crate::commitment::{calculate_ibc_commitment_storage_location, decode_eip1184_rlp_proof};
+use crate::commitment::{calculate_ibc_commitment_storage_location, decode_rlp_proof};
 use crate::consensus_state::ConsensusState;
 use crate::errors::Error;
 use crate::header::Header;
@@ -53,6 +53,13 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> LightClient
 
         let height = client_state.latest_height;
         let timestamp = consensus_state.timestamp;
+
+        if client_state.frozen {
+            return Err(Error::CannotInitializeFrozenClient.into());
+        }
+        if client_state.latest_height.revision_height() == 0 {
+            return Err(Error::UnexpectedLatestHeight(client_state.latest_height).into());
+        }
 
         Ok(CreateClientResult {
             height,
@@ -238,7 +245,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> OptimismLightClient<L1_SYNC_COMMITTEE_
                 .map_err(Error::LCPError)?,
         )?;
         let root = consensus_state.storage_root;
-        let proof = decode_eip1184_rlp_proof(proof)?;
+        let proof = decode_rlp_proof(proof)?;
         if root.is_zero() {
             return Err(Error::UnexpectedStorageRoot(
                 proof_height,
@@ -289,6 +296,7 @@ mod test {
     use prost::Message;
     extern crate std;
 
+    #[derive(Default)]
     struct MockClientReader {
         client_state: Option<ClientState>,
         consensus_state: BTreeMap<Height, ConsensusState>,
@@ -406,11 +414,7 @@ mod test {
         let any_cs = Any::try_from(cs.clone()).unwrap();
         let result = client
             .create_client(
-                &MockClientReader {
-                    client_state: None,
-                    consensus_state: BTreeMap::new(),
-                    time: None,
-                },
+                &MockClientReader::default(),
                 any_cs.clone(),
                 Any::try_from(cons_state.clone()).unwrap(),
             )
@@ -436,6 +440,51 @@ mod test {
             }
             _ => panic!("Unexpected message type"),
         }
+    }
+
+    #[test]
+    fn test_create_client_error_frozen() {
+        let client = OptimismLightClient::<
+            { ethereum_consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE },
+        >;
+        let (mut cs, cons_state) = get_initial_state();
+        cs.frozen = true;
+        let any_cs = Any::try_from(cs.clone()).unwrap();
+        let err = client
+            .create_client(
+                &MockClientReader::default(),
+                any_cs.clone(),
+                Any::try_from(cons_state.clone()).unwrap(),
+            )
+            .unwrap_err();
+        assert!(
+            err.to_string().contains("CannotInitializeFrozenClient"),
+            "{:?}",
+            err
+        );
+    }
+
+    #[test]
+    fn test_create_client_error_invalid_height() {
+        let client = OptimismLightClient::<
+            { ethereum_consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE },
+        >;
+        let (mut cs, cons_state) = get_initial_state();
+        cs.latest_height = Height::new(0, 0);
+
+        let any_cs = Any::try_from(cs.clone()).unwrap();
+        let err = client
+            .create_client(
+                &MockClientReader::default(),
+                any_cs.clone(),
+                Any::try_from(cons_state.clone()).unwrap(),
+            )
+            .unwrap_err();
+        assert!(
+            err.to_string().contains("UnexpectedLatestHeight"),
+            "{:?}",
+            err
+        );
     }
 
     #[test]

@@ -17,7 +17,7 @@ pub fn calculate_ibc_commitment_storage_location(ibc_commitments_slot: &H256, pa
 }
 
 /// decode rlp format `List<List>` to `Vec<List>`
-pub fn decode_eip1184_rlp_proof(proof: Vec<u8>) -> Result<Vec<Vec<u8>>, Error> {
+pub fn decode_rlp_proof(proof: Vec<u8>) -> Result<Vec<Vec<u8>>, Error> {
     let r = Rlp::new(&proof);
     if r.is_list() {
         Ok(r.into_iter()
