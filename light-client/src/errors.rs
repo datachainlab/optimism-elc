@@ -53,6 +53,10 @@ pub enum Error {
     NegativeMaxClockDrift,
     #[error("UnexpectedRollupConfig: err={0:?}")]
     UnexpectedRollupConfig(serde_json::Error),
+    #[error("CannotInitializeFrozenClient")]
+    CannotInitializeFrozenClient,
+    #[error("UnexpectedLatestHeight: height={0}")]
+    UnexpectedLatestHeight(Height),
 
     // ConsState error
     #[error("UnexpectedStorageRoot: proof_height={0} latest_height={1}")]
@@ -100,6 +104,8 @@ pub enum Error {
     ),
     #[error("OutOfTrustingPeriod: current={0} deadline={1}")]
     OutOfTrustingPeriod(Time, Time),
+    #[error("CurrentTimeBeforeTrustedState: current={0} trusted={1}")]
+    CurrentTimeBeforeTrustedState(Time, Time),
     #[error("HeaderFromFuture: current={0} drift={1:?} header_ts={2}")]
     HeaderFromFuture(Time, core::time::Duration, Time),
     #[error("VerifyMembershipError: err={0:?}")]

@@ -7,6 +7,10 @@ use kona_preimage::PreimageKey;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
+    #[error("InvalidRollupConfig: in_preimage={0:?}, in_state={1:?}")]
+    InvalidRollupConfig(Vec<u8>, Vec<u8>),
+    #[error("DuplicatePreimageKey: key={0:?}")]
+    UnexpectedDuplicatePreimageKey(PreimageKey),
     #[error("InvalidClaim actual={0}, expected={1}")]
     InvalidClaim(B256, B256),
     #[error("UnexpectedKZGCommitment: err={0:?}")]
@@ -21,6 +25,8 @@ pub enum Error {
     UnexpectedPreimageBlobResult(PreimageKey),
     #[error("UnexpectedBlobFieldIndex: err={0:?}")]
     UnexpectedBlobFieldIndex(TryFromSliceError),
+    #[error("UnexpectedBlobKeySuffix: blobKey={0:?}")]
+    UnexpectedBlobKeySuffix(Vec<u8>),
     #[error("UnexpectedPreimageKeySize: size={0}")]
     UnexpectedPreimageKeySize(usize),
     #[error("UnexpectedPreimageKey: err={source:?} key={key:?}")]
@@ -40,6 +46,8 @@ pub enum Error {
     NoPreimageDataFoundInVerifyBlob(Vec<u8>, Box<Error>),
     #[error("NoPreimageKeyFoundInPrecompile: err={0:?}")]
     NoPreimageKeyFoundInPrecompile(Box<Error>),
+    #[error("UnexpectedBlobKey: blob_key={0:?}")]
+    UnexpectedBlobKey(Vec<u8>),
     #[error("UnexpectedSliceLength: {0} {1}")]
     UnexpectedSliceLength(usize, usize),
     #[error("OracleProviderError: err={0:?}")]
@@ -48,4 +56,10 @@ pub enum Error {
     DriverError(#[from] kona_driver::DriverError<kona_executor::ExecutorError>),
     #[error("PipelineError: err={0:?}")]
     PipelineError(#[from] kona_derive::errors::PipelineErrorKind),
+    #[error("SerdeError: err={0:?}")]
+    SerdeError(#[from] serde_json::Error),
+    #[error("UnexpectedLocalPreimageKey: key={0:?}")]
+    UnexpectedLocalPreimageKey(PreimageKey),
+    #[error("UnexpectedBlobSidecarLength: size={0}")]
+    UnexpectedBlobSidecarLength(usize),
 }
