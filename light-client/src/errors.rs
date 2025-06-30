@@ -53,6 +53,10 @@ pub enum Error {
     NegativeMaxClockDrift,
     #[error("UnexpectedRollupConfig: err={0:?}")]
     UnexpectedRollupConfig(serde_json::Error),
+    #[error("CannotInitializeFrozenClient")]
+    CannotInitializeFrozenClient,
+    #[error("UnexpectedLatestHeight: height={0}")]
+    UnexpectedLatestHeight(Height),
 
     // ConsState error
     #[error("UnexpectedStorageRoot: proof_height={0} latest_height={1}")]
