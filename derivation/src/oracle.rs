@@ -315,7 +315,7 @@ mod test {
     #[test]
     fn test_try_from_duplicate_preimage_error() {
         let value = vec![0u8; 10];
-        let key: [u8; 32] = Sha256::digest(&value).try_into().unwrap();
+        let key: [u8; 32] = Sha256::digest(&value).into();
         let preimage = vec![
             Preimage::new(
                 PreimageKey::new(key, PreimageKeyType::Sha256),
@@ -393,7 +393,7 @@ mod test {
             ),
             Preimage::new(
                 PreimageKey::new(*blob_key_hash, PreimageKeyType::Blob),
-                vec![].to_vec(),
+                [].to_vec(),
             ),
         ];
 
