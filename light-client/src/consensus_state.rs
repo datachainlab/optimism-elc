@@ -34,6 +34,9 @@ pub struct ConsensusState {
     pub l1_next_sync_committee: PublicKey,
     /// finalized header's timestamp
     pub l1_timestamp: Time,
+
+    /// L1 origin block number for output_root
+    pub l1_origin: u64,
 }
 
 impl ConsensusState {
@@ -66,6 +69,7 @@ impl TryFrom<RawConsensusState> for ConsensusState {
                 .map_err(Error::L1ConsensusError)?,
             l1_next_sync_committee: PublicKey::try_from(value.l1_next_sync_committee)
                 .map_err(Error::L1ConsensusError)?,
+            l1_origin: value.l1_origin,
         })
     }
 }
@@ -81,6 +85,7 @@ impl From<ConsensusState> for RawConsensusState {
             l1_current_sync_committee: value.l1_current_sync_committee.to_vec(),
             l1_next_sync_committee: value.l1_next_sync_committee.to_vec(),
             l1_timestamp: value.l1_timestamp.as_unix_timestamp_secs(),
+            l1_origin: value.l1_origin,
         }
     }
 }
