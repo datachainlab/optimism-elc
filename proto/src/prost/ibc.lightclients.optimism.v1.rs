@@ -103,6 +103,7 @@ pub struct Header {
     >,
     #[prost(message, optional, tag = "2")]
     pub account_update: ::core::option::Option<AccountUpdate>,
+    /// derivation and preimage must be generated using rollup_config in ClientState.
     #[prost(message, optional, tag = "3")]
     pub derivation: ::core::option::Option<Derivation>,
     #[prost(bytes = "vec", tag = "4")]

@@ -3,7 +3,7 @@ use crate::errors::Error;
 use crate::oracle::{MemoryOracleClient, NopeHintWriter};
 use alloc::sync::Arc;
 use alloy_consensus::Header;
-use alloy_primitives::{Sealed, B256};
+use alloy_primitives::{keccak256, Sealed, B256};
 use core::clone::Clone;
 use core::fmt::Debug;
 use kona_client::fpvm_evm::FpvmOpEvmFactory;
@@ -12,6 +12,8 @@ use kona_derive::sources::EthereumDataSource;
 use kona_driver::Driver;
 use kona_executor::TrieDBProvider;
 use kona_genesis::RollupConfig;
+use kona_preimage::{PreimageKey, PreimageOracleClient};
+use kona_proof::boot::L2_ROLLUP_CONFIG_KEY;
 use kona_proof::sync::new_oracle_pipeline_cursor;
 use kona_proof::{
     executor::KonaExecutor,
@@ -61,6 +63,7 @@ impl Derivation {
         rollup_config: &RollupConfig,
         oracle: MemoryOracleClient,
     ) -> Result<(Header, u64), Error> {
+        verify_config(rollup_config, &oracle).await?;
         let boot = &BootInfo {
             l1_head: self.l1_head_hash,
             agreed_l2_output_root: self.agreed_l2_output_root,
@@ -134,5 +137,67 @@ impl Derivation {
         let l1_origin_number = read.l2_safe_head().l1_origin.number;
         let header = read.l2_safe_head_header().clone().unseal();
         Ok((header, l1_origin_number))
+    }
+}
+
+async fn verify_config(
+    rollup_config: &RollupConfig,
+    oracle: &MemoryOracleClient,
+) -> Result<(), Error> {
+    let config_key = PreimageKey::new_local(L2_ROLLUP_CONFIG_KEY.to());
+    let in_preimage = oracle
+        .get(config_key)
+        .await
+        .map_err(|e| Error::UnexpectedPreimageKey {
+            source: e,
+            key: config_key.key_value().to_be_bytes(),
+        })?;
+    let in_state = serde_json::to_vec(rollup_config)?;
+    if keccak256(&in_state) != keccak256(&in_preimage) {
+        return Err(Error::InvalidRollupConfig(in_preimage, in_state));
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod test {
+    use crate::derivation::verify_config;
+    use crate::errors::Error;
+    use crate::oracle::MemoryOracleClient;
+    use crate::types::Preimage;
+    use alloc::vec;
+    use kona_genesis::RollupConfig;
+    use kona_preimage::PreimageKey;
+    use kona_proof::boot::L2_ROLLUP_CONFIG_KEY;
+
+    #[test]
+    fn test_verify_config_not_found_error() {
+        let rollup_config = RollupConfig::default();
+        let oracle = MemoryOracleClient::default();
+        let err = kona_proof::block_on(verify_config(&rollup_config, &oracle)).unwrap_err();
+        match err {
+            Error::UnexpectedPreimageKey { .. } => {}
+            _ => panic!("Unexpected error, got {:?}", err),
+        }
+    }
+
+    #[test]
+    fn test_verify_config_invalid_error() {
+        let rollup_config = RollupConfig::default();
+        let rollup_config2 = RollupConfig {
+            l2_chain_id: rollup_config.l2_chain_id + 1,
+            ..rollup_config.clone()
+        };
+
+        let preimage = vec![Preimage::new(
+            PreimageKey::new_local(L2_ROLLUP_CONFIG_KEY.to()),
+            serde_json::to_vec(&rollup_config2).unwrap(),
+        )];
+        let oracle = MemoryOracleClient::try_from(preimage).unwrap();
+        let err = kona_proof::block_on(verify_config(&rollup_config, &oracle)).unwrap_err();
+        match err {
+            Error::InvalidRollupConfig { .. } => {}
+            _ => panic!("Unexpected error, got {:?}", err),
+        }
     }
 }

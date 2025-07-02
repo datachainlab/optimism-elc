@@ -1,4 +1,4 @@
-use crate::commitment::decode_eip1184_rlp_proof;
+use crate::commitment::decode_rlp_proof;
 use crate::errors::Error;
 use alloc::vec::Vec;
 use alloy_primitives::hex;
@@ -16,7 +16,7 @@ impl TryFrom<ProtoAccountUpdate> for AccountUpdateInfo {
     type Error = Error;
     fn try_from(value: ProtoAccountUpdate) -> Result<Self, Self::Error> {
         Ok(Self {
-            account_proof: decode_eip1184_rlp_proof(value.account_proof)?,
+            account_proof: decode_rlp_proof(value.account_proof)?,
             account_storage_root: H256::from_slice(&value.account_storage_root),
         })
     }

@@ -453,7 +453,7 @@ pub fn convert_proto_to_execution_update(
     }
 }
 
-fn convert_proto_sync_aggregate<const SYNC_COMMITTEE_SIZE: usize>(
+fn convert_proto_to_sync_aggregate<const SYNC_COMMITTEE_SIZE: usize>(
     sync_aggregate: ProtoSyncAggregate,
 ) -> Result<SyncAggregate<SYNC_COMMITTEE_SIZE>, Error> {
     Ok(SyncAggregate {
@@ -513,7 +513,7 @@ fn convert_proto_to_consensus_update<const SYNC_COMMITTEE_SIZE: usize>(
             finalized_header,
             decode_branch(consensus_update.finalized_header_branch),
         ),
-        sync_aggregate: convert_proto_sync_aggregate(
+        sync_aggregate: convert_proto_to_sync_aggregate(
             consensus_update
                 .sync_aggregate
                 .ok_or(Error::proto_missing("sync_aggregate"))?,
