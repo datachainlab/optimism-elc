@@ -16,7 +16,7 @@ use light_client::commitments::{
     StateID, TrustingPeriodContext, UpdateStateProxyMessage, ValidationContext,
     VerifyMembershipProxyMessage,
 };
-use light_client::types::{Any, ClientId, Height, Time};
+use light_client::types::{Any, ClientId, Height, Time, TimeError};
 use light_client::{
     CreateClientResult, Error as LightClientError, HostClientReader, LightClient, MisbehaviourData,
     UpdateClientResult, UpdateStateData, VerifyMembershipResult, VerifyNonMembershipResult,
@@ -49,35 +49,9 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> LightClient
         any_client_state: Any,
         any_consensus_state: Any,
     ) -> Result<CreateClientResult, light_client::Error> {
-        let client_state = ClientState::try_from(any_client_state.clone())?;
-        let consensus_state = ConsensusState::try_from(any_consensus_state)?;
-
-        let post_state_id = gen_state_id(client_state.clone(), consensus_state.clone())?;
-
-        let height = client_state.latest_height;
-        let timestamp = consensus_state.timestamp;
-
-        if client_state.frozen {
-            return Err(Error::CannotInitializeFrozenClient.into());
-        }
-        if client_state.latest_height.revision_height() == 0 {
-            return Err(Error::UnexpectedLatestHeight(client_state.latest_height).into());
-        }
-
-        Ok(CreateClientResult {
-            height,
-            message: UpdateStateProxyMessage {
-                prev_state_id: None,
-                post_state_id,
-                emitted_states: vec![EmittedState(height, any_client_state)],
-                prev_height: None,
-                post_height: height,
-                timestamp,
-                context: ValidationContext::Empty,
-            }
-            .into(),
-            prove: false,
-        })
+        return Err(Error::TimeError(
+            TimeError::invalid_date(),
+        ).into());
     }
 
     fn update_client(
