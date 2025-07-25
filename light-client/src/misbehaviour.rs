@@ -100,7 +100,8 @@ impl TryFrom<RawFaultDisputeGameConfig> for FaultDisputeGameConfig {
             fault_dispute_game_status_slot_offset: value.fault_dispute_game_status_slot_offset,
             fault_dispute_game_created_at_slot_offset: value
                 .fault_dispute_game_created_at_slot_offset,
-            status_defender_win: value.status_defender_win as u8,
+            status_defender_win: u8::try_from(value.status_defender_win)
+                .map_err(|_| Error::UnexpectedStatusDefenderWin(value.status_defender_win))?,
         })
     }
 }
