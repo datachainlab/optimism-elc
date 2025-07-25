@@ -225,6 +225,8 @@ pub enum Error {
     UnexpectedGameCreatedAt(u64, u64),
     #[error("UnexpectedCreatedAt: data={0}")]
     UnexpectedCreatedAt(TryFromSliceError),
+    #[error("UnexpectedStatusDefenderWin: data={0}")]
+    UnexpectedStatusDefenderWin(u32),
 
     // Framework
     #[error("LCPError: err={0:?}")]
