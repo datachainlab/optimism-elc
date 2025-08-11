@@ -939,7 +939,7 @@ dependencies = [
 [[package]]
 name = "commitments"
 version = "0.1.0"
-source = "git+https://github.com/datachainlab/lcp?rev=v0.2.14#1450b481d5d95c3a319cfd9051ad06437e8f5466"
+source = "git+https://github.com/yoshidan/lcp?branch=feature%2Focall_print#fd8ffc4c7d8ce302a949f97d4596627d6202a96b"
 dependencies = [
  "alloy-sol-types 0.8.25",
  "crypto",
@@ -1038,7 +1038,7 @@ checksum = "43da5946c66ffcc7745f48db692ffbb10a83bfe0afd96235c5c2a4fb23994929"
 [[package]]
 name = "crypto"
 version = "0.1.0"
-source = "git+https://github.com/datachainlab/lcp?rev=v0.2.14#1450b481d5d95c3a319cfd9051ad06437e8f5466"
+source = "git+https://github.com/yoshidan/lcp?branch=feature%2Focall_print#fd8ffc4c7d8ce302a949f97d4596627d6202a96b"
 dependencies = [
  "flex-error",
  "hex",
@@ -1324,6 +1324,14 @@ dependencies = [
  "serdect",
  "subtle",
  "zeroize",
+]
+
+[[package]]
+name = "enclave-util"
+version = "0.1.0"
+source = "git+https://github.com/yoshidan/lcp?branch=feature%2Focall_print#fd8ffc4c7d8ce302a949f97d4596627d6202a96b"
+dependencies = [
+ "sgx_tstd",
 ]
 
 [[package]]
@@ -1615,6 +1623,11 @@ dependencies = [
  "foldhash",
  "serde",
 ]
+
+[[package]]
+name = "hashbrown_tstd"
+version = "0.12.0"
+source = "git+https://github.com/apache/incubator-teaclave-sgx-sdk?rev=v1.1.6#c3d82372dff81e5bafb07f71bc8ad532d06b504e"
 
 [[package]]
 name = "heck"
@@ -2189,7 +2202,7 @@ dependencies = [
 [[package]]
 name = "lcp-proto"
 version = "0.1.0"
-source = "git+https://github.com/datachainlab/lcp?rev=v0.2.14#1450b481d5d95c3a319cfd9051ad06437e8f5466"
+source = "git+https://github.com/yoshidan/lcp?branch=feature%2Focall_print#fd8ffc4c7d8ce302a949f97d4596627d6202a96b"
 dependencies = [
  "ibc-proto",
  "prost",
@@ -2199,7 +2212,7 @@ dependencies = [
 [[package]]
 name = "lcp-types"
 version = "0.1.0"
-source = "git+https://github.com/datachainlab/lcp?rev=v0.2.14#1450b481d5d95c3a319cfd9051ad06437e8f5466"
+source = "git+https://github.com/yoshidan/lcp?branch=feature%2Focall_print#fd8ffc4c7d8ce302a949f97d4596627d6202a96b"
 dependencies = [
  "flex-error",
  "hex",
@@ -2272,7 +2285,7 @@ dependencies = [
 [[package]]
 name = "light-client"
 version = "0.1.0"
-source = "git+https://github.com/datachainlab/lcp?rev=v0.2.14#1450b481d5d95c3a319cfd9051ad06437e8f5466"
+source = "git+https://github.com/yoshidan/lcp?branch=feature%2Focall_print#fd8ffc4c7d8ce302a949f97d4596627d6202a96b"
 dependencies = [
  "bincode 2.0.1",
  "commitments",
@@ -2610,6 +2623,7 @@ version = "0.1.1"
 dependencies = [
  "alloy-consensus",
  "alloy-primitives 1.2.1",
+ "enclave-util",
  "ethereum-consensus",
  "ethereum-light-client-verifier",
  "kona-genesis",
@@ -3548,9 +3562,84 @@ dependencies = [
 ]
 
 [[package]]
+name = "sgx_alloc"
+version = "1.1.6"
+source = "git+https://github.com/apache/incubator-teaclave-sgx-sdk?rev=v1.1.6#c3d82372dff81e5bafb07f71bc8ad532d06b504e"
+
+[[package]]
+name = "sgx_backtrace_sys"
+version = "1.1.6"
+source = "git+https://github.com/apache/incubator-teaclave-sgx-sdk?rev=v1.1.6#c3d82372dff81e5bafb07f71bc8ad532d06b504e"
+dependencies = [
+ "cc",
+ "sgx_build_helper",
+ "sgx_libc",
+]
+
+[[package]]
+name = "sgx_build_helper"
+version = "1.1.6"
+source = "git+https://github.com/apache/incubator-teaclave-sgx-sdk?rev=v1.1.6#c3d82372dff81e5bafb07f71bc8ad532d06b504e"
+
+[[package]]
+name = "sgx_demangle"
+version = "1.1.6"
+source = "git+https://github.com/apache/incubator-teaclave-sgx-sdk?rev=v1.1.6#c3d82372dff81e5bafb07f71bc8ad532d06b504e"
+
+[[package]]
+name = "sgx_libc"
+version = "1.1.6"
+source = "git+https://github.com/apache/incubator-teaclave-sgx-sdk?rev=v1.1.6#c3d82372dff81e5bafb07f71bc8ad532d06b504e"
+dependencies = [
+ "sgx_types",
+]
+
+[[package]]
+name = "sgx_tprotected_fs"
+version = "1.1.6"
+source = "git+https://github.com/apache/incubator-teaclave-sgx-sdk?rev=v1.1.6#c3d82372dff81e5bafb07f71bc8ad532d06b504e"
+dependencies = [
+ "sgx_trts",
+ "sgx_types",
+]
+
+[[package]]
+name = "sgx_trts"
+version = "1.1.6"
+source = "git+https://github.com/apache/incubator-teaclave-sgx-sdk?rev=v1.1.6#c3d82372dff81e5bafb07f71bc8ad532d06b504e"
+dependencies = [
+ "sgx_libc",
+ "sgx_types",
+]
+
+[[package]]
+name = "sgx_tstd"
+version = "1.1.6"
+source = "git+https://github.com/apache/incubator-teaclave-sgx-sdk?rev=v1.1.6#c3d82372dff81e5bafb07f71bc8ad532d06b504e"
+dependencies = [
+ "hashbrown_tstd",
+ "sgx_alloc",
+ "sgx_backtrace_sys",
+ "sgx_demangle",
+ "sgx_libc",
+ "sgx_tprotected_fs",
+ "sgx_trts",
+ "sgx_types",
+ "sgx_unwind",
+]
+
+[[package]]
 name = "sgx_types"
 version = "1.1.6"
 source = "git+https://github.com/apache/incubator-teaclave-sgx-sdk?rev=v1.1.6#c3d82372dff81e5bafb07f71bc8ad532d06b504e"
+
+[[package]]
+name = "sgx_unwind"
+version = "1.1.6"
+source = "git+https://github.com/apache/incubator-teaclave-sgx-sdk?rev=v1.1.6#c3d82372dff81e5bafb07f71bc8ad532d06b504e"
+dependencies = [
+ "sgx_build_helper",
+]
 
 [[package]]
 name = "sha2"
@@ -3734,7 +3823,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 [[package]]
 name = "store"
 version = "0.1.0"
-source = "git+https://github.com/datachainlab/lcp?rev=v0.2.14#1450b481d5d95c3a319cfd9051ad06437e8f5466"
+source = "git+https://github.com/yoshidan/lcp?branch=feature%2Focall_print#fd8ffc4c7d8ce302a949f97d4596627d6202a96b"
 dependencies = [
  "flex-error",
  "log",
