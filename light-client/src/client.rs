@@ -86,6 +86,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> LightClient
         client_id: ClientId,
         client_message: Any,
     ) -> Result<UpdateClientResult, light_client::Error> {
+        enclave_util::log("OptimismLightClient::update_client".to_string());
         match ClientMessage::<L1_SYNC_COMMITTEE_SIZE>::try_from(client_message.clone())? {
             ClientMessage::Header(header) => Ok(self.update_state(ctx, client_id, header)?.into()),
             ClientMessage::Misbehaviour(misbehaviour) => Ok(self
