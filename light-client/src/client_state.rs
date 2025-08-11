@@ -8,6 +8,7 @@ use crate::misc::{
     validate_state_timestamp_within_trusting_period,
 };
 use alloc::borrow::ToOwned;
+use alloc::format;
 use alloc::vec::Vec;
 use alloy_primitives::B256;
 use ethereum_consensus::beacon::Version;
@@ -25,6 +26,7 @@ use optimism_ibc_proto::ibc::lightclients::ethereum::v1::{
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::ClientState as RawClientState;
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::L1Config as RawL1Config;
 use prost::Message;
+use crate::logger;
 
 pub const OPTIMISM_CLIENT_STATE_TYPE_URL: &str = "/ibc.lightclients.optimism.v1.ClientState";
 
@@ -70,6 +72,7 @@ impl ClientState {
         trusted_consensus_state: &ConsensusState,
         header: Header<L1_SYNC_COMMITTEE_SIZE>,
     ) -> Result<(ClientState, ConsensusState, Height), Error> {
+        logger::info(&format!("check_header_and_update_state trusted_height={}", header.trusted_height.revision_height()));
         // Since the L1 block hash is used for L2 derivation, the validity of L1 must be verified.
         let l1_consensus = header.verify_l1(
             &self.l1_config,

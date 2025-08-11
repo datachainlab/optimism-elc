@@ -6,7 +6,7 @@ use crate::header::Header;
 use crate::message::ClientMessage;
 use crate::misbehaviour::Misbehaviour;
 use alloc::string::{String, ToString};
-use alloc::vec;
+use alloc::{format, vec};
 use alloc::vec::Vec;
 use alloy_primitives::keccak256;
 use core::time::Duration;
@@ -21,6 +21,7 @@ use light_client::{
     CreateClientResult, Error as LightClientError, HostClientReader, LightClient, MisbehaviourData,
     UpdateClientResult, UpdateStateData, VerifyMembershipResult, VerifyNonMembershipResult,
 };
+use crate::logger;
 
 pub struct OptimismLightClient<const L1_SYNC_COMMITTEE_SIZE: usize>;
 
@@ -86,6 +87,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> LightClient
         client_id: ClientId,
         client_message: Any,
     ) -> Result<UpdateClientResult, light_client::Error> {
+        logger::info(&format!("update_client {}", client_id.to_string()));
         match ClientMessage::<L1_SYNC_COMMITTEE_SIZE>::try_from(client_message.clone())? {
             ClientMessage::Header(header) => Ok(self.update_state(ctx, client_id, header)?.into()),
             ClientMessage::Misbehaviour(misbehaviour) => Ok(self
@@ -173,6 +175,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> OptimismLightClient<L1_SYNC_COMMITTEE_
         client_id: ClientId,
         header: Header<L1_SYNC_COMMITTEE_SIZE>,
     ) -> Result<UpdateStateData, Error> {
+        logger::info(&format!("update_state {} trusted_height={}", client_id.to_string(), header.trusted_height.revision_height()));
         let trusted_height = header.trusted_height;
         let any_client_state = ctx.client_state(&client_id).map_err(Error::LCPError)?;
         let any_consensus_state = ctx
