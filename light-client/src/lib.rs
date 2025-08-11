@@ -15,6 +15,7 @@ mod commitment;
 pub mod errors;
 pub mod header;
 mod l1;
+mod logger;
 mod message;
 mod misbehaviour;
 mod misc;
