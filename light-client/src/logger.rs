@@ -1,7 +1,3 @@
-#![no_std]
-#[macro_use]
-extern crate alloc;
-
 use alloc::vec::Vec;
 
 extern "C" {
