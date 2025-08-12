@@ -6,8 +6,8 @@ use crate::header::Header;
 use crate::message::ClientMessage;
 use crate::misbehaviour::Misbehaviour;
 use alloc::string::{String, ToString};
-use alloc::{format, vec};
 use alloc::vec::Vec;
+use alloc::{format, vec};
 use alloy_primitives::keccak256;
 use core::time::Duration;
 use ethereum_consensus::types::H256;
@@ -21,7 +21,7 @@ use light_client::{
     CreateClientResult, Error as LightClientError, HostClientReader, LightClient, MisbehaviourData,
     UpdateClientResult, UpdateStateData, VerifyMembershipResult, VerifyNonMembershipResult,
 };
-use crate::logger;
+use optimism_derivation::logger;
 
 pub struct OptimismLightClient<const L1_SYNC_COMMITTEE_SIZE: usize>;
 
@@ -175,7 +175,11 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> OptimismLightClient<L1_SYNC_COMMITTEE_
         client_id: ClientId,
         header: Header<L1_SYNC_COMMITTEE_SIZE>,
     ) -> Result<UpdateStateData, Error> {
-        logger::info(&format!("update_state {} trusted_height={}", client_id.to_string(), header.trusted_height.revision_height()));
+        logger::info(&format!(
+            "update_state {} trusted_height={}",
+            client_id.to_string(),
+            header.trusted_height.revision_height()
+        ));
         let trusted_height = header.trusted_height;
         let any_client_state = ctx.client_state(&client_id).map_err(Error::LCPError)?;
         let any_consensus_state = ctx

@@ -1,6 +1,8 @@
-use crate::errors;
 use crate::errors::Error;
 use crate::oracle::{MemoryOracleClient, NopeHintWriter};
+use crate::{errors, logger};
+use alloc::fmt::format;
+use alloc::format;
 use alloc::sync::Arc;
 use alloy_consensus::Header;
 use alloy_primitives::{keccak256, Sealed, B256};
@@ -73,6 +75,12 @@ impl Derivation {
             rollup_config: rollup_config.clone(),
         };
         let rollup_config = Arc::new(boot.rollup_config.clone());
+
+        logger::info(&format!(
+            "fetching safe head hash {:?} for L2 derivation",
+            boot.agreed_l2_output_root
+        ));
+
         let safe_head_hash = fetch_safe_head_hash(&oracle, boot.agreed_l2_output_root).await?;
         let oracle_for_preimage = oracle.clone();
         let oracle = Arc::new(oracle);
@@ -106,6 +114,7 @@ impl Derivation {
         )
         .await?;
 
+        logger::info(&format!("create evm factory"));
         let evm_factory = FpvmOpEvmFactory::new(NopeHintWriter, oracle_for_preimage);
         let executor = KonaExecutor::new(
             rollup_config.as_ref(),
@@ -118,10 +127,18 @@ impl Derivation {
 
         // Run the derivation pipeline until we are able to produce the output root of the claimed
         // L2 block.
+        logger::info(&format!(
+            "start advancing to target L2 block {}",
+            boot.claimed_l2_block_number
+        ));
         let (_, output_root) = driver
             .advance_to_target(&boot.rollup_config, Some(boot.claimed_l2_block_number))
             .await?;
 
+        logger::info(&format!(
+            "end advancing to target L2 block {}",
+            boot.claimed_l2_block_number
+        ));
         ////////////////////////////////////////////////////////////////
         //                          EPILOGUE                          //
         ////////////////////////////////////////////////////////////////

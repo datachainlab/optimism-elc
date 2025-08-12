@@ -18,6 +18,7 @@ use ethereum_light_client_verifier::context::Fraction;
 use ethereum_light_client_verifier::execution::ExecutionVerifier;
 use kona_genesis::RollupConfig;
 use light_client::types::{Any, ClientId, Height, Time};
+use optimism_derivation::logger;
 use optimism_ibc_proto::google::protobuf::Any as IBCAny;
 use optimism_ibc_proto::ibc::lightclients::ethereum::v1::{
     Fork as ProtoFork, ForkParameters as ProtoForkParameters, ForkSpec as ProtoForkSpec,
@@ -26,7 +27,6 @@ use optimism_ibc_proto::ibc::lightclients::ethereum::v1::{
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::ClientState as RawClientState;
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::L1Config as RawL1Config;
 use prost::Message;
-use crate::logger;
 
 pub const OPTIMISM_CLIENT_STATE_TYPE_URL: &str = "/ibc.lightclients.optimism.v1.ClientState";
 
@@ -72,7 +72,10 @@ impl ClientState {
         trusted_consensus_state: &ConsensusState,
         header: Header<L1_SYNC_COMMITTEE_SIZE>,
     ) -> Result<(ClientState, ConsensusState, Height), Error> {
-        logger::info(&format!("check_header_and_update_state trusted_height={}", header.trusted_height.revision_height()));
+        logger::info(&format!(
+            "check_header_and_update_state trusted_height={}",
+            header.trusted_height.revision_height()
+        ));
         // Since the L1 block hash is used for L2 derivation, the validity of L1 must be verified.
         let l1_consensus = header.verify_l1(
             &self.l1_config,
