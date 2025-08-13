@@ -145,11 +145,13 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
     type Error = Error;
 
     fn try_from(header: RawHeader) -> Result<Self, Self::Error> {
+        logger::info("try from trusted_to_deterministic");
         let mut trusted_to_deterministic: Vec<L1Header<L1_SYNC_COMMITTEE_SIZE>> =
             Vec::with_capacity(header.trusted_to_deterministic.len());
         for l1_header in header.trusted_to_deterministic {
             trusted_to_deterministic.push(l1_header.try_into()?);
         }
+        logger::info("try from deterministic_to_latest");
         let mut deterministic_to_latest: Vec<L1Header<L1_SYNC_COMMITTEE_SIZE>> =
             Vec::with_capacity(header.deterministic_to_latest.len());
         for l1_header in header.deterministic_to_latest {
@@ -157,6 +159,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
         }
         let raw_derivation = header.derivation.ok_or(Error::UnexpectedEmptyDerivations)?;
 
+        logger::info("try from derivation");
         let derivation = Derivation::new(
             B256::from(
                 deterministic_to_latest
@@ -173,13 +176,16 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
             raw_derivation.l2_block_number,
         );
 
+        logger::info("try from Preimages decode");
         let preimages =
             Preimages::decode(header.preimages.as_slice()).map_err(Error::ProtoDecodeError)?;
+        logger::info("try from account update");
         let account_update_info = header
             .account_update
             .ok_or(Error::MissingAccountUpdate)?
             .try_into()?;
 
+        logger::info("try from MemoryOracleClient");
         let oracle: MemoryOracleClient = preimages
             .preimages
             .try_into()
