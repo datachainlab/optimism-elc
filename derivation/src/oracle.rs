@@ -1,7 +1,7 @@
 use crate::errors::Error;
 use crate::errors::Error::UnexpectedPreimageKeySize;
 use crate::types::Preimage;
-use crate::POSITION_FIELD_ELEMENT;
+use crate::{logger, POSITION_FIELD_ELEMENT};
 use alloc::boxed::Box;
 use alloc::format;
 use alloc::sync::Arc;
@@ -108,8 +108,16 @@ impl TryFrom<Vec<Preimage>> for MemoryOracleClient {
     type Error = Error;
 
     fn try_from(value: Vec<Preimage>) -> Result<Self, Self::Error> {
+        logger::info(&format!(
+            "try from MemoryOracleClient capacity={}",
+            value.len()
+        ));
         let mut inner = HashMap::with_capacity(value.len());
-        for preimage in value {
+        logger::info("MemoryOracleClient start to insert into hash ");
+        for (i, preimage) in value.into_iter().enumerate() {
+            if i % 10000 == 0 {
+                logger::info(&format!("MemoryOracleClient insert into hash {}", i));
+            }
             let key: [u8; 32] = preimage
                 .key
                 .try_into()
@@ -117,6 +125,9 @@ impl TryFrom<Vec<Preimage>> for MemoryOracleClient {
             let preimage_key = PreimageKey::try_from(key)
                 .map_err(|e| Error::UnexpectedPreimageKey { source: e, key })?;
 
+            if i % 10000 == 0 {
+                logger::info(&format!("verify hash {}", i));
+            }
             // Ensure hash type preimage is valid
             match preimage_key.key_type() {
                 PreimageKeyType::Keccak256 => {
@@ -137,10 +148,14 @@ impl TryFrom<Vec<Preimage>> for MemoryOracleClient {
             }
         }
 
+        logger::info("generate_valid_suffixes");
         // Ensure blob preimage is valid
         let (valid_suffixes, roots_of_unity) = generate_valid_suffixes();
         let mut kzg_cache = HashSet::<Vec<u8>>::new();
-        for (key, _) in inner.iter() {
+        for (i, (key, _)) in inner.iter().enumerate() {
+            if i % 10000 == 0 {
+                logger::info(&format!("verify_blob and precompile {}", i));
+            }
             if key.key_type() == PreimageKeyType::Blob {
                 verify_blob_preimage(
                     key,
@@ -153,6 +168,7 @@ impl TryFrom<Vec<Preimage>> for MemoryOracleClient {
                 verify_precompile(key, &inner)?
             }
         }
+        logger::info("try from MemoryOracleClient success");
         Ok(Self {
             preimages: Arc::new(inner),
         })
