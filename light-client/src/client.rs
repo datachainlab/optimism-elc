@@ -363,7 +363,7 @@ mod test {
     use light_client::{
         ClientReader, HostClientReader, HostContext, LightClient, UpdateClientResult,
     };
-    use light_client::types::proto::lcp::service::elc::v1::MsgUpdateClient;
+    use light_client::types::proto::lcp::service::elc::v1::{MsgCreateClient, MsgUpdateClient};
     use optimism_ibc_proto::ibc::lightclients::optimism::v1::ClientState as RawClientState;
     use optimism_ibc_proto::ibc::lightclients::optimism::v1::ConsensusState as RawConsensusState;
     use prost::Message;
@@ -489,6 +489,16 @@ mod test {
         >;
         let (cs, cons_state) = get_initial_state();
         let any_cs = Any::try_from(cs.clone()).unwrap();
+        let any_cons = Any::try_from(cons_state.clone()).unwrap();
+        let msg = MsgCreateClient {
+            client_id: "optimism-1".to_string(),
+            client_state: Some(any_cons.clone().to_proto()),
+            consensus_state: Some(any_cs.clone().to_proto()),
+            signer: [0u8; 20].into(),
+        };
+        let value = serde_json::to_vec(&msg).unwrap();
+        std::fs::write("../testdata/create_client_message.json", value).unwrap();
+
         let result = client
             .create_client(
                 &MockClientReader::default(),
