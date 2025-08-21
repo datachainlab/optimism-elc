@@ -492,8 +492,8 @@ mod test {
         let any_cons = Any::try_from(cons_state.clone()).unwrap();
         let msg = MsgCreateClient {
             client_id: "optimism-1".to_string(),
-            client_state: Some(any_cons.clone().to_proto()),
-            consensus_state: Some(any_cs.clone().to_proto()),
+            client_state: Some(any_cs.clone().to_proto()),
+            consensus_state: Some(any_cons.clone().to_proto()),
             signer: [0u8; 20].into(),
         };
         let value = serde_json::to_vec(&msg).unwrap();
