@@ -352,7 +352,7 @@ mod test {
     use crate::l1::tests::get_l1_config;
     use crate::misbehaviour::FaultDisputeGameConfig;
     use alloc::collections::BTreeMap;
-    use alloc::format;
+    use alloc::{format, vec};
     use alloc::string::{String, ToString};
     use alloc::vec::Vec;
     use alloy_primitives::{hex, B256};
@@ -363,6 +363,7 @@ mod test {
     use light_client::{
         ClientReader, HostClientReader, HostContext, LightClient, UpdateClientResult,
     };
+    use light_client::types::proto::lcp::service::elc::v1::MsgUpdateClient;
     use optimism_ibc_proto::ibc::lightclients::optimism::v1::ClientState as RawClientState;
     use optimism_ibc_proto::ibc::lightclients::optimism::v1::ConsensusState as RawConsensusState;
     use prost::Message;
@@ -567,6 +568,19 @@ mod test {
     /// deterministic_to_latest = any period + latest
     #[test]
     fn test_update_client_t_pl() {
+        let client_message =
+            std::fs::read(format!("../testdata/update_client_header_t_pl.bin"))
+                .expect("file not found");
+        let client_message = Any::try_from(client_message).unwrap();
+        let client = MsgUpdateClient {
+            client_id: "optimism-1".to_string(),
+            header: Some(client_message.to_proto()),
+            include_state: false,
+            signer: [0u8; 20].into(),
+        };
+        let value = serde_json::to_vec(&client).unwrap();
+        std::fs::write("../testdata/update_client_message.json", value).unwrap();
+
         let (raw_cs, raw_cons_state) = get_raw_initial_state();
         test_update_client(1751437975, raw_cs, raw_cons_state, "t_pl");
     }
