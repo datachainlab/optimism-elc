@@ -5,7 +5,7 @@ use crate::l1::{L1Config, L1Consensus, L1Header, Misbehaviour as L1Misbehaviour}
 use alloc::vec::Vec;
 use alloy_consensus::Header;
 use alloy_primitives::private::alloy_rlp::Decodable;
-use alloy_primitives::{keccak256, B256};
+use alloy_primitives::{hex, keccak256, B256};
 use core::str::FromStr;
 use ethereum_consensus::types::{Address, H256};
 use ethereum_light_client_verifier::execution::ExecutionVerifier;
@@ -700,6 +700,19 @@ fn decode_headers(value: Vec<Vec<u8>>) -> Result<Vec<Header>, Error> {
     Ok(headers)
 }
 
+impl Default for FaultDisputeGameConfig {
+    fn default() -> Self {
+        Self {
+            dispute_game_factory_address: Address(hex!("05F9613aDB30026FFd634f38e5C4dFd30a197Fa1")),
+            dispute_game_factory_target_storage_slot: 103,
+            fault_dispute_game_status_slot: 0,
+            fault_dispute_game_status_slot_offset: 15,
+            fault_dispute_game_created_at_slot_offset: 24,
+            status_defender_win: 2,
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crate::account::AccountUpdateInfo;
@@ -726,21 +739,6 @@ mod test {
         AccountUpdate as RawAccountUpdate, L1Header,
     };
     use rlp::EMPTY_LIST_RLP;
-
-    impl Default for FaultDisputeGameConfig {
-        fn default() -> Self {
-            Self {
-                dispute_game_factory_address: Address(hex!(
-                    "05F9613aDB30026FFd634f38e5C4dFd30a197Fa1"
-                )),
-                dispute_game_factory_target_storage_slot: 103,
-                fault_dispute_game_status_slot: 0,
-                fault_dispute_game_status_slot_offset: 15,
-                fault_dispute_game_created_at_slot_offset: 24,
-                status_defender_win: 2,
-            }
-        }
-    }
 
     fn default_valid_claim() -> (u64, B256) {
         (

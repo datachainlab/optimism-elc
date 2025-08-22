@@ -3,6 +3,7 @@ use crate::consensus_state::ConsensusState;
 use crate::errors::Error;
 use crate::l1::{L1Config, L1Consensus, L1Header};
 use alloc::boxed::Box;
+use alloc::vec;
 use alloc::vec::Vec;
 use alloy_primitives::B256;
 use kona_genesis::RollupConfig;
@@ -131,26 +132,17 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
     type Error = Error;
 
     fn try_from(header: RawHeader) -> Result<Self, Self::Error> {
-        let mut trusted_to_deterministic: Vec<L1Header<L1_SYNC_COMMITTEE_SIZE>> =
-            Vec::with_capacity(header.trusted_to_deterministic.len());
-        for l1_header in header.trusted_to_deterministic {
-            trusted_to_deterministic.push(l1_header.try_into()?);
-        }
-        let mut deterministic_to_latest: Vec<L1Header<L1_SYNC_COMMITTEE_SIZE>> =
-            Vec::with_capacity(header.deterministic_to_latest.len());
-        for l1_header in header.deterministic_to_latest {
-            deterministic_to_latest.push(l1_header.try_into()?);
-        }
         let raw_derivation = header.derivation.ok_or(Error::UnexpectedEmptyDerivations)?;
-
         let derivation = Derivation::new(
             B256::from(
-                deterministic_to_latest
+                header
+                    .deterministic_to_latest
                     .last()
                     .ok_or(Error::MissingL1Head)?
                     .execution_update
-                    .block_hash
-                    .0,
+                    .clone()
+                    .ok_or(Error::MissingL1Head)?
+                    .block_hash,
             ),
             B256::try_from(raw_derivation.agreed_l2_output_root.as_slice())
                 .map_err(Error::UnexpectedAgreedL2HeadOutput)?,
@@ -161,10 +153,6 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
 
         let preimages =
             Preimages::decode(header.preimages.as_slice()).map_err(Error::ProtoDecodeError)?;
-        let account_update_info = header
-            .account_update
-            .ok_or(Error::MissingAccountUpdate)?
-            .try_into()?;
 
         let oracle: MemoryOracleClient = preimages
             .preimages
@@ -173,14 +161,17 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
         let trusted_height = header.trusted_height.ok_or(Error::MissingTrustedHeight)?;
         Ok(Self {
             l1_headers: L1Headers {
-                trusted_to_deterministic,
-                deterministic_to_latest,
+                trusted_to_deterministic: vec![],
+                deterministic_to_latest: vec![],
             },
             trusted_height: Height::new(
                 trusted_height.revision_number,
                 trusted_height.revision_height,
             ),
-            account_update: account_update_info,
+            account_update: AccountUpdateInfo {
+                account_proof: vec![],
+                account_storage_root: Default::default(),
+            },
             derivation,
             oracle,
         })

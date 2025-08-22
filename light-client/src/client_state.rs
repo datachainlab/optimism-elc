@@ -357,12 +357,6 @@ impl TryFrom<RawClientState> for ClientState {
 
         let frozen = value.frozen;
 
-        let l1_config = value.l1_config.ok_or(Error::MissingL1Config)?;
-        let l1_config = L1Config::try_from(l1_config)?;
-        let fault_dispute_game_config = value
-            .fault_dispute_game_config
-            .ok_or(Error::MissingFaultDisputeGameConfig)?;
-
         Ok(Self {
             chain_id: value.chain_id,
             ibc_store_address,
@@ -370,8 +364,8 @@ impl TryFrom<RawClientState> for ClientState {
             latest_height,
             frozen,
             rollup_config,
-            l1_config,
-            fault_dispute_game_config: fault_dispute_game_config.try_into()?,
+            l1_config: L1Config::default(),
+            fault_dispute_game_config: FaultDisputeGameConfig::default(),
         })
     }
 }
