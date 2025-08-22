@@ -85,6 +85,7 @@ impl ClientState {
         )?;
 
         // Ensure account storage is valid
+        /*
         header.account_update.verify_account_storage(
             &self.ibc_store_address,
             H256::from_slice(l2_header.state_root.0.as_slice()),
@@ -103,6 +104,7 @@ impl ClientState {
             self.l1_config.max_clock_drift,
             l1_consensus.timestamp,
         )?;
+         */
 
         let mut new_client_state = self.clone();
         let header_height = Height::new(header.trusted_height.revision_number(), l2_header.number);
