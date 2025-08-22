@@ -134,7 +134,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
     fn try_from(header: RawHeader) -> Result<Self, Self::Error> {
         let raw_derivation = header.derivation.ok_or(Error::UnexpectedEmptyDerivations)?;
         let derivation = Derivation::new(
-            B256::from(
+            B256::try_from(
                 header
                     .deterministic_to_latest
                     .last()
@@ -142,8 +142,8 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> TryFrom<RawHeader> for Header<L1_SYNC_
                     .execution_update
                     .clone()
                     .ok_or(Error::MissingL1Head)?
-                    .block_hash,
-            ),
+                    .block_hash.as_slice()
+            ).map_err(|_| Error::MissingL1Head)?,
             B256::try_from(raw_derivation.agreed_l2_output_root.as_slice())
                 .map_err(Error::UnexpectedAgreedL2HeadOutput)?,
             B256::try_from(raw_derivation.l2_output_root.as_slice())
