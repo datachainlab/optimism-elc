@@ -8,7 +8,7 @@ use core::clone::Clone;
 use core::fmt::Debug;
 use kona_client::fpvm_evm::FpvmOpEvmFactory;
 use kona_client::single::fetch_safe_head_hash;
-use kona_derive::sources::EthereumDataSource;
+use kona_derive::EthereumDataSource;
 use kona_driver::Driver;
 use kona_executor::TrieDBProvider;
 use kona_genesis::RollupConfig;
@@ -185,7 +185,7 @@ mod test {
     fn test_verify_config_invalid_error() {
         let rollup_config = RollupConfig::default();
         let rollup_config2 = RollupConfig {
-            l2_chain_id: rollup_config.l2_chain_id + 1,
+            l2_chain_id: (rollup_config.l2_chain_id.id() + 1).into(),
             ..rollup_config.clone()
         };
 

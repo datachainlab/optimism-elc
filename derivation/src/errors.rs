@@ -55,7 +55,7 @@ pub enum Error {
     #[error("DriverError: err={0:?}")]
     DriverError(#[from] kona_driver::DriverError<kona_executor::ExecutorError>),
     #[error("PipelineError: err={0:?}")]
-    PipelineError(#[from] kona_derive::errors::PipelineErrorKind),
+    PipelineError(#[from] kona_derive::PipelineErrorKind),
     #[error("SerdeError: err={0:?}")]
     SerdeError(#[from] serde_json::Error),
     #[error("UnexpectedLocalPreimageKey: key={0:?}")]
