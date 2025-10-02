@@ -46,8 +46,7 @@ impl PreimageOracleClient for MemoryOracleClient {
             Ok(value.clone())
         } else {
             Err(PreimageOracleError::Other(format!(
-                "key not found: {:?}",
-                key
+                "key not found: {key:?}"
             )))
         }
     }
@@ -58,8 +57,7 @@ impl PreimageOracleClient for MemoryOracleClient {
             Ok(())
         } else {
             Err(PreimageOracleError::Other(format!(
-                "key not found: {:?}",
-                key
+                "key not found: {key:?}"
             )))
         }
     }

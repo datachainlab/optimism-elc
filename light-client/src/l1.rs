@@ -847,9 +847,8 @@ pub(crate) mod tests {
         match err {
             Error::L1VerifyConsensusUpdateError(e) => {
                 assert!(
-                    format!("{:?}", e).contains("InconsistentSlotOrder"),
-                    "Err {:?}",
-                    e
+                    format!("{e:?}").contains("InconsistentSlotOrder"),
+                    "Err {e:?}"
                 );
             }
             _ => panic!("Unexpected error: {:?}", err),
@@ -870,9 +869,8 @@ pub(crate) mod tests {
         match err {
             Error::L1VerifyExecutionUpdateError(e) => {
                 assert!(
-                    format!("{:?}", e).contains("InvalidExecutionStateRootMerkleBranch"),
-                    "Err {:?}",
-                    e
+                    format!("{e:?}").contains("InvalidExecutionStateRootMerkleBranch"),
+                    "Err {e:?}"
                 );
             }
             _ => panic!("Unexpected error: {:?}", err),
