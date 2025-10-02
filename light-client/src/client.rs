@@ -535,8 +535,7 @@ mod test {
             .unwrap_err();
         assert!(
             err.to_string().contains("CannotInitializeFrozenClient"),
-            "{:?}",
-            err
+            "{err:?}"
         );
     }
 
@@ -558,8 +557,7 @@ mod test {
             .unwrap_err();
         assert!(
             err.to_string().contains("UnexpectedLatestHeight"),
-            "{:?}",
-            err
+            "{err:?}"
         );
     }
 
@@ -611,7 +609,7 @@ mod test {
         cons_states.insert(cs.latest_height, cons_state);
 
         let client_message =
-            std::fs::read(format!("../testdata/update_client_header_{}.bin", suffix))
+            std::fs::read(format!("../testdata/update_client_header_{suffix}.bin"))
                 .expect("file not found");
         let client_message = Any::try_from(client_message).unwrap();
 
@@ -713,8 +711,7 @@ mod test {
             .unwrap_err();
         assert!(
             err.to_string().contains("UnexpectedTrustedOutputRoot"),
-            "{:?}",
-            err
+            "{err:?}"
         );
     }
 
@@ -743,8 +740,7 @@ mod test {
             .unwrap_err();
         assert!(
             err.to_string().contains("UnexpectedPastL1Header"),
-            "{:?}",
-            err
+            "{err:?}"
         );
     }
 
@@ -773,8 +769,7 @@ mod test {
             .unwrap_err();
         assert!(
             err.to_string().contains("UnexpectedMisbehaviourOutput"),
-            "{:?}",
-            err
+            "{err:?}"
         );
     }
 
@@ -802,8 +797,7 @@ mod test {
             .unwrap_err();
         assert!(
             err.to_string().contains("UnexpectedMisbehaviourHeight"),
-            "{:?}",
-            err
+            "{err:?}"
         );
     }
 
@@ -851,8 +845,7 @@ mod test {
             .unwrap_err();
         assert!(
             err.to_string().contains("L1VerifyMisbehaviourError"),
-            "{:?}",
-            err
+            "{err:?}"
         );
     }
 
@@ -897,7 +890,7 @@ mod test {
             proof_height,
             proof,
         );
-        assert!(res.is_ok(), "{:?}", res);
+        assert!(res.is_ok(), "{res:?}");
     }
 
     #[test]
@@ -939,7 +932,7 @@ mod test {
             proof_height,
             proof,
         );
-        assert!(res.is_ok(), "{:?}", res);
+        assert!(res.is_ok(), "{res:?}");
     }
 
     #[test]
@@ -970,7 +963,7 @@ mod test {
                 proof,
             )
             .unwrap_err();
-        assert!(err.to_string().contains("ClientFrozen"), "{:?}", err);
+        assert!(err.to_string().contains("ClientFrozen"), "{err:?}");
     }
 
     #[test]
@@ -1001,11 +994,7 @@ mod test {
                 proof,
             )
             .unwrap_err();
-        assert!(
-            err.to_string().contains("UnexpectedProofHeight"),
-            "{:?}",
-            err
-        );
+        assert!(err.to_string().contains("UnexpectedProofHeight"), "{err:?}");
     }
 
     // returns: (path, proof, value)
