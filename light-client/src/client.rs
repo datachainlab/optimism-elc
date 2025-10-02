@@ -994,10 +994,7 @@ mod test {
                 proof,
             )
             .unwrap_err();
-        assert!(
-            err.to_string().contains("UnexpectedProofHeight"),
-            "{err:?}"
-        );
+        assert!(err.to_string().contains("UnexpectedProofHeight"), "{err:?}");
     }
 
     // returns: (path, proof, value)
