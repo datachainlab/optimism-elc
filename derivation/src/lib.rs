@@ -1,4 +1,5 @@
 #![no_std]
+#![allow(clippy::result_large_err)]
 extern crate alloc;
 
 pub mod derivation;

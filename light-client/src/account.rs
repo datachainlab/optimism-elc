@@ -91,7 +91,7 @@ mod test {
                 "48b7747ba1094684d9197bbaa5dcb134587d23e493fb53a29e400c50e50f5147"
             )),
         );
-        assert!(res.is_ok(), "{:?}", res);
+        assert!(res.is_ok(), "{res:?}");
     }
 
     #[test]
@@ -149,7 +149,7 @@ mod test {
                 "568a51c3253bbd2d46e3923b35df0489712df11453fd04dd71341120356952c0"
             )),
         );
-        assert!(res.is_ok(), "{:?}", res);
+        assert!(res.is_ok(), "{res:?}");
     }
 
     #[test]

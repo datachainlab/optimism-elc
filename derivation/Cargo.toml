@@ -16,6 +16,7 @@ kona-derive = { workspace = true }
 kona-proof = { workspace = true }
 kona-genesis = { workspace = true, features = ["serde"] }
 kona-client = { workspace = true }
+kona-registry = { workspace = true }
 
 # Alloy
 alloy-primitives = { workspace = true }

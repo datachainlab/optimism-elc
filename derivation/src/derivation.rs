@@ -8,12 +8,12 @@ use core::clone::Clone;
 use core::fmt::Debug;
 use kona_client::fpvm_evm::FpvmOpEvmFactory;
 use kona_client::single::fetch_safe_head_hash;
-use kona_derive::sources::EthereumDataSource;
+use kona_derive::EthereumDataSource;
 use kona_driver::Driver;
 use kona_executor::TrieDBProvider;
-use kona_genesis::RollupConfig;
+use kona_genesis::{L1ChainConfig, RollupConfig};
 use kona_preimage::{PreimageKey, PreimageOracleClient};
-use kona_proof::boot::L2_ROLLUP_CONFIG_KEY;
+use kona_proof::boot::{L1_CONFIG_KEY, L2_ROLLUP_CONFIG_KEY};
 use kona_proof::sync::new_oracle_pipeline_cursor;
 use kona_proof::{
     executor::KonaExecutor,
@@ -21,6 +21,7 @@ use kona_proof::{
     l2::OracleL2ChainProvider,
     BootInfo,
 };
+use kona_registry::L1_CONFIGS;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -64,6 +65,7 @@ impl Derivation {
         oracle: MemoryOracleClient,
     ) -> Result<(Header, u64), Error> {
         verify_config(rollup_config, &oracle).await?;
+        let l1_config = load_l1_config(rollup_config, &oracle).await?;
         let boot = &BootInfo {
             l1_head: self.l1_head_hash,
             agreed_l2_output_root: self.agreed_l2_output_root,
@@ -71,6 +73,7 @@ impl Derivation {
             claimed_l2_block_number: self.l2_block_number,
             chain_id,
             rollup_config: rollup_config.clone(),
+            l1_config: l1_config.clone(),
         };
         let rollup_config = Arc::new(boot.rollup_config.clone());
         let safe_head_hash = fetch_safe_head_hash(&oracle, boot.agreed_l2_output_root).await?;
@@ -98,6 +101,7 @@ impl Derivation {
             EthereumDataSource::new_from_parts(l1_provider.clone(), beacon, &rollup_config);
         let pipeline = OraclePipeline::new(
             rollup_config.clone(),
+            l1_config.into(),
             cursor.clone(),
             oracle.clone(),
             da_provider,
@@ -159,6 +163,27 @@ async fn verify_config(
     Ok(())
 }
 
+async fn load_l1_config(
+    rollup_config: &RollupConfig,
+    oracle: &MemoryOracleClient,
+) -> Result<L1ChainConfig, Error> {
+    let l1_config = if let Some(config) = L1_CONFIGS.get(&rollup_config.l1_chain_id) {
+        config.clone()
+    } else {
+        // for devnet only
+        let config_key = PreimageKey::new_local(L1_CONFIG_KEY.to());
+        let ser_cfg = oracle
+            .get(config_key)
+            .await
+            .map_err(|e| Error::UnexpectedPreimageKey {
+                source: e,
+                key: config_key.key_value().to_be_bytes(),
+            })?;
+        serde_json::from_slice(&ser_cfg).map_err(Error::SerdeError)?
+    };
+    Ok(l1_config)
+}
+
 #[cfg(test)]
 mod test {
     use crate::derivation::verify_config;
@@ -185,7 +210,7 @@ mod test {
     fn test_verify_config_invalid_error() {
         let rollup_config = RollupConfig::default();
         let rollup_config2 = RollupConfig {
-            l2_chain_id: rollup_config.l2_chain_id + 1,
+            l2_chain_id: (rollup_config.l2_chain_id.id() + 1).into(),
             ..rollup_config.clone()
         };
 

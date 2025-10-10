@@ -13,7 +13,7 @@ use ark_ff::BigInteger;
 use hashbrown::{HashMap, HashSet};
 use kona_preimage::errors::{PreimageOracleError, PreimageOracleResult};
 use kona_preimage::{HintWriterClient, PreimageKey, PreimageKeyType, PreimageOracleClient};
-use kona_proof::boot::L2_ROLLUP_CONFIG_KEY;
+use kona_proof::boot::{L1_CONFIG_KEY, L2_ROLLUP_CONFIG_KEY};
 use kona_proof::l1::ROOTS_OF_UNITY;
 use kona_proof::FlushableCache;
 use sha2::{Digest, Sha256};
@@ -46,8 +46,7 @@ impl PreimageOracleClient for MemoryOracleClient {
             Ok(value.clone())
         } else {
             Err(PreimageOracleError::Other(format!(
-                "key not found: {:?}",
-                key
+                "key not found: {key:?}"
             )))
         }
     }
@@ -58,8 +57,7 @@ impl PreimageOracleClient for MemoryOracleClient {
             Ok(())
         } else {
             Err(PreimageOracleError::Other(format!(
-                "key not found: {:?}",
-                key
+                "key not found: {key:?}"
             )))
         }
     }
@@ -124,7 +122,8 @@ impl TryFrom<Vec<Preimage>> for MemoryOracleClient {
                 }
                 PreimageKeyType::Sha256 => verify_sha256_preimage(&preimage_key, &preimage.data)?,
                 PreimageKeyType::Local => {
-                    if preimage_key.key_value() != L2_ROLLUP_CONFIG_KEY {
+                    let key = preimage_key.key_value();
+                    if key != L2_ROLLUP_CONFIG_KEY && key != L1_CONFIG_KEY {
                         return Err(Error::UnexpectedLocalPreimageKey(preimage_key));
                     }
                 }
