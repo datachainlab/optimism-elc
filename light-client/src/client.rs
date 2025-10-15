@@ -427,7 +427,6 @@ mod test {
                 ibc_commitments_slot: Default::default(),
                 latest_height: Default::default(),
                 frozen: false,
-                rollup_config: Default::default(),
                 l1_config: get_l1_config(),
                 fault_dispute_game_config: Default::default(),
             }
@@ -817,7 +816,6 @@ mod test {
             l1_config: raw_cs.l1_config.unwrap().try_into().unwrap(),
             fault_dispute_game_config: FaultDisputeGameConfig::default(),
             // unused
-            rollup_config: Default::default(),
             ibc_store_address: Default::default(),
             ibc_commitments_slot: Default::default(),
         };
@@ -1091,7 +1089,6 @@ mod test {
                 .try_into()
                 .unwrap(),
             // unused
-            rollup_config: Default::default(),
             ibc_store_address: Default::default(),
             ibc_commitments_slot: Default::default(),
         }

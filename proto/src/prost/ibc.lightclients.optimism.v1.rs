@@ -59,11 +59,9 @@ pub struct ClientState {
     >,
     #[prost(bool, tag = "5")]
     pub frozen: bool,
-    #[prost(bytes = "vec", tag = "6")]
-    pub rollup_config_json: ::prost::alloc::vec::Vec<u8>,
-    #[prost(message, optional, tag = "7")]
+    #[prost(message, optional, tag = "6")]
     pub l1_config: ::core::option::Option<L1Config>,
-    #[prost(message, optional, tag = "8")]
+    #[prost(message, optional, tag = "7")]
     pub fault_dispute_game_config: ::core::option::Option<FaultDisputeGameConfig>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
