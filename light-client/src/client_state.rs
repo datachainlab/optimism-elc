@@ -15,7 +15,6 @@ use ethereum_consensus::fork::{ForkParameter, ForkParameters, ForkSpec};
 use ethereum_consensus::types::{Address, H256, U64};
 use ethereum_light_client_verifier::context::Fraction;
 use ethereum_light_client_verifier::execution::ExecutionVerifier;
-use kona_genesis::RollupConfig;
 use light_client::types::{Any, ClientId, Height, Time};
 use optimism_ibc_proto::google::protobuf::Any as IBCAny;
 use optimism_ibc_proto::ibc::lightclients::ethereum::v1::{
@@ -39,9 +38,6 @@ pub struct ClientState {
     /// State
     pub latest_height: Height,
     pub frozen: bool,
-
-    /// L2 RollupConfig
-    pub rollup_config: RollupConfig,
 
     /// L1 Config
     pub l1_config: L1Config,
@@ -78,11 +74,8 @@ impl ClientState {
         )?;
 
         // Ensure L2 header is valid
-        let (l2_header, l1_origin, l2_output_root) = header.verify_l2(
-            self.chain_id,
-            trusted_consensus_state.output_root,
-            &self.rollup_config,
-        )?;
+        let (l2_header, l1_origin, l2_output_root) =
+            header.verify_l2(self.chain_id, trusted_consensus_state.output_root)?;
 
         // Ensure account storage is valid
         header.account_update.verify_account_storage(
@@ -352,9 +345,6 @@ impl TryFrom<RawClientState> for ClientState {
             .map_err(Error::UnexpectedCommitmentSlot)?;
         let ibc_commitments_slot = H256::from(ibc_commitments_slot.0);
 
-        let rollup_config: RollupConfig = serde_json::from_slice(&value.rollup_config_json)
-            .map_err(Error::UnexpectedRollupConfig)?;
-
         let frozen = value.frozen;
 
         let l1_config = value.l1_config.ok_or(Error::MissingL1Config)?;
@@ -369,7 +359,6 @@ impl TryFrom<RawClientState> for ClientState {
             ibc_commitments_slot,
             latest_height,
             frozen,
-            rollup_config,
             l1_config,
             fault_dispute_game_config: fault_dispute_game_config.try_into()?,
         })
@@ -389,8 +378,6 @@ impl TryFrom<ClientState> for RawClientState {
                 revision_height: value.latest_height.revision_height(),
             }),
             frozen: value.frozen.to_owned(),
-            rollup_config_json: serde_json::to_vec(&value.rollup_config)
-                .map_err(Error::UnexpectedRollupConfig)?,
             l1_config: Some(value.l1_config.into()),
             fault_dispute_game_config: Some(value.fault_dispute_game_config.into()),
         })
