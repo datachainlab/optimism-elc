@@ -5,7 +5,6 @@ use crate::l1::{L1Config, L1Consensus, L1Header};
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use alloy_primitives::B256;
-use kona_genesis::RollupConfig;
 use light_client::types::{Any, Height};
 use optimism_derivation::derivation::Derivation;
 use optimism_derivation::oracle::MemoryOracleClient;
@@ -108,7 +107,6 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> Header<L1_SYNC_COMMITTEE_SIZE> {
         &self,
         chain_id: u64,
         trusted_output_root: B256,
-        rollup_config: &RollupConfig,
     ) -> Result<(alloy_consensus::Header, u64, B256), Error> {
         // Ensure trusted
         if self.derivation.agreed_l2_output_root != trusted_output_root {
@@ -121,7 +119,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> Header<L1_SYNC_COMMITTEE_SIZE> {
         // Ensure honest derivation
         let result = self
             .derivation
-            .verify(chain_id, rollup_config, self.oracle.clone())
+            .verify(chain_id, self.oracle.clone())
             .map_err(|e| Error::DerivationError(self.derivation.clone(), self.oracle.len(), e))?;
         Ok((result.0, result.1, self.derivation.l2_output_root))
     }
@@ -217,7 +215,7 @@ mod test {
     };
     use alloc::vec;
     use alloy_primitives::hex;
-    use kona_genesis::RollupConfig;
+
     use optimism_derivation::types::{Preimage, Preimages};
     use optimism_ibc_proto::ibc::lightclients::optimism::v1::AccountUpdate as RawAccountUpdate;
     use optimism_ibc_proto::ibc::lightclients::optimism::v1::Derivation as RawDerivation;
@@ -443,9 +441,7 @@ mod test {
             revision_height: 1,
         });
         let header = Header::<{ ethereum_consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE} >::try_from(raw_header).unwrap();
-        let err = header
-            .verify_l2(1, [1u8; 32].into(), &RollupConfig::default())
-            .unwrap_err();
+        let err = header.verify_l2(1, [1u8; 32].into()).unwrap_err();
         match err {
             Error::UnexpectedTrustedOutputRoot(_, _) => {}
             _ => panic!("Unexpected error: {:?}", err),
@@ -473,11 +469,7 @@ mod test {
         });
         let header = Header::<{ ethereum_consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE} >::try_from(raw_header).unwrap();
         let err = header
-            .verify_l2(
-                1,
-                header.derivation.agreed_l2_output_root,
-                &RollupConfig::default(),
-            )
+            .verify_l2(1, header.derivation.agreed_l2_output_root)
             .unwrap_err();
         match err {
             Error::DerivationError(_, _, _) => {}

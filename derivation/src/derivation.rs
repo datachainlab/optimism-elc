@@ -3,7 +3,7 @@ use crate::errors::Error;
 use crate::oracle::{MemoryOracleClient, NopeHintWriter};
 use alloc::sync::Arc;
 use alloy_consensus::Header;
-use alloy_primitives::{keccak256, Sealed, B256};
+use alloy_primitives::{Sealed, B256};
 use core::clone::Clone;
 use core::fmt::Debug;
 use kona_client::fpvm_evm::FpvmOpEvmFactory;
@@ -21,7 +21,7 @@ use kona_proof::{
     l2::OracleL2ChainProvider,
     BootInfo,
 };
-use kona_registry::L1_CONFIGS;
+use kona_registry::{L1_CONFIGS, ROLLUP_CONFIGS};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -50,22 +50,16 @@ impl Derivation {
     pub fn verify(
         &self,
         chain_id: u64,
-        rollup_config: &RollupConfig,
         oracle: MemoryOracleClient,
     ) -> Result<(Header, u64), Error> {
-        kona_proof::block_on(self.run(chain_id, rollup_config, oracle))
+        kona_proof::block_on(self.run(chain_id, oracle))
     }
 
     /// Run the derivation pipeline to verify the claimed L2 output root.
     /// This is almost the same as kona-client.
-    async fn run(
-        &self,
-        chain_id: u64,
-        rollup_config: &RollupConfig,
-        oracle: MemoryOracleClient,
-    ) -> Result<(Header, u64), Error> {
-        verify_config(rollup_config, &oracle).await?;
-        let l1_config = load_l1_config(rollup_config, &oracle).await?;
+    async fn run(&self, chain_id: u64, oracle: MemoryOracleClient) -> Result<(Header, u64), Error> {
+        let rollup_config = load_rollup_config(chain_id, &oracle).await?;
+        let l1_config = load_l1_config(&rollup_config, &oracle).await?;
         let boot = &BootInfo {
             l1_head: self.l1_head_hash,
             agreed_l2_output_root: self.agreed_l2_output_root,
@@ -144,23 +138,25 @@ impl Derivation {
     }
 }
 
-async fn verify_config(
-    rollup_config: &RollupConfig,
+async fn load_rollup_config(
+    chain_id: u64,
     oracle: &MemoryOracleClient,
-) -> Result<(), Error> {
-    let config_key = PreimageKey::new_local(L2_ROLLUP_CONFIG_KEY.to());
-    let in_preimage = oracle
-        .get(config_key)
-        .await
-        .map_err(|e| Error::UnexpectedPreimageKey {
-            source: e,
-            key: config_key.key_value().to_be_bytes(),
-        })?;
-    let in_state = serde_json::to_vec(rollup_config)?;
-    if keccak256(&in_state) != keccak256(&in_preimage) {
-        return Err(Error::InvalidRollupConfig(in_preimage, in_state));
-    }
-    Ok(())
+) -> Result<RollupConfig, Error> {
+    let rollup_config = if let Some(config) = ROLLUP_CONFIGS.get(&chain_id) {
+        config.clone()
+    } else {
+        // for devnet only
+        let config_key = PreimageKey::new_local(L2_ROLLUP_CONFIG_KEY.to());
+        let ser_cfg = oracle
+            .get(config_key)
+            .await
+            .map_err(|e| Error::UnexpectedPreimageKey {
+                source: e,
+                key: config_key.key_value().to_be_bytes(),
+            })?;
+        serde_json::from_slice(&ser_cfg).map_err(Error::SerdeError)?
+    };
+    Ok(rollup_config)
 }
 
 async fn load_l1_config(
@@ -182,47 +178,4 @@ async fn load_l1_config(
         serde_json::from_slice(&ser_cfg).map_err(Error::SerdeError)?
     };
     Ok(l1_config)
-}
-
-#[cfg(test)]
-mod test {
-    use crate::derivation::verify_config;
-    use crate::errors::Error;
-    use crate::oracle::MemoryOracleClient;
-    use crate::types::Preimage;
-    use alloc::vec;
-    use kona_genesis::RollupConfig;
-    use kona_preimage::PreimageKey;
-    use kona_proof::boot::L2_ROLLUP_CONFIG_KEY;
-
-    #[test]
-    fn test_verify_config_not_found_error() {
-        let rollup_config = RollupConfig::default();
-        let oracle = MemoryOracleClient::default();
-        let err = kona_proof::block_on(verify_config(&rollup_config, &oracle)).unwrap_err();
-        match err {
-            Error::UnexpectedPreimageKey { .. } => {}
-            _ => panic!("Unexpected error, got {:?}", err),
-        }
-    }
-
-    #[test]
-    fn test_verify_config_invalid_error() {
-        let rollup_config = RollupConfig::default();
-        let rollup_config2 = RollupConfig {
-            l2_chain_id: (rollup_config.l2_chain_id.id() + 1).into(),
-            ..rollup_config.clone()
-        };
-
-        let preimage = vec![Preimage::new(
-            PreimageKey::new_local(L2_ROLLUP_CONFIG_KEY.to()),
-            serde_json::to_vec(&rollup_config2).unwrap(),
-        )];
-        let oracle = MemoryOracleClient::try_from(preimage).unwrap();
-        let err = kona_proof::block_on(verify_config(&rollup_config, &oracle)).unwrap_err();
-        match err {
-            Error::InvalidRollupConfig { .. } => {}
-            _ => panic!("Unexpected error, got {:?}", err),
-        }
-    }
 }

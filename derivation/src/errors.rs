@@ -7,8 +7,6 @@ use kona_preimage::PreimageKey;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error("InvalidRollupConfig: in_preimage={0:?}, in_state={1:?}")]
-    InvalidRollupConfig(Vec<u8>, Vec<u8>),
     #[error("DuplicatePreimageKey: key={0:?}")]
     UnexpectedDuplicatePreimageKey(PreimageKey),
     #[error("InvalidClaim actual={0}, expected={1}")]

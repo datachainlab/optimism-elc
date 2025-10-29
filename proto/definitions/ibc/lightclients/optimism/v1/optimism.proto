@@ -43,10 +43,8 @@ message ClientState {
 
   bool frozen = 5;
 
-  bytes rollup_config_json = 6;
-
-  L1Config l1_config = 7;
-  FaultDisputeGameConfig fault_dispute_game_config = 8;
+  L1Config l1_config = 6;
+  FaultDisputeGameConfig fault_dispute_game_config = 7;
 
 }
 
