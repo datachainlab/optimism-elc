@@ -22,15 +22,15 @@ ethereum-consensus = { git = "https://github.com/datachainlab/ethereum-light-cli
 ethereum-light-client-verifier = { git = "https://github.com/datachainlab/ethereum-light-client-rs", rev = "v0.2.0", default-features = false }
 
 # Kona
-kona-client = { git="https://github.com/yoshidan/kona", rev= "3bd174d840354d402ecd4165b521b056303ee7f3", default-features = false }
-kona-proof = { git="https://github.com/yoshidan/kona", rev= "3bd174d840354d402ecd4165b521b056303ee7f3", default-features = false }
-kona-preimage = {git="https://github.com/yoshidan/kona", rev= "3bd174d840354d402ecd4165b521b056303ee7f3", default-features = false }
-kona-executor = { git="https://github.com/yoshidan/kona", rev= "3bd174d840354d402ecd4165b521b056303ee7f3", default-features = false }
-kona-driver = { git="https://github.com/yoshidan/kona", rev= "3bd174d840354d402ecd4165b521b056303ee7f3", default-features = false }
-kona-genesis = { git="https://github.com/yoshidan/kona", rev= "3bd174d840354d402ecd4165b521b056303ee7f3", default-features = false }
-kona-protocol = { git="https://github.com/yoshidan/kona", rev= "3bd174d840354d402ecd4165b521b056303ee7f3", default-features = false }
-kona-derive = { git="https://github.com/yoshidan/kona", rev= "3bd174d840354d402ecd4165b521b056303ee7f3", default-features = false }
-kona-registry = { git="https://github.com/yoshidan/kona", rev= "3bd174d840354d402ecd4165b521b056303ee7f3", default-features = false }
+kona-client = { git="https://github.com/yoshidan/kona", rev= "72c140bcf42aedab2c69e3a557961ec95d90812a", default-features = false }
+kona-proof = { git="https://github.com/yoshidan/kona", rev= "72c140bcf42aedab2c69e3a557961ec95d90812a", default-features = false }
+kona-preimage = {git="https://github.com/yoshidan/kona", rev= "72c140bcf42aedab2c69e3a557961ec95d90812a", default-features = false }
+kona-executor = { git="https://github.com/yoshidan/kona", rev= "72c140bcf42aedab2c69e3a557961ec95d90812a", default-features = false }
+kona-driver = { git="https://github.com/yoshidan/kona", rev= "72c140bcf42aedab2c69e3a557961ec95d90812a", default-features = false }
+kona-genesis = { git="https://github.com/yoshidan/kona", rev= "72c140bcf42aedab2c69e3a557961ec95d90812a", default-features = false }
+kona-protocol = { git="https://github.com/yoshidan/kona", rev= "72c140bcf42aedab2c69e3a557961ec95d90812a", default-features = false }
+kona-derive = { git="https://github.com/yoshidan/kona", rev= "72c140bcf42aedab2c69e3a557961ec95d90812a", default-features = false }
+kona-registry = { git="https://github.com/yoshidan/kona", rev= "72c140bcf42aedab2c69e3a557961ec95d90812a", default-features = false }
 
 # Alloy
 alloy-consensus = { version = "1.1.1", default-features = false }
