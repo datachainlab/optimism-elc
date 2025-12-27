@@ -297,9 +297,8 @@ mod test {
     use alloc::vec;
     use alloy_eips::eip4844::{BYTES_PER_COMMITMENT, FIELD_ELEMENTS_PER_BLOB};
     use alloy_primitives::keccak256;
-    use alloy_primitives::map::HashMap;
     use ark_ff::{BigInteger, PrimeField};
-    use hashbrown::HashSet;
+    use hashbrown::{HashMap, HashSet};
     use kona_preimage::{PreimageKey, PreimageKeyType};
     use kona_proof::l1::ROOTS_OF_UNITY;
     use sha2::{Digest, Sha256};

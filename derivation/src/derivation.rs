@@ -10,7 +10,7 @@ use kona_client::fpvm_evm::FpvmOpEvmFactory;
 use kona_client::single::fetch_safe_head_hash;
 use kona_derive::EthereumDataSource;
 use kona_driver::Driver;
-use kona_executor::TrieDBProvider;
+use kona_executor::{InspectorFactory, TrieDBProvider};
 use kona_genesis::{L1ChainConfig, RollupConfig};
 use kona_preimage::{PreimageKey, PreimageOracleClient};
 use kona_proof::boot::{L1_CONFIG_KEY, L2_ROLLUP_CONFIG_KEY};
@@ -22,7 +22,34 @@ use kona_proof::{
     BootInfo,
 };
 use kona_registry::{L1_CONFIGS, ROLLUP_CONFIGS};
+use revm_inspector::Inspector;
+use revm_interpreter::{Interpreter, InterpreterTypes};
 use serde::{Deserialize, Serialize};
+use log::trace;
+
+#[derive(Clone, Debug)]
+pub struct MyInspectorFactory {
+
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct MyOpInspector;
+
+
+impl<CTX, INTR: InterpreterTypes> Inspector<CTX, INTR> for MyOpInspector {
+    fn step(&mut self, interp: &mut Interpreter<INTR>, context: &mut CTX) {
+    }
+}
+
+impl InspectorFactory for MyInspectorFactory {
+    type Inspector = MyOpInspector;
+
+    fn create(&self) -> Self::Inspector {
+        MyOpInspector
+    }
+}
+
+
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Derivation {
@@ -111,6 +138,7 @@ impl Derivation {
             l2_provider,
             evm_factory,
             None,
+            Some(MyInspectorFactory{}),
         );
         let mut driver = Driver::new(cursor, executor, pipeline);
 
