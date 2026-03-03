@@ -71,7 +71,7 @@ def overwrite_lock(lock_a_path: str, lock_b_path: str, ignore: set, replace: dic
 
 if __name__ == "__main__":
     # Paths are relative to this script
-    lock_kona = "../../../../op-rs/kona/Cargo.lock"
+    lock_kona = "../../../../ethereum-optimism/optimism/rust/Cargo.lock"
     lock_self = "../../Cargo.lock"
 
     ignore = [
