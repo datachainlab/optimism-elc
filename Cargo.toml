@@ -22,15 +22,15 @@ ethereum-consensus = { git = "https://github.com/datachainlab/ethereum-light-cli
 ethereum-light-client-verifier = { git = "https://github.com/datachainlab/ethereum-light-client-rs", rev = "v0.2.0", default-features = false }
 
 # Kona
-kona-client = { git="https://github.com/ethereum-optimism/optimism", rev= "kona-node/v1.2.10-rc.1", default-features = false }
-kona-proof = { git="https://github.com/ethereum-optimism/optimism", rev= "kona-node/v1.2.10-rc.1", default-features = false }
-kona-preimage = {git="https://github.com/ethereum-optimism/optimism", rev= "kona-node/v1.2.10-rc.1", default-features = false }
-kona-executor = { git="https://github.com/ethereum-optimism/optimism", rev= "kona-node/v1.2.10-rc.1", default-features = false }
-kona-driver = { git="https://github.com/ethereum-optimism/optimism", rev= "kona-node/v1.2.10-rc.1", default-features = false }
-kona-genesis = { git="https://github.com/ethereum-optimism/optimism", rev= "kona-node/v1.2.10-rc.1", default-features = false }
-kona-protocol = { git="https://github.com/ethereum-optimism/optimism", rev= "kona-node/v1.2.10-rc.1", default-features = false }
-kona-derive = { git="https://github.com/ethereum-optimism/optimism", rev= "kona-node/v1.2.10-rc.1", default-features = false }
-kona-registry = { git="https://github.com/ethereum-optimism/optimism", rev= "kona-node/v1.2.10-rc.1", default-features = false }
+kona-client = { git="https://github.com/ethereum-optimism/optimism", rev= "kona-node/v1.2.10", default-features = false }
+kona-proof = { git="https://github.com/ethereum-optimism/optimism", rev= "kona-node/v1.2.10", default-features = false }
+kona-preimage = {git="https://github.com/ethereum-optimism/optimism", rev= "kona-node/v1.2.10", default-features = false }
+kona-executor = { git="https://github.com/ethereum-optimism/optimism", rev= "kona-node/v1.2.10", default-features = false }
+kona-driver = { git="https://github.com/ethereum-optimism/optimism", rev= "kona-node/v1.2.10", default-features = false }
+kona-genesis = { git="https://github.com/ethereum-optimism/optimism", rev= "kona-node/v1.2.10", default-features = false }
+kona-protocol = { git="https://github.com/ethereum-optimism/optimism", rev= "kona-node/v1.2.10", default-features = false }
+kona-derive = { git="https://github.com/ethereum-optimism/optimism", rev= "kona-node/v1.2.10", default-features = false }
+kona-registry = { git="https://github.com/ethereum-optimism/optimism", rev= "kona-node/v1.2.10", default-features = false }
 
 # Alloy
 alloy-consensus = { version = "1.6.3", default-features = false }
@@ -46,8 +46,8 @@ ark-ff = { version = "0.5.0", default-features = false }
 time = { git = "https://github.com/yoshidan/time", rev= "v0.3.19-p2", package = "time" }
 
 # Unify op-alloy crates to use the same git revision as kona
-op-alloy-consensus = { git = "https://github.com/ethereum-optimism/optimism", rev = "kona-node/v1.2.10-rc.1" }
-op-alloy-network = { git = "https://github.com/ethereum-optimism/optimism", rev = "kona-node/v1.2.10-rc.1" }
-op-alloy-rpc-types = { git = "https://github.com/ethereum-optimism/optimism", rev = "kona-node/v1.2.10-rc.1" }
-op-alloy-rpc-types-engine = { git = "https://github.com/ethereum-optimism/optimism", rev = "kona-node/v1.2.10-rc.1" }
+op-alloy-consensus = { git = "https://github.com/ethereum-optimism/optimism", rev = "kona-node/v1.2.10" }
+op-alloy-network = { git = "https://github.com/ethereum-optimism/optimism", rev = "kona-node/v1.2.10" }
+op-alloy-rpc-types = { git = "https://github.com/ethereum-optimism/optimism", rev = "kona-node/v1.2.10" }
+op-alloy-rpc-types-engine = { git = "https://github.com/ethereum-optimism/optimism", rev = "kona-node/v1.2.10" }
 
