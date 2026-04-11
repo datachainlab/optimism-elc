@@ -47,7 +47,6 @@ time = { git = "https://github.com/yoshidan/time", rev= "v0.3.19-p2", package = 
 
 # Unify op-alloy crates to use the same git revision as kona
 op-alloy-consensus = { git = "https://github.com/ethereum-optimism/optimism", rev = "kona-node/v1.2.14" }
-op-alloy-network = { git = "https://github.com/ethereum-optimism/optimism", rev = "kona-node/v1.2.14" }
 op-alloy-rpc-types = { git = "https://github.com/ethereum-optimism/optimism", rev = "kona-node/v1.2.14" }
 op-alloy-rpc-types-engine = { git = "https://github.com/ethereum-optimism/optimism", rev = "kona-node/v1.2.14" }
 

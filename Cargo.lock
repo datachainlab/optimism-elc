@@ -4539,8 +4539,3 @@ name = "zmij"
 version = "1.0.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b8848ee67ecc8aedbaf3e4122217aff892639231befc6a1b58d29fff4c2cabaa"
-
-[[patch.unused]]
-name = "op-alloy-network"
-version = "0.23.1"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.14#c1fb415b5567cad18fccd6a25ba107c27f5088ff"
