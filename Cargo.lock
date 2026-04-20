@@ -56,9 +56,9 @@ checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 
 [[package]]
 name = "alloy-chains"
-version = "0.2.31"
+version = "0.2.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d9d22005bf31b018f31ef9ecadb5d2c39cf4f6acc8db0456f72c815f3d7f757"
+checksum = "f4e9e31d834fe25fe991b8884e4b9f0e59db4a97d86e05d1464d6899c013cd62"
 dependencies = [
  "alloy-primitives 1.5.7",
  "num_enum",
@@ -68,9 +68,9 @@ dependencies = [
 
 [[package]]
 name = "alloy-consensus"
-version = "1.8.2"
+version = "1.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e56cae3909bcb2347f77c0f318ef5eb7e131ea6d0a94d31f8bfb6e4c5e3c7c7"
+checksum = "7f16daaf7e1f95f62c6c3bf8a3fc3d78b08ae9777810c0bb5e94966c7cd57ef0"
 dependencies = [
  "alloy-eips",
  "alloy-primitives 1.5.7",
@@ -93,9 +93,9 @@ dependencies = [
 
 [[package]]
 name = "alloy-consensus-any"
-version = "1.8.2"
+version = "1.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f4394690a8a64757316c57c57f2c663bf8395febb4c4baa049a058ebd122b668"
+checksum = "118998d9015332ab1b4720ae1f1e3009491966a0349938a1f43ff45a8a4c6299"
 dependencies = [
  "alloy-consensus",
  "alloy-eips",
@@ -155,9 +155,9 @@ dependencies = [
 
 [[package]]
 name = "alloy-eips"
-version = "1.8.2"
+version = "1.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b97433ffdb356d11b6c89b08c69a787b9f55d787cdeee733c12fdf85d465ef1"
+checksum = "e6ef28c9fdad22d4eec52d894f5f2673a0895f1e5ef196734568e68c0f6caca8"
 dependencies = [
  "alloy-eip2124",
  "alloy-eip2930",
@@ -177,29 +177,27 @@ dependencies = [
 
 [[package]]
 name = "alloy-evm"
-version = "0.27.3"
+version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b991c370ce44e70a3a9e474087e3d65e42e66f967644ad729dc4cec09a21fd09"
+checksum = "e13146597a586a4166ac31b192883e08c044272d6b8c43de231ee1f43dd9a115"
 dependencies = [
  "alloy-consensus",
  "alloy-eips",
  "alloy-hardforks",
- "alloy-op-hardforks 0.4.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "alloy-primitives 1.5.7",
  "alloy-sol-types 1.5.7",
  "auto_impl",
  "derive_more 2.1.1",
- "op-alloy 0.23.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "op-revm",
  "revm",
  "thiserror 2.0.18",
+ "tracing",
 ]
 
 [[package]]
 name = "alloy-genesis"
-version = "1.8.2"
+version = "1.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6173ced325833e40ccb781bb372c720df638a966bad6ed6733682b6bff63d855"
+checksum = "bbf9480307b09d22876efb67d30cadd9013134c21f3a17ec9f93fd7536d38024"
 dependencies = [
  "alloy-eips",
  "alloy-primitives 1.5.7",
@@ -224,9 +222,9 @@ dependencies = [
 
 [[package]]
 name = "alloy-network-primitives"
-version = "1.8.2"
+version = "1.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2158d382ef9743ae7185c9fcd33cd9a99967419fdcd5eebc83ff7c0e79cad2bc"
+checksum = "eb82711d59a43fdfd79727c99f270b974c784ec4eb5728a0d0d22f26716c87ef"
 dependencies = [
  "alloy-consensus",
  "alloy-eips",
@@ -237,16 +235,16 @@ dependencies = [
 
 [[package]]
 name = "alloy-op-evm"
-version = "0.26.3"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.14#c1fb415b5567cad18fccd6a25ba107c27f5088ff"
+version = "0.30.0"
+source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.15#0aa235ed0c891ec5e669106ad34372b8b37a2c13"
 dependencies = [
  "alloy-consensus",
  "alloy-eips",
  "alloy-evm",
- "alloy-op-hardforks 0.4.7 (git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.14)",
+ "alloy-op-hardforks",
  "alloy-primitives 1.5.7",
  "auto_impl",
- "op-alloy 0.23.1 (git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.14)",
+ "op-alloy",
  "op-revm",
  "revm",
  "thiserror 2.0.18",
@@ -255,19 +253,7 @@ dependencies = [
 [[package]]
 name = "alloy-op-hardforks"
 version = "0.4.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6472c610150c4c4c15be9e1b964c9b78068f933bda25fb9cdf09b9ac2bb66f36"
-dependencies = [
- "alloy-chains",
- "alloy-hardforks",
- "alloy-primitives 1.5.7",
- "auto_impl",
-]
-
-[[package]]
-name = "alloy-op-hardforks"
-version = "0.4.7"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.14#c1fb415b5567cad18fccd6a25ba107c27f5088ff"
+source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.15#0aa235ed0c891ec5e669106ad34372b8b37a2c13"
 dependencies = [
  "alloy-chains",
  "alloy-hardforks",
@@ -340,9 +326,9 @@ dependencies = [
 
 [[package]]
 name = "alloy-rpc-types-engine"
-version = "1.8.2"
+version = "1.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f083328dbf7aa5abfe5c0a7758ec9acc86a45bfbcfb45c54186c6caa78036f2a"
+checksum = "bb9b97b6e7965679ad22df297dda809b11cebc13405c1b537e5cffecc95834fa"
 dependencies = [
  "alloy-consensus",
  "alloy-eips",
@@ -357,9 +343,9 @@ dependencies = [
 
 [[package]]
 name = "alloy-rpc-types-eth"
-version = "1.8.2"
+version = "1.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1641df7ef4d15cd43843d399252c90a95abf465a67e2a2b2fd76f4e93cc60e15"
+checksum = "59c095f92c4e1ff4981d89e9aa02d5f98c762a1980ab66bec49c44be11349da2"
 dependencies = [
  "alloy-consensus",
  "alloy-consensus-any",
@@ -377,9 +363,9 @@ dependencies = [
 
 [[package]]
 name = "alloy-serde"
-version = "1.8.2"
+version = "1.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f1c2c0b5f024814f1c04ae76ff71862d06c836e7d67102daf8a557e5056be68"
+checksum = "11ece63b89294b8614ab3f483560c08d016930f842bf36da56bf0b764a15c11e"
 dependencies = [
  "alloy-primitives 1.5.7",
  "serde",
@@ -521,9 +507,9 @@ dependencies = [
 
 [[package]]
 name = "alloy-tx-macros"
-version = "1.8.2"
+version = "1.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a3684226a2220bb6e84a5ab74877e66628882336ecfba97482c9d473aa2b1cc"
+checksum = "d69722eddcdf1ce096c3ab66cf8116999363f734eb36fe94a148f4f71c85da84"
 dependencies = [
  "darling 0.23.0",
  "proc-macro2",
@@ -975,6 +961,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aebf35691d1bfb0ac386a69bac2fde4dd276fb618cf8bf4f5318fe285e821bb2"
 dependencies = [
  "find-msvc-tools",
+ "jobserver",
+ "libc",
  "shlex",
 ]
 
@@ -1956,6 +1944,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "92ecc6618181def0457392ccd0ee51198e065e016d1d527a7ac1b6dc7c1f09d2"
 
 [[package]]
+name = "jobserver"
+version = "0.1.34"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9afb3de4395d6b3e67a780b6de64b51c978ecf11cb9a462c66be7d4ca9039d33"
+dependencies = [
+ "getrandom 0.3.3",
+ "libc",
+]
+
+[[package]]
 name = "k256"
 version = "0.13.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1980,7 +1978,7 @@ dependencies = [
 [[package]]
 name = "kona-client"
 version = "1.0.2"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.14#c1fb415b5567cad18fccd6a25ba107c27f5088ff"
+source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.15#0aa235ed0c891ec5e669106ad34372b8b37a2c13"
 dependencies = [
  "alloy-consensus",
  "alloy-eips",
@@ -2019,7 +2017,7 @@ dependencies = [
 [[package]]
 name = "kona-derive"
 version = "0.4.5"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.14#c1fb415b5567cad18fccd6a25ba107c27f5088ff"
+source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.15#0aa235ed0c891ec5e669106ad34372b8b37a2c13"
 dependencies = [
  "alloy-consensus",
  "alloy-eips",
@@ -2040,7 +2038,7 @@ dependencies = [
 [[package]]
 name = "kona-driver"
 version = "0.4.0"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.14#c1fb415b5567cad18fccd6a25ba107c27f5088ff"
+source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.15#0aa235ed0c891ec5e669106ad34372b8b37a2c13"
 dependencies = [
  "alloy-consensus",
  "alloy-evm",
@@ -2061,13 +2059,13 @@ dependencies = [
 [[package]]
 name = "kona-executor"
 version = "0.4.0"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.14#c1fb415b5567cad18fccd6a25ba107c27f5088ff"
+source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.15#0aa235ed0c891ec5e669106ad34372b8b37a2c13"
 dependencies = [
  "alloy-consensus",
  "alloy-eips",
  "alloy-evm",
  "alloy-op-evm",
- "alloy-op-hardforks 0.4.7 (git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.14)",
+ "alloy-op-hardforks",
  "alloy-primitives 1.5.7",
  "alloy-rlp",
  "alloy-trie",
@@ -2085,14 +2083,14 @@ dependencies = [
 [[package]]
 name = "kona-genesis"
 version = "0.4.5"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.14#c1fb415b5567cad18fccd6a25ba107c27f5088ff"
+source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.15#0aa235ed0c891ec5e669106ad34372b8b37a2c13"
 dependencies = [
  "alloy-chains",
  "alloy-consensus",
  "alloy-eips",
  "alloy-genesis",
  "alloy-hardforks",
- "alloy-op-hardforks 0.4.7 (git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.14)",
+ "alloy-op-hardforks",
  "alloy-primitives 1.5.7",
  "alloy-sol-types 1.5.7",
  "derive_more 2.1.1",
@@ -2105,7 +2103,7 @@ dependencies = [
 [[package]]
 name = "kona-hardforks"
 version = "0.4.5"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.14#c1fb415b5567cad18fccd6a25ba107c27f5088ff"
+source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.15#0aa235ed0c891ec5e669106ad34372b8b37a2c13"
 dependencies = [
  "alloy-eips",
  "alloy-primitives 1.5.7",
@@ -2116,7 +2114,7 @@ dependencies = [
 [[package]]
 name = "kona-interop"
 version = "0.4.5"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.14#c1fb415b5567cad18fccd6a25ba107c27f5088ff"
+source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.15#0aa235ed0c891ec5e669106ad34372b8b37a2c13"
 dependencies = [
  "alloy-consensus",
  "alloy-eips",
@@ -2138,12 +2136,12 @@ dependencies = [
 [[package]]
 name = "kona-macros"
 version = "0.1.2"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.14#c1fb415b5567cad18fccd6a25ba107c27f5088ff"
+source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.15#0aa235ed0c891ec5e669106ad34372b8b37a2c13"
 
 [[package]]
 name = "kona-mpt"
 version = "0.3.0"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.14#c1fb415b5567cad18fccd6a25ba107c27f5088ff"
+source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.15#0aa235ed0c891ec5e669106ad34372b8b37a2c13"
 dependencies = [
  "alloy-primitives 1.5.7",
  "alloy-rlp",
@@ -2155,7 +2153,7 @@ dependencies = [
 [[package]]
 name = "kona-preimage"
 version = "0.3.0"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.14#c1fb415b5567cad18fccd6a25ba107c27f5088ff"
+source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.15#0aa235ed0c891ec5e669106ad34372b8b37a2c13"
 dependencies = [
  "alloy-primitives 1.5.7",
  "async-trait",
@@ -2166,7 +2164,7 @@ dependencies = [
 [[package]]
 name = "kona-proof"
 version = "0.3.0"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.14#c1fb415b5567cad18fccd6a25ba107c27f5088ff"
+source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.15#0aa235ed0c891ec5e669106ad34372b8b37a2c13"
 dependencies = [
  "alloy-consensus",
  "alloy-eips",
@@ -2201,7 +2199,7 @@ dependencies = [
 [[package]]
 name = "kona-proof-interop"
 version = "0.2.0"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.14#c1fb415b5567cad18fccd6a25ba107c27f5088ff"
+source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.15#0aa235ed0c891ec5e669106ad34372b8b37a2c13"
 dependencies = [
  "alloy-consensus",
  "alloy-eips",
@@ -2233,7 +2231,7 @@ dependencies = [
 [[package]]
 name = "kona-protocol"
 version = "0.4.5"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.14#c1fb415b5567cad18fccd6a25ba107c27f5088ff"
+source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.15#0aa235ed0c891ec5e669106ad34372b8b37a2c13"
 dependencies = [
  "alloc-no-stdlib",
  "alloy-consensus",
@@ -2263,13 +2261,13 @@ dependencies = [
 [[package]]
 name = "kona-registry"
 version = "0.4.5"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.14#c1fb415b5567cad18fccd6a25ba107c27f5088ff"
+source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.15#0aa235ed0c891ec5e669106ad34372b8b37a2c13"
 dependencies = [
  "alloy-chains",
  "alloy-eips",
  "alloy-genesis",
  "alloy-hardforks",
- "alloy-op-hardforks 0.4.7 (git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.14)",
+ "alloy-op-hardforks",
  "alloy-primitives 1.5.7",
  "kona-genesis",
  "lazy_static",
@@ -2281,7 +2279,7 @@ dependencies = [
 [[package]]
 name = "kona-std-fpvm"
 version = "0.2.0"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.14#c1fb415b5567cad18fccd6a25ba107c27f5088ff"
+source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.15#0aa235ed0c891ec5e669106ad34372b8b37a2c13"
 dependencies = [
  "async-trait",
  "buddy_system_allocator",
@@ -2293,7 +2291,7 @@ dependencies = [
 [[package]]
 name = "kona-std-fpvm-proc"
 version = "0.2.0"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.14#c1fb415b5567cad18fccd6a25ba107c27f5088ff"
+source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.15#0aa235ed0c891ec5e669106ad34372b8b37a2c13"
 dependencies = [
  "cfg-if",
  "kona-std-fpvm",
@@ -2495,6 +2493,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "modular-bitfield"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2956e537fc68236d2aa048f55704f231cc93f1c4de42fe1ecb5bd7938061fc4a"
+dependencies = [
+ "modular-bitfield-impl",
+ "static_assertions",
+]
+
+[[package]]
+name = "modular-bitfield-impl"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "59b43b4fd69e3437618106f7754f34021b831a514f9e1a98ae863cabcd8d8dad"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.104",
+]
+
+[[package]]
 name = "num"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2641,25 +2660,16 @@ checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
 
 [[package]]
 name = "op-alloy"
-version = "0.23.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e9b8fee21003dd4f076563de9b9d26f8c97840157ef78593cd7f262c5ca99848"
-dependencies = [
- "op-alloy-consensus",
-]
-
-[[package]]
-name = "op-alloy"
-version = "0.23.1"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.14#c1fb415b5567cad18fccd6a25ba107c27f5088ff"
+version = "0.24.0"
+source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.15#0aa235ed0c891ec5e669106ad34372b8b37a2c13"
 dependencies = [
  "op-alloy-consensus",
 ]
 
 [[package]]
 name = "op-alloy-consensus"
-version = "0.23.1"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.14#c1fb415b5567cad18fccd6a25ba107c27f5088ff"
+version = "0.24.0"
+source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.15#0aa235ed0c891ec5e669106ad34372b8b37a2c13"
 dependencies = [
  "alloy-consensus",
  "alloy-eips",
@@ -2667,15 +2677,17 @@ dependencies = [
  "alloy-rlp",
  "alloy-rpc-types-eth",
  "alloy-serde",
+ "bytes",
  "derive_more 2.1.1",
+ "reth-codecs",
  "serde",
  "thiserror 2.0.18",
 ]
 
 [[package]]
 name = "op-alloy-rpc-types"
-version = "0.23.1"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.14#c1fb415b5567cad18fccd6a25ba107c27f5088ff"
+version = "0.24.0"
+source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.15#0aa235ed0c891ec5e669106ad34372b8b37a2c13"
 dependencies = [
  "alloy-consensus",
  "alloy-eips",
@@ -2692,8 +2704,8 @@ dependencies = [
 
 [[package]]
 name = "op-alloy-rpc-types-engine"
-version = "0.23.1"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.14#c1fb415b5567cad18fccd6a25ba107c27f5088ff"
+version = "0.24.0"
+source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.15#0aa235ed0c891ec5e669106ad34372b8b37a2c13"
 dependencies = [
  "alloy-consensus",
  "alloy-eips",
@@ -2710,9 +2722,8 @@ dependencies = [
 
 [[package]]
 name = "op-revm"
-version = "15.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "79c92b75162c2ed1661849fa51683b11254a5b661798360a2c24be918edafd40"
+version = "17.0.0"
+source = "git+https://github.com/ethereum-optimism/optimism?rev=kona-node%2Fv1.2.15#0aa235ed0c891ec5e669106ad34372b8b37a2c13"
 dependencies = [
  "auto_impl",
  "revm",
@@ -3045,6 +3056,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "pkg-config"
+version = "0.3.32"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7edddbd0b52d732b21ad9a5fab5c704c14cd949e5e9a1ec5929a24fded1b904c"
+
+[[package]]
 name = "ppv-lite86"
 version = "0.2.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3260,10 +3277,48 @@ dependencies = [
 ]
 
 [[package]]
-name = "revm"
-version = "34.0.0"
+name = "reth-codecs"
+version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2aabdebaa535b3575231a88d72b642897ae8106cf6b0d12eafc6bfdf50abfc7"
+checksum = "bf1df733d93427eb197cf80a7aaa68bff8949e1b59d34cde1ad410351a24136d"
+dependencies = [
+ "alloy-consensus",
+ "alloy-eips",
+ "alloy-genesis",
+ "alloy-primitives 1.5.7",
+ "alloy-trie",
+ "bytes",
+ "modular-bitfield",
+ "reth-codecs-derive",
+ "reth-zstd-compressors",
+ "serde",
+]
+
+[[package]]
+name = "reth-codecs-derive"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d14acf8feadf1eed0734d1766b55b6c19a374d4cb140bc862880f96da33e7e5a"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.104",
+]
+
+[[package]]
+name = "reth-zstd-compressors"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3be2e9bda3e45c5d87cfbe811676bfb9cb1f0e6fa82d1dd6a3e8cd996512f236"
+dependencies = [
+ "zstd",
+]
+
+[[package]]
+name = "revm"
+version = "36.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b0abc15d09cd211e9e73410ada10134069c794d4bcdb787dfc16a1bf0939849c"
 dependencies = [
  "revm-bytecode",
  "revm-context",
@@ -3280,9 +3335,9 @@ dependencies = [
 
 [[package]]
 name = "revm-bytecode"
-version = "8.0.0"
+version = "9.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74d1e5c1eaa44d39d537f668bc5c3409dc01e5c8be954da6c83370bbdf006457"
+checksum = "e86e468df3cf5cf59fa7ef71a3e9ccabb76bb336401ea2c0674f563104cf3c5e"
 dependencies = [
  "bitvec",
  "phf",
@@ -3292,9 +3347,9 @@ dependencies = [
 
 [[package]]
 name = "revm-context"
-version = "13.0.0"
+version = "15.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "892ff3e6a566cf8d72ffb627fdced3becebbd9ba64089c25975b9b028af326a5"
+checksum = "9eb1f0a76b14d684a444fc52f7bf6b7564bf882599d91ee62e76d602e7a187c7"
 dependencies = [
  "bitvec",
  "cfg-if",
@@ -3309,9 +3364,9 @@ dependencies = [
 
 [[package]]
 name = "revm-context-interface"
-version = "14.0.0"
+version = "16.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57f61cc6d23678c4840af895b19f8acfbbd546142ec8028b6526c53cc1c16c98"
+checksum = "fc256b27743e2912ca16899568e6652a372eb5d1d573e6edb16c7836b16cf487"
 dependencies = [
  "alloy-eip2930",
  "alloy-eip7702",
@@ -3325,9 +3380,9 @@ dependencies = [
 
 [[package]]
 name = "revm-database"
-version = "10.0.0"
+version = "12.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "529528d0b05fe646be86223032c3e77aa8b05caa2a35447d538c55965956a511"
+checksum = "2c0a7d6da41061f2c50f99a2632571026b23684b5449ff319914151f4449b6c8"
 dependencies = [
  "alloy-eips",
  "revm-bytecode",
@@ -3339,9 +3394,9 @@ dependencies = [
 
 [[package]]
 name = "revm-database-interface"
-version = "9.0.0"
+version = "10.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b7bf93ac5b91347c057610c0d96e923db8c62807e03f036762d03e981feddc1d"
+checksum = "bd497a38a79057b94a049552cb1f925ad15078bc1a479c132aeeebd1d2ccc768"
 dependencies = [
  "auto_impl",
  "either",
@@ -3353,9 +3408,9 @@ dependencies = [
 
 [[package]]
 name = "revm-handler"
-version = "15.0.0"
+version = "17.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0cd0e43e815a85eded249df886c4badec869195e70cdd808a13cfca2794622d2"
+checksum = "9f1eed729ca9b228ae98688f352235871e9b8be3d568d488e4070f64c56e9d3d"
 dependencies = [
  "auto_impl",
  "derive-where",
@@ -3372,9 +3427,9 @@ dependencies = [
 
 [[package]]
 name = "revm-inspector"
-version = "15.0.0"
+version = "17.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f3ccad59db91ef93696536a0dbaf2f6f17cfe20d4d8843ae118edb7e97947ef"
+checksum = "cbf5102391706513689f91cb3cb3d97b5f13a02e8647e6e9cb7620877ef84847"
 dependencies = [
  "auto_impl",
  "either",
@@ -3389,9 +3444,9 @@ dependencies = [
 
 [[package]]
 name = "revm-interpreter"
-version = "32.0.0"
+version = "34.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11406408597bc249392d39295831c4b641b3a6f5c471a7c41104a7a1e3564c07"
+checksum = "cf22f80612bb8f58fd1f578750281f2afadb6c93835b14ae6a4d6b75ca26f445"
 dependencies = [
  "revm-bytecode",
  "revm-context-interface",
@@ -3435,9 +3490,9 @@ dependencies = [
 
 [[package]]
 name = "revm-state"
-version = "9.0.0"
+version = "10.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "311720d4f0f239b041375e7ddafdbd20032a33b7bae718562ea188e188ed9fd3"
+checksum = "d29404707763da607e5d6e4771cb203998c28159279c2f64cc32de08d2814651"
 dependencies = [
  "alloy-eip7928",
  "bitflags",
@@ -4539,3 +4594,31 @@ name = "zmij"
 version = "1.0.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b8848ee67ecc8aedbaf3e4122217aff892639231befc6a1b58d29fff4c2cabaa"
+
+[[package]]
+name = "zstd"
+version = "0.13.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e91ee311a569c327171651566e07972200e76fcfe2242a4fa446149a3881c08a"
+dependencies = [
+ "zstd-safe",
+]
+
+[[package]]
+name = "zstd-safe"
+version = "7.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f49c4d5f0abb602a93fb8736af2a4f4dd9512e36f7f570d66e65ff867ed3b9d"
+dependencies = [
+ "zstd-sys",
+]
+
+[[package]]
+name = "zstd-sys"
+version = "2.0.16+zstd.1.5.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "91e19ebc2adc8f83e43039e79776e3fda8ca919132d68a1fed6a5faca2683748"
+dependencies = [
+ "cc",
+ "pkg-config",
+]
