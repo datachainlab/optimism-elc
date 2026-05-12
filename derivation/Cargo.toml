@@ -20,8 +20,9 @@ kona-registry = { workspace = true }
 
 # Alloy
 alloy-primitives = { workspace = true }
-alloy-consensus = { workspace = true}
+alloy-consensus = { workspace = true }
 alloy-eips = { workspace = true }
+alloy-op-evm = { workspace = true }
 
 # Cryptography
 ark-ff = { workspace = true }
