@@ -3,6 +3,7 @@ use crate::errors::Error;
 use crate::oracle::{MemoryOracleClient, NopeHintWriter};
 use alloc::sync::Arc;
 use alloy_consensus::Header;
+use alloy_op_evm::post_exec::PostExecEvmFactoryAdapter;
 use alloy_primitives::{Sealed, B256};
 use core::clone::Clone;
 use core::fmt::Debug;
@@ -102,10 +103,14 @@ impl Derivation {
             da_provider,
             l1_provider.clone(),
             l2_provider.clone(),
+            None,
         )
         .await?;
 
-        let evm_factory = FpvmOpEvmFactory::new(NopeHintWriter, oracle_for_preimage);
+        let evm_factory = PostExecEvmFactoryAdapter::new(FpvmOpEvmFactory::new(
+            NopeHintWriter,
+            oracle_for_preimage,
+        ));
         let executor = KonaExecutor::new(
             rollup_config.as_ref(),
             l2_provider.clone(),
