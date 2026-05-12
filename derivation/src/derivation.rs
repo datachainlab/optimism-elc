@@ -107,8 +107,10 @@ impl Derivation {
         )
         .await?;
 
-        let evm_factory =
-            PostExecEvmFactoryAdapter::new(FpvmOpEvmFactory::new(NopeHintWriter, oracle_for_preimage));
+        let evm_factory = PostExecEvmFactoryAdapter::new(FpvmOpEvmFactory::new(
+            NopeHintWriter,
+            oracle_for_preimage,
+        ));
         let executor = KonaExecutor::new(
             rollup_config.as_ref(),
             l2_provider.clone(),
