@@ -1,6 +1,6 @@
 use crate::consensus_state::ConsensusState;
 use crate::errors::Error;
-use crate::l1::{L1Config, L1Consensus, L1Header};
+use crate::l1::{L1Config, L1ConsensusState, L1Header};
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use alloy_primitives::B256;
@@ -40,8 +40,8 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> L1Headers<L1_SYNC_COMMITTEE_SIZE> {
         l1_config: &L1Config,
         now_sec: u64,
         trusted_consensus_state: &ConsensusState,
-    ) -> Result<L1Consensus, Error> {
-        let mut l1_consensus = L1Consensus {
+    ) -> Result<L1ConsensusState, Error> {
+        let mut l1_consensus = L1ConsensusState {
             slot: trusted_consensus_state.l1_slot,
             current_sync_committee: trusted_consensus_state.l1_current_sync_committee.clone(),
             next_sync_committee: trusted_consensus_state.l1_next_sync_committee.clone(),
@@ -98,7 +98,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> Header<L1_SYNC_COMMITTEE_SIZE> {
         l1_config: &L1Config,
         now_sec: u64,
         trusted_consensus_state: &ConsensusState,
-    ) -> Result<L1Consensus, Error> {
+    ) -> Result<L1ConsensusState, Error> {
         self.l1_headers
             .verify(l1_config, now_sec, trusted_consensus_state)
     }

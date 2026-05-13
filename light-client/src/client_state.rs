@@ -1,7 +1,7 @@
 use crate::consensus_state::ConsensusState;
 use crate::errors::Error;
 use crate::header::Header;
-use crate::l1::{L1Config, L1Consensus};
+use crate::l1::{L1Config, L1ConsensusState};
 use crate::misbehaviour::{FaultDisputeGameConfig, Misbehaviour, Verifier};
 use crate::misc::{
     new_timestamp, validate_header_timestamp_not_future,
@@ -154,7 +154,7 @@ impl ClientState {
             ));
         }
 
-        let l1_cons_state = L1Consensus {
+        let l1_cons_state = L1ConsensusState {
             slot: trusted_consensus_state.l1_slot,
             current_sync_committee: trusted_consensus_state.l1_current_sync_committee.clone(),
             next_sync_committee: trusted_consensus_state.l1_next_sync_committee.clone(),

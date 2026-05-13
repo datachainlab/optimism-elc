@@ -1,4 +1,4 @@
-use crate::l1::L1Consensus;
+use crate::l1::L1ConsensusState;
 use crate::misbehaviour::FaultDisputeGameProof;
 use alloc::boxed::Box;
 use alloc::string::{String, ToString};
@@ -122,9 +122,9 @@ pub enum Error {
     #[error("L1ConsensusError: err={0:?}")]
     L1ConsensusError(L1ConsensusError),
     #[error("L1HeaderTrustedToDeterministicVerifyError: index={0}, prev_updated_as_next={1:?} prev={2:?}, err={3:?}")]
-    L1HeaderTrustedToDeterministicVerifyError(usize, bool, L1Consensus, Box<Error>),
+    L1HeaderTrustedToDeterministicVerifyError(usize, bool, L1ConsensusState, Box<Error>),
     #[error("L1HeaderDeterministicToLatestVerifyError: index={0}, prev_updated_as_next={1:?} prev={2:?}, err={3:?}")]
-    L1HeaderDeterministicToLatestVerifyError(usize, bool, L1Consensus, Box<Error>),
+    L1HeaderDeterministicToLatestVerifyError(usize, bool, L1ConsensusState, Box<Error>),
     #[error("DerivationError: derivation={0:?}, preimage_size={1:?} err={2:?}")]
     DerivationError(Derivation, usize, optimism_derivation::errors::Error),
     #[error("UnexpectedCurrentSyncCommitteeKeys: request={0:?} consensus={1:?}")]

@@ -1,6 +1,6 @@
 use crate::commitment::decode_rlp_proof;
 use crate::errors::Error;
-use crate::l1::{L1Config, L1Consensus, L1Header, Misbehaviour as L1Misbehaviour};
+use crate::l1::{L1Config, L1ConsensusState, L1Header, Misbehaviour as L1Misbehaviour};
 use alloc::vec::Vec;
 use alloy_consensus::Header;
 use alloy_primitives::private::alloy_rlp::Decodable;
@@ -406,7 +406,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L2FutureMisbehaviour<SYNC_COMMITTEE_SIZE>
         now: u64,
         l1_config: &L1Config,
         fault_dispute_game_config: &FaultDisputeGameConfig,
-        l1_cons_state: &L1Consensus,
+        l1_cons_state: &L1ConsensusState,
         consensus_l2_number: u64,
         consensus_l1_origin: u64,
     ) -> Result<(), Error> {
@@ -463,7 +463,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L2PastMisbehaviour<SYNC_COMMITTEE_SIZE> {
         now: u64,
         l1_config: &L1Config,
         fault_dispute_game_config: &FaultDisputeGameConfig,
-        l1_cons_state: &L1Consensus,
+        l1_cons_state: &L1ConsensusState,
         consensus_output_root: B256,
     ) -> Result<(), Error> {
         self.resolved

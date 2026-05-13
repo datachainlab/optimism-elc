@@ -1,32 +1,30 @@
 use crate::errors::Error;
-use alloc::string::ToString;
 use core::str::FromStr;
 use core::time::Duration;
 use ethereum_consensus::beacon::{Epoch, Root, Slot};
 use ethereum_consensus::bls::PublicKey;
 use ethereum_consensus::compute::{
-    compute_sync_committee_period_at_slot, compute_timestamp_at_slot, hash_tree_root,
+    compute_sync_committee_period_at_slot, compute_timestamp_at_slot,
 };
 use ethereum_consensus::context::ChainContext;
 use ethereum_consensus::fork::ForkParameters;
-use ethereum_consensus::merkle::is_valid_normalized_merkle_branch;
-use ethereum_consensus::sync_protocol::{SyncCommittee, SyncCommitteePeriod};
+use ethereum_consensus::sync_protocol::SyncCommitteePeriod;
 use ethereum_consensus::types::U64;
 use ethereum_light_client_types::consensus::{
     convert_proto_to_consensus_update, convert_proto_to_execution_update, ConsensusUpdateInfo,
     ExecutionUpdateInfo, TrustedSyncCommittee,
 };
 use ethereum_light_client_types::time::new_timestamp;
-use ethereum_light_client_types::update::{compute_sync_committees, TrustedSyncCommitteeInfo};
+use ethereum_light_client_types::update::{
+    compute_sync_committees, TrustedConsensusState, TrustedSyncCommitteeInfo,
+};
 use ethereum_light_client_verifier::consensus::SyncProtocolVerifier;
 use ethereum_light_client_verifier::context::{
     ChainConsensusVerificationContext, Fraction, LightClientContext,
 };
-use ethereum_light_client_verifier::errors::Error::IrrelevantConsensusUpdates;
 use ethereum_light_client_verifier::misbehaviour::{
     FinalizedHeaderMisbehaviour, Misbehaviour as MisbehaviourData, NextSyncCommitteeMisbehaviour,
 };
-use ethereum_light_client_verifier::state::LightClientStoreReader;
 use ethereum_light_client_verifier::updates::ConsensusUpdate;
 use light_client::types::{ClientId, Time};
 use optimism_ibc_proto::google::protobuf::Any as IBCAny;
@@ -76,22 +74,27 @@ impl L1Config {
 }
 
 #[derive(Clone, Debug)]
-pub struct L1Consensus {
+pub struct L1ConsensusState {
     pub slot: Slot,
     pub current_sync_committee: PublicKey,
     pub next_sync_committee: PublicKey,
     pub timestamp: Time,
 }
 
-impl L1Consensus {
-    pub fn current_l1_period<C: ChainContext>(&self, ctx: &C) -> SyncCommitteePeriod {
-        compute_sync_committee_period_at_slot(ctx, self.slot)
+impl Default for L1ConsensusState {
+    fn default() -> Self {
+        Self {
+            slot: Slot::default(),
+            current_sync_committee: PublicKey::default(),
+            next_sync_committee: PublicKey::default(),
+            timestamp: Time::from_unix_timestamp_nanos(0).unwrap(),
+        }
     }
 }
 
-impl<CC: ChainContext> TrustedSyncCommitteeInfo<CC> for L1Consensus {
-    fn current_period(&self, ctx: &CC) -> SyncCommitteePeriod {
-        self.current_l1_period(ctx)
+impl TrustedSyncCommitteeInfo for L1ConsensusState {
+    fn current_period<C: ChainContext>(&self, ctx: &C) -> SyncCommitteePeriod {
+        compute_sync_committee_period_at_slot(ctx, self.slot)
     }
 
     fn current_sync_committee(&self) -> PublicKey {
@@ -100,6 +103,10 @@ impl<CC: ChainContext> TrustedSyncCommitteeInfo<CC> for L1Consensus {
 
     fn next_sync_committee(&self) -> PublicKey {
         self.next_sync_committee.clone()
+    }
+
+    fn is_relevant_update(&self, update_finalized_slot: U64) -> bool {
+        update_finalized_slot > U64(self.slot.into())
     }
 }
 
@@ -138,20 +145,20 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L1Header<SYNC_COMMITTEE_SIZE> {
         &self,
         now: u64,
         l1_config: &L1Config,
-        consensus_state: &L1Consensus,
-    ) -> Result<(bool, L1Consensus), Error> {
+        consensus_state: &L1ConsensusState,
+    ) -> Result<(bool, L1ConsensusState), Error> {
         let ctx = l1_config.build_context(now);
 
         self.validate(&ctx)?;
 
-        let l1_sync_committee = L1SyncCommittee::new(
-            consensus_state,
+        let trusted_sync_committee = L1TrustedConsensusState::new(
+            consensus_state.clone(),
             self.trusted_sync_committee.sync_committee.clone(),
             self.trusted_sync_committee.is_next,
         )?;
         L1Verifier::default().verify(
             &ctx,
-            &l1_sync_committee,
+            &trusted_sync_committee,
             &self.consensus_update,
             &self.execution_update,
         )?;
@@ -189,145 +196,62 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL1Header> for L1Header<SYNC_CO
     }
 }
 
-#[derive(Clone, Debug, Default)]
-pub struct L1SyncCommittee<const SYNC_COMMITTEE_SIZE: usize> {
-    pub(crate) slot: Slot,
-    pub(crate) next_sync_committee: Option<SyncCommittee<SYNC_COMMITTEE_SIZE>>,
-    pub(crate) current_sync_committee: Option<SyncCommittee<SYNC_COMMITTEE_SIZE>>,
-}
-
-impl<const SYNC_COMMITTEE_SIZE: usize> L1SyncCommittee<SYNC_COMMITTEE_SIZE> {
-    pub fn new(
-        consensus_state: &L1Consensus,
-        sync_committee: SyncCommittee<SYNC_COMMITTEE_SIZE>,
-        is_next: bool,
-    ) -> Result<Self, Error> {
-        sync_committee.validate().map_err(Error::L1ConsensusError)?;
-        if !is_next {
-            return if sync_committee.aggregate_pubkey == consensus_state.current_sync_committee {
-                Ok(Self {
-                    slot: consensus_state.slot,
-                    current_sync_committee: Some(sync_committee),
-                    next_sync_committee: None,
-                })
-            } else {
-                Err(Error::UnexpectedCurrentSyncCommitteeKeys(
-                    sync_committee.aggregate_pubkey,
-                    consensus_state.current_sync_committee.clone(),
-                ))
-            };
-        }
-
-        if sync_committee.aggregate_pubkey == consensus_state.next_sync_committee {
-            Ok(Self {
-                slot: consensus_state.slot,
-                current_sync_committee: None,
-                next_sync_committee: Some(sync_committee),
-            })
-        } else {
-            Err(Error::UnexpectedNextSyncCommitteeKeys(
-                sync_committee.aggregate_pubkey,
-                consensus_state.next_sync_committee.clone(),
-            ))
-        }
-    }
-}
+pub type L1TrustedConsensusState<const SYNC_COMMITTEE_SIZE: usize> =
+    TrustedConsensusState<SYNC_COMMITTEE_SIZE, L1ConsensusState>;
 
 #[derive(Default)]
 pub struct L1Verifier<const SYNC_COMMITTEE_SIZE: usize> {
     consensus_verifier:
-        SyncProtocolVerifier<SYNC_COMMITTEE_SIZE, L1SyncCommittee<SYNC_COMMITTEE_SIZE>>,
+        SyncProtocolVerifier<SYNC_COMMITTEE_SIZE, L1TrustedConsensusState<SYNC_COMMITTEE_SIZE>>,
 }
 
 impl<const SYNC_COMMITTEE_SIZE: usize> L1Verifier<SYNC_COMMITTEE_SIZE> {
     pub fn verify<CC: ChainConsensusVerificationContext>(
         &self,
         ctx: &CC,
-        l1_sync_committee: &L1SyncCommittee<SYNC_COMMITTEE_SIZE>,
+        trusted_l1_cons_state: &L1TrustedConsensusState<SYNC_COMMITTEE_SIZE>,
         consensus_update: &ConsensusUpdateInfo<SYNC_COMMITTEE_SIZE>,
         execution_update: &ExecutionUpdateInfo,
     ) -> Result<(), Error> {
         // Same L1 validation as ethereum-ibc-rs
         self.consensus_verifier
-            .validate_consensus_update(ctx, l1_sync_committee, consensus_update)
+            .validate_updates(
+                ctx,
+                trusted_l1_cons_state,
+                consensus_update,
+                execution_update,
+            )
             .map_err(Error::L1VerifyConsensusUpdateError)?;
-        let update_fork_spec =
-            ctx.compute_fork_spec(consensus_update.finalized_beacon_header().slot);
-        const BLOCK_NUMBER_TO_BLOCK_HASH_DIFF: u32 = 6;
-        let execution_payload_block_hash_gindex = update_fork_spec
-            .execution_payload_block_number_gindex
-            + BLOCK_NUMBER_TO_BLOCK_HASH_DIFF;
-        let trusted_execution_root = consensus_update.finalized_execution_root();
-        self.consensus_verifier
-            .validate_execution_update(update_fork_spec, trusted_execution_root, execution_update)
-            .map_err(Error::L1VerifyExecutionUpdateError)?;
 
         // Ensure valid l1 block hash
-        // This is not required for ethereum-elc but is required for optimism-elc.
-        // Because L2 derivation requires l1 block hash.
-        is_valid_normalized_merkle_branch(
-            hash_tree_root(execution_update.block_hash)
-                .unwrap()
-                .0
-                .into(),
-            &execution_update.block_hash_branch,
-            execution_payload_block_hash_gindex,
-            trusted_execution_root,
-        )
-        .map_err(Error::InvalidExecutionBlockHashMerkleBranch)?;
-
+        // Only required for pre-Gloas.
+        let fork_spec = ctx.compute_fork_spec(consensus_update.finalized_beacon_header().slot);
+        if fork_spec.execution_block_hash_gindex == 0 {
+            let trusted_execution_root = consensus_update.finalized_execution_root();
+            execution_update.validate_block_hash(fork_spec, trusted_execution_root)?;
+        }
         Ok(())
     }
 
     pub fn verify_misbehaviour<CC: ChainConsensusVerificationContext>(
         &self,
         ctx: &CC,
-        l1_sync_committee: &L1SyncCommittee<SYNC_COMMITTEE_SIZE>,
+        trusted_l1_cons_state: &L1TrustedConsensusState<SYNC_COMMITTEE_SIZE>,
         data: MisbehaviourData<SYNC_COMMITTEE_SIZE, ConsensusUpdateInfo<SYNC_COMMITTEE_SIZE>>,
     ) -> Result<(), Error> {
         self.consensus_verifier
-            .validate_misbehaviour(ctx, l1_sync_committee, data)
+            .validate_misbehaviour(ctx, trusted_l1_cons_state, data)
             .map_err(Error::L1VerifyMisbehaviourError)
-    }
-}
-
-impl<const SYNC_COMMITTEE_SIZE: usize> LightClientStoreReader<SYNC_COMMITTEE_SIZE>
-    for L1SyncCommittee<SYNC_COMMITTEE_SIZE>
-{
-    fn current_period<CC: ChainContext>(&self, ctx: &CC) -> SyncCommitteePeriod {
-        compute_sync_committee_period_at_slot(ctx, self.slot)
-    }
-
-    fn current_sync_committee(&self) -> Option<SyncCommittee<SYNC_COMMITTEE_SIZE>> {
-        self.current_sync_committee.clone()
-    }
-
-    fn next_sync_committee(&self) -> Option<SyncCommittee<SYNC_COMMITTEE_SIZE>> {
-        self.next_sync_committee.clone()
-    }
-
-    fn ensure_relevant_update<CC: ChainContext, C: ConsensusUpdate<SYNC_COMMITTEE_SIZE>>(
-        &self,
-        _ctx: &CC,
-        update: &C,
-    ) -> Result<(), ethereum_light_client_verifier::errors::Error> {
-        if self.slot > update.finalized_beacon_header().slot {
-            Err(IrrelevantConsensusUpdates(
-                "finalized header slot is not greater than or equal to current slot".to_string(),
-            ))
-        } else {
-            Ok(())
-        }
     }
 }
 
 fn apply_updates<const SYNC_COMMITTEE_SIZE: usize, CC: ChainConsensusVerificationContext>(
     ctx: &CC,
-    consensus_state: &L1Consensus,
+    consensus_state: &L1ConsensusState,
     consensus_update: ConsensusUpdateInfo<SYNC_COMMITTEE_SIZE>,
     header_timestamp: Time,
-) -> Result<(bool, L1Consensus), Error> {
-    let store_period = consensus_state.current_l1_period(ctx);
+) -> Result<(bool, L1ConsensusState), Error> {
+    let store_period = consensus_state.current_period(ctx);
     let update_finalized_slot = consensus_update.finalized_header.0.slot;
     let update_finalized_period = compute_sync_committee_period_at_slot(ctx, update_finalized_slot);
     let period_changed = store_period + 1 == update_finalized_period;
@@ -336,7 +260,7 @@ fn apply_updates<const SYNC_COMMITTEE_SIZE: usize, CC: ChainConsensusVerificatio
 
     Ok((
         period_changed,
-        L1Consensus {
+        L1ConsensusState {
             slot: update_finalized_slot,
             timestamp: header_timestamp,
             current_sync_committee: sync_committee_info.current_sync_committee,
@@ -445,27 +369,27 @@ impl<const SYNC_COMMITTEE_SIZE: usize> Misbehaviour<SYNC_COMMITTEE_SIZE> {
         &self,
         now: u64,
         l1_config: &L1Config,
-        consensus_state: &L1Consensus,
+        consensus_state: &L1ConsensusState,
     ) -> Result<(), Error> {
         let ctx = l1_config.build_context(now);
 
         self.validate()?;
 
-        let l1_sync_committee = L1SyncCommittee::new(
-            consensus_state,
+        let trusted_l1_cons_state = L1TrustedConsensusState::new(
+            consensus_state.clone(),
             self.trusted_sync_committee.sync_committee.clone(),
             self.trusted_sync_committee.is_next,
         )?;
 
         let verifier = L1Verifier::default();
-        verifier.verify_misbehaviour(&ctx, &l1_sync_committee, self.data.clone())
+        verifier.verify_misbehaviour(&ctx, &trusted_l1_cons_state, self.data.clone())
     }
 }
 
 #[cfg(test)]
 pub(crate) mod tests {
     use crate::errors::Error;
-    use crate::l1::{apply_updates, L1Config, L1Consensus, L1Header};
+    use crate::l1::{apply_updates, L1Config, L1ConsensusState, L1Header};
     use alloc::format;
     use alloc::vec::Vec;
     use alloy_primitives::hex;
@@ -500,9 +424,9 @@ pub(crate) mod tests {
         .unwrap()
     }
 
-    pub fn get_l1_consensus() -> L1Consensus {
+    pub fn get_l1_consensus() -> L1ConsensusState {
         // created by optimism-ibc-relay-prover#prover_test.go#TestSetupHeadersForUpdateShort
-        L1Consensus {
+        L1ConsensusState {
             slot: 4736.into(),
             current_sync_committee: PublicKey::try_from(hex!("8582bbad3f9eee79addd939370c7241ee96d425c6a5d6e7fb89e59ad117c38e62064e56821b77b26353be13b86d6a66c").to_vec()).unwrap(),
             next_sync_committee: PublicKey::default(),
@@ -720,7 +644,7 @@ pub(crate) mod tests {
                 { ethereum_consensus::preset::minimal::PRESET.SYNC_COMMITTEE_SIZE },
             >::try_from(raw_l1_header.clone())
             .unwrap();
-            let cons_state = L1Consensus {
+            let cons_state = L1ConsensusState {
                 slot: case.cons_slot.into(),
                 current_sync_committee: case.cons_l1_current_sync_committee.clone(),
                 next_sync_committee: case.cons_l1_next_sync_committee.clone(),

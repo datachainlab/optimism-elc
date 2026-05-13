@@ -20,7 +20,7 @@ prost = { version = "0.11", default-features = false }
 # Ethereum-IBC
 ethereum-consensus = { git = "https://github.com/yoshidan/ethereum-light-client-rs", rev = "09c47ab55096a1a70f7800515ebdbba7115034ce", default-features = false }
 ethereum-light-client-verifier = { git = "https://github.com/yoshidan/ethereum-light-client-rs", rev = "09c47ab55096a1a70f7800515ebdbba7115034ce", default-features = false }
-ethereum-light-client-types = { git = "https://github.com/datachainlab/ethereum-light-client-types", rev = "relayer/v0.1.6", default-features = false }
+ethereum-light-client-types = { git = "https://github.com/datachainlab/ethereum-light-client-types", rev = "relayer/v0.1.7", default-features = false }
 
 # Kona
 kona-client = { git="https://github.com/ethereum-optimism/optimism", rev= "kona-client/v1.5.1", default-features = false }
