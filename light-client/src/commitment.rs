@@ -1,20 +1,6 @@
 use crate::errors::Error;
 use alloc::vec::Vec;
-use alloy_primitives::keccak256;
-use ethereum_consensus::types::H256;
 use rlp::Rlp;
-
-pub fn calculate_ibc_commitment_storage_location(ibc_commitments_slot: &H256, path: &str) -> H256 {
-    keccak256(
-        [
-            keccak256(path.as_bytes()).as_slice(),
-            ibc_commitments_slot.as_bytes(),
-        ]
-        .concat(),
-    )
-    .0
-    .into()
-}
 
 /// decode rlp format `List<List>` to `Vec<List>`
 pub fn decode_rlp_proof(proof: Vec<u8>) -> Result<Vec<Vec<u8>>, Error> {

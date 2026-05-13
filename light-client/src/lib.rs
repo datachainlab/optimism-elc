@@ -10,7 +10,6 @@ pub mod client;
 pub mod client_state;
 pub mod consensus_state;
 
-mod account;
 mod commitment;
 pub mod errors;
 pub mod header;

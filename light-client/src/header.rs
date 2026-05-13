@@ -1,10 +1,10 @@
-use crate::account::AccountUpdateInfo;
 use crate::consensus_state::ConsensusState;
 use crate::errors::Error;
 use crate::l1::{L1Config, L1Consensus, L1Header};
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use alloy_primitives::B256;
+use ethereum_light_client_types::consensus::AccountUpdateInfo;
 use light_client::types::{Any, Height};
 use optimism_derivation::derivation::Derivation;
 use optimism_derivation::oracle::MemoryOracleClient;
@@ -217,7 +217,7 @@ mod test {
     use alloy_primitives::hex;
 
     use optimism_derivation::types::{Preimage, Preimages};
-    use optimism_ibc_proto::ibc::lightclients::optimism::v1::AccountUpdate as RawAccountUpdate;
+    use optimism_ibc_proto::ibc::lightclients::ethereum::v1::AccountUpdate as RawAccountUpdate;
     use optimism_ibc_proto::ibc::lightclients::optimism::v1::Derivation as RawDerivation;
     use optimism_ibc_proto::ibc::lightclients::optimism::v1::Header as RawHeader;
 
