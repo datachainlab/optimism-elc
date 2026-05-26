@@ -18,6 +18,7 @@ use ethereum_light_client_types::time::new_timestamp;
 use ethereum_light_client_types::update::{
     compute_sync_committees, TrustedConsensusState, TrustedSyncCommitteeInfo,
 };
+use ethereum_light_client_types::validate::validate_execution_update;
 use ethereum_light_client_verifier::consensus::SyncProtocolVerifier;
 use ethereum_light_client_verifier::context::{
     ChainConsensusVerificationContext, Fraction, LightClientContext,
@@ -223,13 +224,12 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L1Verifier<SYNC_COMMITTEE_SIZE> {
             )
             .map_err(Error::L1VerifyConsensusUpdateError)?;
 
-        // Ensure valid l1 block hash
-        // Only required for pre-Gloas.
-        let fork_spec = ctx.compute_fork_spec(consensus_update.finalized_beacon_header().slot);
-        if fork_spec.execution_block_hash_gindex == 0 {
-            let trusted_execution_root = consensus_update.finalized_execution_root();
-            execution_update.validate_block_hash(fork_spec, trusted_execution_root)?;
-        }
+        // Ensure valid l1 block hash (only required for pre-Gloas)
+        validate_execution_update::<SYNC_COMMITTEE_SIZE, _, _>(
+            ctx,
+            consensus_update,
+            execution_update,
+        )?;
         Ok(())
     }
 
