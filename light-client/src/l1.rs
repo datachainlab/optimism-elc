@@ -214,7 +214,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L1Verifier<SYNC_COMMITTEE_SIZE> {
         consensus_update: &ConsensusUpdateInfo<SYNC_COMMITTEE_SIZE>,
         execution_update: &ExecutionUpdateInfo,
     ) -> Result<(), Error> {
-        // Same L1 validation as ethereum-ibc-rs
+        // Same L1 validation as ethereum-light-client-rs
         self.consensus_verifier
             .validate_updates(
                 ctx,

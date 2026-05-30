@@ -1529,7 +1529,7 @@ dependencies = [
 [[package]]
 name = "ethereum-consensus"
 version = "0.1.0"
-source = "git+https://github.com/yoshidan/ethereum-light-client-rs?rev=09c47ab55096a1a70f7800515ebdbba7115034ce#09c47ab55096a1a70f7800515ebdbba7115034ce"
+source = "git+https://github.com/yoshidan/ethereum-light-client-rs?rev=cb4f62bb86a143556068c0be89bf62ac5f54c75a#cb4f62bb86a143556068c0be89bf62ac5f54c75a"
 dependencies = [
  "displaydoc",
  "hex",
@@ -1568,7 +1568,7 @@ dependencies = [
 [[package]]
 name = "ethereum-light-client-verifier"
 version = "0.1.0"
-source = "git+https://github.com/yoshidan/ethereum-light-client-rs?rev=09c47ab55096a1a70f7800515ebdbba7115034ce#09c47ab55096a1a70f7800515ebdbba7115034ce"
+source = "git+https://github.com/yoshidan/ethereum-light-client-rs?rev=cb4f62bb86a143556068c0be89bf62ac5f54c75a#cb4f62bb86a143556068c0be89bf62ac5f54c75a"
 dependencies = [
  "displaydoc",
  "ethereum-consensus",
