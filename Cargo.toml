@@ -47,7 +47,3 @@ ark-ff = { version = "0.5.0", default-features = false }
 [patch."crates-io"]
 # Avoid confliction between lcp and kona
 time = { git = "https://github.com/yoshidan/time", rev= "v0.3.19-p2", package = "time" }
-
-[patch."https://github.com/datachainlab/ethereum-light-client-types"]
-ethereum-light-client-types = { path = "../ethereum-light-client-types/type" }
-ethereum-light-client-proto = { path = "../ethereum-light-client-types/proto" }
