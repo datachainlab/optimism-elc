@@ -297,7 +297,7 @@ mod test {
     use alloc::vec;
     use alloy_eips::eip4844::{BYTES_PER_COMMITMENT, FIELD_ELEMENTS_PER_BLOB};
     use alloy_primitives::keccak256;
-    use alloy_primitives::map::HashMap;
+    use hashbrown::HashMap;
     use ark_ff::{BigInteger, PrimeField};
     use hashbrown::HashSet;
     use kona_preimage::{PreimageKey, PreimageKeyType};
