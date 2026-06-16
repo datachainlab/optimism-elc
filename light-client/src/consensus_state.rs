@@ -4,6 +4,7 @@ use alloy_primitives::B256;
 use ethereum_consensus::beacon::Slot;
 use ethereum_consensus::bls::PublicKey;
 use ethereum_consensus::types::H256;
+use ethereum_light_client_types::consensus_state::ConsensusState as EthConsensusStateTrait;
 use light_client::types::{Any, Time};
 use prost::Message as _;
 
@@ -44,6 +45,12 @@ impl ConsensusState {
     /// target fields: nothing
     pub fn canonicalize(self) -> Self {
         self
+    }
+}
+
+impl EthConsensusStateTrait for ConsensusState {
+    fn storage_root(&self) -> H256 {
+        self.storage_root
     }
 }
 

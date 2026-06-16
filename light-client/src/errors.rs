@@ -1,4 +1,4 @@
-use crate::l1::L1Consensus;
+use crate::l1::L1ConsensusState;
 use crate::misbehaviour::FaultDisputeGameProof;
 use alloc::boxed::Box;
 use alloc::string::{String, ToString};
@@ -10,6 +10,7 @@ use ethereum_consensus::bls::PublicKey;
 use ethereum_consensus::errors::{Error as L1ConsensusError, MerkleError};
 use ethereum_consensus::sync_protocol::SyncCommitteePeriod;
 use ethereum_consensus::types::{Address, H256};
+use ethereum_light_client_types::errors::Error as EthLightClientTypesError;
 use ethereum_light_client_verifier::errors::Error as L1VerifyError;
 use light_client::types::{ClientId, Height, Time, TimeError, TypeError};
 use optimism_derivation::derivation::Derivation;
@@ -121,9 +122,9 @@ pub enum Error {
     #[error("L1ConsensusError: err={0:?}")]
     L1ConsensusError(L1ConsensusError),
     #[error("L1HeaderTrustedToDeterministicVerifyError: index={0}, prev_updated_as_next={1:?} prev={2:?}, err={3:?}")]
-    L1HeaderTrustedToDeterministicVerifyError(usize, bool, L1Consensus, Box<Error>),
+    L1HeaderTrustedToDeterministicVerifyError(usize, bool, L1ConsensusState, Box<Error>),
     #[error("L1HeaderDeterministicToLatestVerifyError: index={0}, prev_updated_as_next={1:?} prev={2:?}, err={3:?}")]
-    L1HeaderDeterministicToLatestVerifyError(usize, bool, L1Consensus, Box<Error>),
+    L1HeaderDeterministicToLatestVerifyError(usize, bool, L1ConsensusState, Box<Error>),
     #[error("DerivationError: derivation={0:?}, preimage_size={1:?} err={2:?}")]
     DerivationError(Derivation, usize, optimism_derivation::errors::Error),
     #[error("UnexpectedCurrentSyncCommitteeKeys: request={0:?} consensus={1:?}")]
@@ -231,6 +232,9 @@ pub enum Error {
     // Framework
     #[error("LCPError: err={0:?}")]
     LCPError(light_client::Error),
+
+    #[error("EthLightClientTypesError: err={0:?}")]
+    EthLightClientTypesError(EthLightClientTypesError),
 }
 
 impl Error {
@@ -240,3 +244,9 @@ impl Error {
 }
 
 impl light_client::LightClientSpecificError for Error {}
+
+impl From<EthLightClientTypesError> for Error {
+    fn from(e: EthLightClientTypesError) -> Self {
+        Error::EthLightClientTypesError(e)
+    }
+}

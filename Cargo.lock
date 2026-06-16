@@ -1558,7 +1558,7 @@ dependencies = [
 [[package]]
 name = "ethereum-consensus"
 version = "0.1.0"
-source = "git+https://github.com/datachainlab/ethereum-light-client-rs?rev=v0.2.0#51a10e62d7fec3b7ae5a796fdc1b838393ed3e2b"
+source = "git+https://github.com/yoshidan/ethereum-light-client-rs?rev=cb4f62bb86a143556068c0be89bf62ac5f54c75a#cb4f62bb86a143556068c0be89bf62ac5f54c75a"
 dependencies = [
  "displaydoc",
  "hex",
@@ -1571,9 +1571,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "ethereum-light-client-proto"
+version = "0.1.0"
+source = "git+https://github.com/datachainlab/ethereum-light-client-types?rev=933be5eb28f9608d287b2f78cf3728883c5f7e56#933be5eb28f9608d287b2f78cf3728883c5f7e56"
+dependencies = [
+ "ibc-proto",
+ "prost",
+]
+
+[[package]]
+name = "ethereum-light-client-types"
+version = "0.1.0"
+source = "git+https://github.com/datachainlab/ethereum-light-client-types?rev=933be5eb28f9608d287b2f78cf3728883c5f7e56#933be5eb28f9608d287b2f78cf3728883c5f7e56"
+dependencies = [
+ "ethereum-consensus",
+ "ethereum-light-client-proto",
+ "ethereum-light-client-verifier",
+ "hex",
+ "light-client",
+ "rlp",
+ "serde",
+ "ssz-rs",
+ "thiserror 2.0.18",
+ "tiny-keccak",
+]
+
+[[package]]
 name = "ethereum-light-client-verifier"
 version = "0.1.0"
-source = "git+https://github.com/datachainlab/ethereum-light-client-rs?rev=v0.2.0#51a10e62d7fec3b7ae5a796fdc1b838393ed3e2b"
+source = "git+https://github.com/yoshidan/ethereum-light-client-rs?rev=cb4f62bb86a143556068c0be89bf62ac5f54c75a#cb4f62bb86a143556068c0be89bf62ac5f54c75a"
 dependencies = [
  "displaydoc",
  "ethereum-consensus",
@@ -2907,6 +2933,7 @@ dependencies = [
  "alloy-consensus",
  "alloy-primitives 1.6.0",
  "ethereum-consensus",
+ "ethereum-light-client-types",
  "ethereum-light-client-verifier",
  "kona-protocol",
  "light-client",
@@ -2925,6 +2952,7 @@ dependencies = [
 name = "optimism-ibc-proto"
 version = "0.1.0"
 dependencies = [
+ "ethereum-light-client-proto",
  "ibc-proto",
  "prost",
 ]

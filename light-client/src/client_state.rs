@@ -1,7 +1,7 @@
 use crate::consensus_state::ConsensusState;
 use crate::errors::Error;
 use crate::header::Header;
-use crate::l1::{L1Config, L1Consensus};
+use crate::l1::{L1Config, L1ConsensusState};
 use crate::misbehaviour::{FaultDisputeGameConfig, Misbehaviour, Verifier};
 use crate::misc::{
     new_timestamp, validate_header_timestamp_not_future,
@@ -13,6 +13,8 @@ use alloy_primitives::B256;
 use ethereum_consensus::beacon::Version;
 use ethereum_consensus::fork::{ForkParameter, ForkParameters, ForkSpec};
 use ethereum_consensus::types::{Address, H256, U64};
+use ethereum_light_client_types::client_state::ClientState as EthClientStateTrait;
+use ethereum_light_client_types::commitment::verify_account_storage;
 use ethereum_light_client_verifier::context::Fraction;
 use ethereum_light_client_verifier::execution::ExecutionVerifier;
 use light_client::types::{Any, ClientId, Height, Time};
@@ -46,15 +48,29 @@ pub struct ClientState {
     pub fault_dispute_game_config: FaultDisputeGameConfig,
 }
 
-impl ClientState {
-    /// canonicalize canonicalizes some fields of specified client state
-    /// target fields: latest_height, frozen
-    pub fn canonicalize(mut self) -> Self {
-        self.latest_height = Height::new(0, 0);
-        self.frozen = false;
-        self
+impl EthClientStateTrait for ClientState {
+    fn is_frozen(&self) -> bool {
+        self.frozen
     }
 
+    fn latest_height(&self) -> Height {
+        self.latest_height
+    }
+
+    fn ibc_commitments_slot(&self) -> H256 {
+        self.ibc_commitments_slot
+    }
+
+    fn canonicalize(self) -> Self {
+        ClientState {
+            latest_height: Height::new(0, 0),
+            frozen: false,
+            ..self
+        }
+    }
+}
+
+impl ClientState {
     pub fn freeze(mut self) -> Self {
         self.frozen = true;
         self
@@ -78,9 +94,12 @@ impl ClientState {
             header.verify_l2(self.chain_id, trusted_consensus_state.output_root)?;
 
         // Ensure account storage is valid
-        header.account_update.verify_account_storage(
-            &self.ibc_store_address,
+        let execution_verifier = ExecutionVerifier;
+        verify_account_storage(
+            &execution_verifier,
             H256::from_slice(l2_header.state_root.0.as_slice()),
+            &self.ibc_store_address,
+            &header.account_update,
         )?;
 
         // check if the current timestamp is within the trusting period
@@ -115,6 +134,7 @@ impl ClientState {
 
         Ok((new_client_state, new_consensus_state, header_height))
     }
+
     pub fn check_misbehaviour_and_update_state<const L1_SYNC_COMMITTEE_SIZE: usize>(
         &self,
         now: Time,
@@ -134,7 +154,7 @@ impl ClientState {
             ));
         }
 
-        let l1_cons_state = L1Consensus {
+        let l1_cons_state = L1ConsensusState {
             slot: trusted_consensus_state.l1_slot,
             current_sync_committee: trusted_consensus_state.l1_current_sync_committee.clone(),
             next_sync_committee: trusted_consensus_state.l1_next_sync_committee.clone(),
@@ -177,36 +197,6 @@ impl ClientState {
             ..self.clone()
         })
     }
-
-    pub fn verify_membership(
-        &self,
-        root: H256,
-        key: H256,
-        value: &[u8],
-        proof: Vec<Vec<u8>>,
-    ) -> Result<(), Error> {
-        let execution_verifier = ExecutionVerifier;
-        execution_verifier
-            .verify_membership(
-                root,
-                key.as_bytes(),
-                rlp::encode(&trim_left_zero(value)).as_ref(),
-                proof,
-            )
-            .map_err(Error::VerifyMembershipError)
-    }
-
-    pub fn verify_non_membership(
-        &self,
-        root: H256,
-        key: H256,
-        proof: Vec<Vec<u8>>,
-    ) -> Result<(), Error> {
-        let execution_verifier = ExecutionVerifier;
-        execution_verifier
-            .verify_non_membership(root, key.as_bytes(), proof)
-            .map_err(Error::VerifyMembershipError)
-    }
 }
 
 impl From<L1Config> for RawL1Config {
@@ -223,6 +213,7 @@ impl From<L1Config> for RawL1Config {
                     execution_payload_state_root_gindex: spec.execution_payload_state_root_gindex,
                     execution_payload_block_number_gindex: spec
                         .execution_payload_block_number_gindex,
+                    execution_block_hash_gindex: spec.execution_block_hash_gindex,
                 }),
             }
         }
@@ -275,6 +266,7 @@ impl TryFrom<RawL1Config> for L1Config {
                 execution_payload_gindex: spec.execution_payload_gindex,
                 execution_payload_state_root_gindex: spec.execution_payload_state_root_gindex,
                 execution_payload_block_number_gindex: spec.execution_payload_block_number_gindex,
+                execution_block_hash_gindex: spec.execution_block_hash_gindex,
             })
         }
         let raw_fork_parameters = value.fork_parameters.ok_or(Error::MissingForkParameters)?;
@@ -423,32 +415,5 @@ impl TryFrom<Any> for ClientState {
 
     fn try_from(any: Any) -> Result<Self, Self::Error> {
         IBCAny::from(any).try_into()
-    }
-}
-
-fn trim_left_zero(value: &[u8]) -> &[u8] {
-    let mut pos = 0;
-    for v in value {
-        if *v != 0 {
-            break;
-        }
-        pos += 1;
-    }
-    &value[pos..]
-}
-
-#[cfg(test)]
-mod test {
-    use crate::client_state::trim_left_zero;
-
-    #[test]
-    fn test_trim_left_zero() {
-        assert_eq!(trim_left_zero(&[1, 2, 3, 4]), [1, 2, 3, 4]);
-        assert_eq!(trim_left_zero(&[1, 2, 3, 0]), [1, 2, 3, 0]);
-        assert_eq!(trim_left_zero(&[0, 2, 3, 0]), [2, 3, 0]);
-        assert_eq!(trim_left_zero(&[0, 0, 3, 0]), [3, 0]);
-        assert_eq!(trim_left_zero(&[0, 0, 0, 4]), [4]);
-        assert!(trim_left_zero(&[0, 0, 0, 0]).is_empty());
-        assert!(trim_left_zero(&[]).is_empty());
     }
 }

@@ -9,7 +9,7 @@ pub struct L1Config {
     pub genesis_time: u64,
     #[prost(message, optional, tag = "4")]
     pub fork_parameters: ::core::option::Option<
-        super::super::ethereum::v1::ForkParameters,
+        ::ethereum_light_client_proto::ibc::lightclients::ethereum::v1::ForkParameters,
     >,
     #[prost(uint64, tag = "5")]
     pub seconds_per_slot: u64,
@@ -18,7 +18,9 @@ pub struct L1Config {
     #[prost(uint64, tag = "7")]
     pub epochs_per_sync_committee_period: u64,
     #[prost(message, optional, tag = "8")]
-    pub trust_level: ::core::option::Option<super::super::ethereum::v1::Fraction>,
+    pub trust_level: ::core::option::Option<
+        ::ethereum_light_client_proto::ibc::lightclients::ethereum::v1::Fraction,
+    >,
     #[prost(message, optional, tag = "9")]
     pub trusting_period: ::core::option::Option<
         super::super::super::super::google::protobuf::Duration,
@@ -55,7 +57,7 @@ pub struct ClientState {
     pub ibc_commitments_slot: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, optional, tag = "4")]
     pub latest_height: ::core::option::Option<
-        super::super::super::core::client::v1::Height,
+        ::ibc_proto::ibc::core::client::v1::Height,
     >,
     #[prost(bool, tag = "5")]
     pub frozen: bool,
@@ -69,15 +71,15 @@ pub struct ClientState {
 pub struct L1Header {
     #[prost(message, optional, tag = "1")]
     pub trusted_sync_committee: ::core::option::Option<
-        super::super::ethereum::v1::TrustedSyncCommittee,
+        ::ethereum_light_client_proto::ibc::lightclients::ethereum::v1::TrustedSyncCommittee,
     >,
     #[prost(message, optional, tag = "2")]
     pub consensus_update: ::core::option::Option<
-        super::super::ethereum::v1::ConsensusUpdate,
+        ::ethereum_light_client_proto::ibc::lightclients::ethereum::v1::ConsensusUpdate,
     >,
     #[prost(message, optional, tag = "3")]
     pub execution_update: ::core::option::Option<
-        super::super::ethereum::v1::ExecutionUpdate,
+        ::ethereum_light_client_proto::ibc::lightclients::ethereum::v1::ExecutionUpdate,
     >,
     #[prost(uint64, tag = "4")]
     pub timestamp: u64,
@@ -97,10 +99,12 @@ pub struct Derivation {
 pub struct Header {
     #[prost(message, optional, tag = "1")]
     pub trusted_height: ::core::option::Option<
-        super::super::super::core::client::v1::Height,
+        ::ibc_proto::ibc::core::client::v1::Height,
     >,
     #[prost(message, optional, tag = "2")]
-    pub account_update: ::core::option::Option<AccountUpdate>,
+    pub account_update: ::core::option::Option<
+        ::ethereum_light_client_proto::ibc::lightclients::ethereum::v1::AccountUpdate,
+    >,
     /// derivation and preimage must be generated using rollup_config in ClientState.
     #[prost(message, optional, tag = "3")]
     pub derivation: ::core::option::Option<Derivation>,
@@ -133,23 +137,19 @@ pub struct ConsensusState {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct AccountUpdate {
-    #[prost(bytes = "vec", tag = "1")]
-    pub account_proof: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "2")]
-    pub account_storage_root: ::prost::alloc::vec::Vec<u8>,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct FaultDisputeGameProof {
     #[prost(bytes = "vec", tag = "1")]
     pub state_root: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, optional, tag = "3")]
-    pub dispute_game_factory_account: ::core::option::Option<AccountUpdate>,
+    pub dispute_game_factory_account: ::core::option::Option<
+        ::ethereum_light_client_proto::ibc::lightclients::ethereum::v1::AccountUpdate,
+    >,
     #[prost(bytes = "vec", tag = "4")]
     pub dispute_game_factory_game_id_proof: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, optional, tag = "5")]
-    pub fault_dispute_game_account: ::core::option::Option<AccountUpdate>,
+    pub fault_dispute_game_account: ::core::option::Option<
+        ::ethereum_light_client_proto::ibc::lightclients::ethereum::v1::AccountUpdate,
+    >,
     #[prost(bytes = "vec", tag = "6")]
     pub fault_dispute_game_game_status_proof: ::prost::alloc::vec::Vec<u8>,
     #[prost(uint64, tag = "7")]
@@ -162,7 +162,7 @@ pub struct Misbehaviour {
     pub client_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "2")]
     pub trusted_height: ::core::option::Option<
-        super::super::super::core::client::v1::Height,
+        ::ibc_proto::ibc::core::client::v1::Height,
     >,
     #[prost(uint64, tag = "3")]
     pub resolved_l2_number: u64,
@@ -174,9 +174,13 @@ pub struct Misbehaviour {
     pub latest_l1_header: ::core::option::Option<L1Header>,
     /// Only for past game
     #[prost(message, optional, tag = "7")]
-    pub first_l2_to_l1_message_passer_account: ::core::option::Option<AccountUpdate>,
+    pub first_l2_to_l1_message_passer_account: ::core::option::Option<
+        ::ethereum_light_client_proto::ibc::lightclients::ethereum::v1::AccountUpdate,
+    >,
     #[prost(message, optional, tag = "8")]
-    pub last_l2_to_l1_message_passer_account: ::core::option::Option<AccountUpdate>,
+    pub last_l2_to_l1_message_passer_account: ::core::option::Option<
+        ::ethereum_light_client_proto::ibc::lightclients::ethereum::v1::AccountUpdate,
+    >,
     #[prost(bytes = "vec", repeated, tag = "9")]
     pub l2_header_history: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
     /// Only for future game
@@ -185,4 +189,40 @@ pub struct Misbehaviour {
     pub submitted_l1_proof: ::core::option::Option<FaultDisputeGameProof>,
     #[prost(bytes = "vec", repeated, tag = "11")]
     pub l1_header_history: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FinalizedHeaderMisbehaviour {
+    #[prost(string, tag = "1")]
+    pub client_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub trusted_sync_committee: ::core::option::Option<
+        ::ethereum_light_client_proto::ibc::lightclients::ethereum::v1::TrustedSyncCommittee,
+    >,
+    #[prost(message, optional, tag = "3")]
+    pub consensus_update_1: ::core::option::Option<
+        ::ethereum_light_client_proto::ibc::lightclients::ethereum::v1::ConsensusUpdate,
+    >,
+    #[prost(message, optional, tag = "4")]
+    pub consensus_update_2: ::core::option::Option<
+        ::ethereum_light_client_proto::ibc::lightclients::ethereum::v1::ConsensusUpdate,
+    >,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct NextSyncCommitteeMisbehaviour {
+    #[prost(string, tag = "1")]
+    pub client_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub trusted_sync_committee: ::core::option::Option<
+        ::ethereum_light_client_proto::ibc::lightclients::ethereum::v1::TrustedSyncCommittee,
+    >,
+    #[prost(message, optional, tag = "3")]
+    pub consensus_update_1: ::core::option::Option<
+        ::ethereum_light_client_proto::ibc::lightclients::ethereum::v1::ConsensusUpdate,
+    >,
+    #[prost(message, optional, tag = "4")]
+    pub consensus_update_2: ::core::option::Option<
+        ::ethereum_light_client_proto::ibc::lightclients::ethereum::v1::ConsensusUpdate,
+    >,
 }
