@@ -3,9 +3,7 @@ use core::str::FromStr;
 use core::time::Duration;
 use ethereum_consensus::beacon::{Epoch, Root, Slot};
 use ethereum_consensus::bls::PublicKey;
-use ethereum_consensus::compute::{
-    compute_sync_committee_period_at_slot, compute_timestamp_at_slot,
-};
+use ethereum_consensus::compute::compute_sync_committee_period_at_slot;
 use ethereum_consensus::context::ChainContext;
 use ethereum_consensus::fork::ForkParameters;
 use ethereum_consensus::sync_protocol::SyncCommitteePeriod;
@@ -14,7 +12,7 @@ use ethereum_light_client_types::consensus::{
     convert_proto_to_consensus_update, convert_proto_to_execution_update, ConsensusUpdateInfo,
     ExecutionUpdateInfo, TrustedSyncCommittee,
 };
-use ethereum_light_client_types::time::new_timestamp;
+use ethereum_light_client_types::time::{new_timestamp, validate_header_timestamp};
 use ethereum_light_client_types::update::{
     compute_sync_committees, TrustedConsensusState, TrustedSyncCommitteeInfo,
 };
@@ -125,18 +123,11 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L1Header<SYNC_COMMITTEE_SIZE> {
         if self.execution_update.block_number == U64(0) {
             return Err(Error::ZeroL1ExecutionBlockNumberError);
         }
-        let header_timestamp_nanos = self.timestamp.as_unix_timestamp_nanos();
-        let timestamp_secs =
-            compute_timestamp_at_slot(ctx, self.consensus_update.finalized_beacon_header().slot);
-        let timestamp_nanos = u128::from(timestamp_secs.0)
-            .checked_mul(1_000_000_000)
-            .ok_or_else(|| Error::TimestampOverflowError(timestamp_secs.0))?;
-        if header_timestamp_nanos != timestamp_nanos {
-            return Err(Error::UnexpectedL1Timestamp(
-                timestamp_nanos,
-                header_timestamp_nanos,
-            ));
-        }
+        validate_header_timestamp(
+            ctx,
+            self.consensus_update.finalized_beacon_header().slot,
+            self.timestamp,
+        )?;
         Ok(())
     }
 }
