@@ -2955,6 +2955,7 @@ dependencies = [
  "ethereum-consensus",
  "ethereum-light-client-types",
  "ethereum-light-client-verifier",
+ "hex",
  "hex-literal",
  "kona-protocol",
  "light-client",
