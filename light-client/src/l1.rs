@@ -105,7 +105,10 @@ impl TrustedSyncCommitteeInfo for L1ConsensusState {
     }
 
     fn is_relevant_update(&self, update_finalized_slot: U64) -> bool {
-        update_finalized_slot > U64(self.slot.into())
+        // Allow equal slot: the trusted_to_deterministic chain may start at the
+        // trusted L1 slot (trusted == deterministic). Matches the pre-migration
+        // check `self.slot > finalized_slot => irrelevant`.
+        update_finalized_slot >= U64(self.slot.into())
     }
 }
 
