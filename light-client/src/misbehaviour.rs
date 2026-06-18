@@ -843,7 +843,9 @@ mod test {
             .verify_resolved_status(&FaultDisputeGameConfig::default(), claim.0, claim.1)
             .unwrap_err();
         match err {
-            Error::MPTVerificationError(_, _, _, _) => {}
+            Error::EthLightClientTypesError(
+                ethereum_light_client_types::errors::Error::MptVerification { .. },
+            ) => {}
             _ => panic!("Unexpected error, got: {:?}", err),
         }
     }
@@ -885,7 +887,9 @@ mod test {
             .verify_resolved_status(&FaultDisputeGameConfig::default(), claim.0, claim.1)
             .unwrap_err();
         match err {
-            Error::MPTVerificationError(_, _, _, _) => {}
+            Error::EthLightClientTypesError(
+                ethereum_light_client_types::errors::Error::MptVerification { .. },
+            ) => {}
             _ => panic!("Unexpected error, got: {:?}", err),
         }
     }
