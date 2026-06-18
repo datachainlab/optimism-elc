@@ -1,0 +1,222 @@
+//! End-to-end tests for the optimism light client.
+//!
+//! These drive the full `update_client` / misbehaviour flow against
+//! prover-generated fixtures in `../testdata/*.bin`. They are `#[ignore]`d
+//! because they require regenerated testdata; run with
+//! `cargo test -- --ignored` after regeneration.
+
+use std::collections::BTreeMap;
+use std::str::FromStr;
+
+use hex_literal::hex;
+use light_client::types::{Any, ClientId, Height, Time};
+use light_client::{ClientReader, HostClientReader, HostContext, LightClient, UpdateClientResult};
+use optimism_elc::client::OptimismLightClient;
+use optimism_elc::client_state::ClientState;
+use optimism_elc::consensus_state::ConsensusState;
+use optimism_elc::preset::minimal::PRESET;
+use optimism_ibc_proto::ibc::lightclients::optimism::v1::ClientState as RawClientState;
+use optimism_ibc_proto::ibc::lightclients::optimism::v1::ConsensusState as RawConsensusState;
+use prost::Message;
+
+const SYNC_COMMITTEE_SIZE: usize = PRESET.SYNC_COMMITTEE_SIZE;
+
+#[derive(Default)]
+struct MockClientReader {
+    client_state: Option<ClientState>,
+    consensus_state: BTreeMap<Height, ConsensusState>,
+    time: Option<Time>,
+}
+
+impl HostContext for MockClientReader {
+    fn host_timestamp(&self) -> Time {
+        self.time.unwrap_or_else(Time::now)
+    }
+}
+
+impl HostClientReader for MockClientReader {}
+
+impl store::KVStore for MockClientReader {
+    fn set(&mut self, _key: Vec<u8>, _value: Vec<u8>) {}
+
+    fn get(&self, _key: &[u8]) -> Option<Vec<u8>> {
+        None
+    }
+
+    fn remove(&mut self, _key: &[u8]) {}
+}
+
+impl ClientReader for MockClientReader {
+    fn client_state(&self, client_id: &ClientId) -> Result<Any, light_client::Error> {
+        let cs = self
+            .client_state
+            .clone()
+            .ok_or_else(|| light_client::Error::client_state_not_found(client_id.clone()))?;
+        Ok(Any::try_from(cs).unwrap())
+    }
+
+    fn consensus_state(
+        &self,
+        client_id: &ClientId,
+        height: &Height,
+    ) -> Result<Any, light_client::Error> {
+        let state = self
+            .consensus_state
+            .get(height)
+            .ok_or_else(|| {
+                light_client::Error::consensus_state_not_found(client_id.clone(), *height)
+            })?
+            .clone();
+        Ok(Any::try_from(state).unwrap())
+    }
+}
+
+fn get_raw_initial_state() -> (Vec<u8>, Vec<u8>) {
+    // All the test parameters are created by optimism-ibc-relay-prover#prover_test.go#TestSetupHeadersForUpdate
+    let raw_cs = hex!("08e4ab83011214a513e6e4b8f2a923d98304ec87f64353c4d5c8531a201ee222554989dda120e26ecacf756fe1235cd8d726706b57517715dde4f0c900220310c60a32cb010a20d61ea484febacfae5298d52a2b581f3e305a51f3112a9241b968dccf019f7b11100118f594e7ce062286010a0410000038120e0a04200000381a0608691036183712140a04300000381a0c08691036183720192812301612140a04400000381a0c08691036183720192812301612140a04500000381a0c08691036183720192822302612150a04600000381a0d08a9011056185720192822302612150a04700000381a0d08a901105618572019282230262806300838084204080210034a040880a305520410c0843d3a1c0a1400000000000000000000000000000000000000001067200f2818");
+    let raw_cons_state = hex!("0a2089ee7cbea8dcc00ce561dc0242806f8cde626e08780b7c6337287df55916ae6910c3aae7ce061a20a4cee41d824d8b11f8082e2eaf670302bf845ebccf064a35d583f85d284629432080032a30a590bf578cc9e21a0142da59d5523ad70723d2b69ae607b9595e28e38d23fd456ba063c7206a0581d6e0a5caf3f8895c3230ac383d5df117d39a71415b5a5a8fd28b72b2bcb1beb2da80269a738990bdcb7f1eccbfb5705919379f37898f9d05af9938f5a6e7ce0640c903");
+    (raw_cs.into(), raw_cons_state.into())
+}
+
+#[test]
+#[ignore = "e2e: requires regenerated testdata/*.bin"]
+fn test_update_client_t_pl() {
+    let (raw_cs, raw_cons_state) = get_raw_initial_state();
+    run_update_client(1775884124, raw_cs, raw_cons_state, "t_pl");
+}
+
+fn run_update_client(now: i64, raw_cs: Vec<u8>, raw_cons_state: Vec<u8>, suffix: &str) {
+    let client = OptimismLightClient::<SYNC_COMMITTEE_SIZE>;
+    let raw_cs = RawClientState::decode(raw_cs.as_slice()).unwrap();
+    let raw_cons_state = RawConsensusState::decode(raw_cons_state.as_slice()).unwrap();
+
+    let cs = ClientState::try_from(raw_cs).unwrap();
+    let cons_state = ConsensusState::try_from(raw_cons_state).unwrap();
+
+    let mut cons_states = BTreeMap::new();
+    cons_states.insert(cs.latest_height, cons_state);
+
+    let client_message = std::fs::read(format!("../testdata/update_client_header_{suffix}.bin"))
+        .expect("file not found");
+    let client_message = Any::try_from(client_message).unwrap();
+
+    let ctx = MockClientReader {
+        client_state: Some(cs),
+        consensus_state: cons_states,
+        time: Some(Time::from_unix_timestamp(now, 0).unwrap()),
+    };
+
+    let client_id = ClientId::from_str("optimism-1").unwrap();
+    client
+        .update_client(&ctx, client_id, client_message)
+        .unwrap();
+}
+
+#[test]
+#[ignore = "e2e: requires regenerated testdata/*.bin"]
+fn test_submit_misbehaviour_success() {
+    let client = OptimismLightClient::<SYNC_COMMITTEE_SIZE>;
+    let (now, cs, cons_state, client_message) = get_misbehaviour_data();
+    let mut cons_states = BTreeMap::new();
+    cons_states.insert(cs.latest_height, cons_state.clone());
+
+    let ctx = MockClientReader {
+        client_state: Some(cs),
+        consensus_state: cons_states,
+        time: Some(Time::from_unix_timestamp(now, 0).unwrap()),
+    };
+
+    let client_id = ClientId::from_str("optimism-01").unwrap();
+    let result = client
+        .update_client(&ctx, client_id, client_message)
+        .unwrap();
+    match result {
+        UpdateClientResult::Misbehaviour(data) => {
+            let frozen = ClientState::try_from(data.new_any_client_state)
+                .unwrap()
+                .frozen;
+            assert!(frozen, "Client should be frozen after misbehaviour");
+        }
+        _ => panic!("Expected success result"),
+    }
+}
+
+#[test]
+#[ignore = "e2e: requires regenerated testdata/*.bin"]
+fn test_submit_misbehaviour_future_success() {
+    let client = OptimismLightClient::<SYNC_COMMITTEE_SIZE>;
+    let (now, cs, cons_state, client_message) = get_misbehaviour_future_data();
+    let mut cons_states = BTreeMap::new();
+    cons_states.insert(cs.latest_height, cons_state.clone());
+
+    let ctx = MockClientReader {
+        client_state: Some(cs),
+        consensus_state: cons_states,
+        time: Some(Time::from_unix_timestamp(now, 0).unwrap()),
+    };
+
+    let client_id = ClientId::from_str("optimism-01").unwrap();
+    let result = client
+        .update_client(&ctx, client_id, client_message)
+        .unwrap();
+    match result {
+        UpdateClientResult::Misbehaviour(data) => {
+            let frozen = ClientState::try_from(data.new_any_client_state)
+                .unwrap()
+                .frozen;
+            assert!(frozen, "Client should be frozen after misbehaviour");
+        }
+        _ => panic!("Expected success result"),
+    }
+}
+
+fn get_misbehaviour_data() -> (i64, ClientState, ConsensusState, Any) {
+    // All the test parameters are created by optimism-ibc-relay-prover#tools/misbehaviour/l2/past
+    let raw_cs = hex!("220310fd0b32c7010a20d61ea484febacfae5298d52a2b581f3e305a51f3112a9241b968dccf019f7b11100118d4c1d0c7062286010a0410000038120e0a04200000381a0608691036183712140a04300000381a0c08691036183720192812301612140a04400000381a0c08691036183720192812301612140a04500000381a0c08691036183720192822302612150a04600000381a0d08a9011056185720192822302612150a04700000381a0d08a901105618572019282230262806300838084204080210034a040880a30552003a1e0a14ab6a1757ab5ec9b5c5ebcccd95fbda0e6e8030dd1067200f28183002");
+    let raw_cs = RawClientState::decode(raw_cs.as_slice()).unwrap();
+
+    let cs = to_misbehaviour_client_state(raw_cs);
+
+    let raw_cons_state = hex!("0a2000000000000000000000000000000000000000000000000000000000000000001a201c063a5f5e2bcc05dc6ffd6c2612e5c2b5c73fbf5527ec8c9a276aaeecdaec5720a8052a308e6602628d8d539fc5eb303e525c60a683e4c8e24db6f336aa6fc35059fd5acc4eadc9f31cd2d0ab1e0e616b494cf8ce3230b83fdd19d1a7b901cce5e25487f5c9491e1dd8634bf76c02b3b0cb79e19923f71d756701d24a49f44af8c22952d7c41238c4e1d0c706");
+    let raw_cons_state = RawConsensusState::decode(raw_cons_state.as_slice()).unwrap();
+    let cons_state = ConsensusState::try_from(raw_cons_state).unwrap();
+
+    let client_message =
+        std::fs::read("../testdata/submit_misbehaviour.bin").expect("file not found");
+    let client_message = Any::try_from(client_message).unwrap();
+
+    (1760833897, cs, cons_state, client_message)
+}
+
+fn get_misbehaviour_future_data() -> (i64, ClientState, ConsensusState, Any) {
+    // All the test parameters are created by optimism-ibc-relay-prover#tools/misbehaviour/l2/future
+    let raw_cs = hex!("220310af0e32c7010a20d61ea484febacfae5298d52a2b581f3e305a51f3112a9241b968dccf019f7b11100118d4c1d0c7062286010a0410000038120e0a04200000381a0608691036183712140a04300000381a0c08691036183720192812301612140a04400000381a0c08691036183720192812301612140a04500000381a0c08691036183720192822302612150a04600000381a0d08a9011056185720192822302612150a04700000381a0d08a901105618572019282230262806300838084204080210034a040880a30552003a1e0a14ab6a1757ab5ec9b5c5ebcccd95fbda0e6e8030dd1067200f28183002");
+    let raw_cs = RawClientState::decode(raw_cs.as_slice()).unwrap();
+
+    let cs = to_misbehaviour_client_state(raw_cs);
+
+    let raw_cons_state = hex!("0a2000000000000000000000000000000000000000000000000000000000000000001a20000000000000000000000000000000000000000000000000000000000000000020c8052a30b83fdd19d1a7b901cce5e25487f5c9491e1dd8634bf76c02b3b0cb79e19923f71d756701d24a49f44af8c22952d7c412323083d1584d61dbe25905d0a8227dc0af9f158ad22a0c90014915d11a731891194469a4aa8a2fdcaab9a9c4fc6468ace5a13884e3d0c70640f904");
+    let raw_cons_state = RawConsensusState::decode(raw_cons_state.as_slice()).unwrap();
+    let cons_state = ConsensusState::try_from(raw_cons_state).unwrap();
+
+    let client_message =
+        std::fs::read("../testdata/submit_misbehaviour_future.bin").expect("file not found");
+    let client_message = Any::try_from(client_message).unwrap();
+
+    (1760834027, cs, cons_state, client_message)
+}
+
+/// Builds a client state for the misbehaviour fixtures. `ClientState::try_from`
+/// is used (instead of a struct literal) so the test only relies on the crate's
+/// public API. The IBC fields are unused by these tests, so they are zeroed.
+fn to_misbehaviour_client_state(mut raw_cs: RawClientState) -> ClientState {
+    raw_cs
+        .fault_dispute_game_config
+        .as_mut()
+        .unwrap()
+        .status_defender_win = 0;
+    raw_cs.frozen = false;
+    raw_cs.ibc_store_address = vec![0u8; 20];
+    raw_cs.ibc_commitments_slot = vec![0u8; 32];
+    ClientState::try_from(raw_cs).unwrap()
+}
