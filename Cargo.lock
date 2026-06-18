@@ -1564,6 +1564,7 @@ dependencies = [
  "hex",
  "milagro_bls",
  "primitive-types",
+ "rs_merkle",
  "serde",
  "sha2 0.10.9",
  "ssz-rs",
@@ -1605,6 +1606,7 @@ dependencies = [
  "ethereum-consensus",
  "patricia-merkle-trie",
  "primitive-types",
+ "rand 0.8.5",
  "rlp",
  "serde",
  "trie-db",
@@ -1655,6 +1657,9 @@ version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "835c052cb0c08c1acf6ffd71c022172e18723949c8282f2b9f27efbc51e64534"
 dependencies = [
+ "byteorder",
+ "rand 0.8.5",
+ "rustc-hex",
  "static_assertions",
 ]
 
@@ -1888,6 +1893,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "hex-literal"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6fe2267d4ed49bc07b63801559be28c718ea06c4738b7a03c94df7386d2cde46"
+
+[[package]]
 name = "hmac"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1994,6 +2005,15 @@ name = "ident_case"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
+
+[[package]]
+name = "impl-codec"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba6a270039626615617f3f36d15fc827041df3b78c439da2cadfa47455a77f2f"
+dependencies = [
+ "parity-scale-codec",
+]
 
 [[package]]
 name = "impl-serde"
@@ -2935,6 +2955,7 @@ dependencies = [
  "ethereum-consensus",
  "ethereum-light-client-types",
  "ethereum-light-client-verifier",
+ "hex-literal",
  "kona-protocol",
  "light-client",
  "optimism-derivation",
@@ -3097,11 +3118,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "799781ae679d79a948e13d4824a40970bfa500058d245760dd857301059810fa"
 dependencies = [
  "arrayvec",
+ "bitvec",
  "byte-slice-cast",
  "const_format",
  "impl-trait-for-tuples",
  "parity-scale-codec-derive",
  "rustversion",
+ "serde",
 ]
 
 [[package]]
@@ -3257,6 +3280,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b34d9fd68ae0b74a41b21c03c2f62847aa0ffea044eee893b4c140b37e244e2"
 dependencies = [
  "fixed-hash",
+ "impl-codec",
  "impl-serde",
  "uint",
 ]
@@ -3700,6 +3724,15 @@ checksum = "bb919243f34364b6bd2fc10ef797edbfa75f33c252e7998527479c6d6b47e1ec"
 dependencies = [
  "bytes",
  "rustc-hex",
+]
+
+[[package]]
+name = "rs_merkle"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb09b49230ba22e8c676e7b75dfe2887dea8121f18b530ae0ba519ce442d2b21"
+dependencies = [
+ "sha2 0.10.9",
 ]
 
 [[package]]
@@ -4598,6 +4631,7 @@ dependencies = [
  "hash-db",
  "hashbrown 0.12.3",
  "log",
+ "rustc-hex",
  "smallvec",
 ]
 
