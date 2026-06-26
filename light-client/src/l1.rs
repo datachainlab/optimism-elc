@@ -177,7 +177,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL1Header> for L1Header<SYNC_CO
             .execution_update
             .ok_or(Error::MissingL1ExecutionUpdate)?;
         let consensus_update = convert_proto_to_consensus_update(consensus_update)?;
-        let execution_update = convert_proto_to_execution_update(execution_update);
+        let execution_update = convert_proto_to_execution_update(execution_update)?;
         let trusted_sync_committee = value
             .trusted_sync_committee
             .ok_or(Error::MissingTrustedSyncCommittee)?;

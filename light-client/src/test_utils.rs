@@ -250,7 +250,7 @@ impl L1Fixture {
         let h = self.l1_header();
         RawL1Header {
             trusted_sync_committee: Some(h.trusted_sync_committee.into()),
-            consensus_update: Some(convert_consensus_update_to_proto(h.consensus_update)),
+            consensus_update: Some(convert_consensus_update_to_proto(h.consensus_update).unwrap()),
             execution_update: Some(convert_execution_update_to_proto(h.execution_update)),
             timestamp: h.timestamp.as_unix_timestamp_secs() as u64,
         }

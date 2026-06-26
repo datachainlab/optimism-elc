@@ -14,7 +14,7 @@ all-features = true
 [dependencies]
 prost       = { workspace = true }
 ibc-proto   = { version = "0.26.0", default-features = false }
-ethereum-light-client-proto = { git = "https://github.com/datachainlab/ethereum-light-client-types", rev = "e87e94ac50e54943b1e66bda57c08d1271f9de82", default-features = false }
+ethereum-light-client-proto = { git = "https://github.com/datachainlab/ethereum-light-client-types", rev = "144c3d02fed07f910b56dfa4b4738ac84ed89d72", default-features = false }
 
 [features]
 default     = ["std"]
