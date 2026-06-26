@@ -116,6 +116,7 @@ impl Derivation {
             l2_provider.clone(),
             l2_provider,
             evm_factory,
+            alloy_op_evm::block::OpAlloyReceiptBuilder::default(),
             None,
         );
         let mut driver = Driver::new(cursor, executor, pipeline);
