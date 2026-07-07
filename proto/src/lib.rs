@@ -5,9 +5,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![deny(warnings, trivial_casts, trivial_numeric_casts, unused_import_braces)]
 #![allow(clippy::large_enum_variant)]
+#![allow(clippy::too_long_first_doc_paragraph)]
 #![allow(rustdoc::bare_urls)]
 #![forbid(unsafe_code)]
 
+pub use ethereum_light_client_proto;
 pub use ibc_proto::cosmos;
 pub use ibc_proto::google;
 
@@ -29,11 +31,7 @@ pub mod ibc {
 
     pub mod lightclients {
 
-        pub mod ethereum {
-            pub mod v1 {
-                include_proto!("ibc.lightclients.ethereum.v1.rs");
-            }
-        }
+        pub use ethereum_light_client_proto::ibc::lightclients::ethereum;
 
         pub mod optimism {
             pub mod v1 {

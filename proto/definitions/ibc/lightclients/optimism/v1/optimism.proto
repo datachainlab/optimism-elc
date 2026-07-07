@@ -13,7 +13,7 @@ message L1Config {
   bytes genesis_validators_root = 1;
   uint64 min_sync_committee_participants = 2;
   uint64 genesis_time = 3;
-  ethereum.v1.ForkParameters fork_parameters = 4;
+  ibc.lightclients.ethereum.v1.ForkParameters fork_parameters = 4;
   uint64 seconds_per_slot = 5;
   uint64 slots_per_epoch = 6;
   uint64 epochs_per_sync_committee_period = 7;
@@ -63,7 +63,7 @@ message Derivation {
 
 message Header {
   ibc.core.client.v1.Height trusted_height = 1;
-  AccountUpdate account_update = 2;
+  ibc.lightclients.ethereum.v1.AccountUpdate account_update = 2;
 
   // derivation and preimage must be generated using rollup_config in ClientState.
   Derivation derivation = 3;
@@ -86,18 +86,13 @@ message ConsensusState {
   uint64 l1_origin = 8;
 }
 
-message AccountUpdate {
-  bytes account_proof = 1;
-  bytes account_storage_root = 2;
-}
-
 message FaultDisputeGameProof {
   bytes state_root = 1;
 
-  AccountUpdate dispute_game_factory_account = 3;
+  ibc.lightclients.ethereum.v1.AccountUpdate dispute_game_factory_account = 3;
   bytes dispute_game_factory_game_id_proof = 4;
 
-  AccountUpdate fault_dispute_game_account = 5;
+  ibc.lightclients.ethereum.v1.AccountUpdate fault_dispute_game_account = 5;
   bytes fault_dispute_game_game_status_proof = 6;
   uint64 fault_dispute_game_source_game_type = 7;
 
@@ -113,13 +108,27 @@ message Misbehaviour {
   L1Header latest_l1_header = 6;
 
   // Only for past game
-  AccountUpdate first_l2_to_l1_message_passer_account = 7;
-  AccountUpdate last_l2_to_l1_message_passer_account = 8;
+  ibc.lightclients.ethereum.v1.AccountUpdate first_l2_to_l1_message_passer_account = 7;
+  ibc.lightclients.ethereum.v1.AccountUpdate last_l2_to_l1_message_passer_account = 8;
   repeated bytes l2_header_history = 9;
 
   // Only for future game
   // L1 block which the resolved FaultDisputeGameFactory.create(gameType, output, l2_num) is called at
   FaultDisputeGameProof submitted_l1_proof = 10;
   repeated bytes l1_header_history = 11;
+}
+
+message FinalizedHeaderMisbehaviour {
+  string client_id = 1;
+  ibc.lightclients.ethereum.v1.TrustedSyncCommittee trusted_sync_committee = 2;
+  ibc.lightclients.ethereum.v1.ConsensusUpdate consensus_update_1 = 3;
+  ibc.lightclients.ethereum.v1.ConsensusUpdate consensus_update_2 = 4;
+}
+
+message NextSyncCommitteeMisbehaviour {
+  string client_id = 1;
+  ibc.lightclients.ethereum.v1.TrustedSyncCommittee trusted_sync_committee = 2;
+  ibc.lightclients.ethereum.v1.ConsensusUpdate consensus_update_1 = 3;
+  ibc.lightclients.ethereum.v1.ConsensusUpdate consensus_update_2 = 4;
 }
 
