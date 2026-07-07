@@ -18,13 +18,13 @@ use ethereum_light_client_types::consensus::{
     convert_consensus_update_to_proto, convert_execution_update_to_proto, ConsensusUpdateInfo,
     ExecutionUpdateInfo, TrustedSyncCommittee,
 };
-use optimism_ibc_proto::ibc::lightclients::optimism::v1::L1Header as RawL1Header;
 use ethereum_light_client_verifier::consensus::test_utils::{
     gen_finalized_beacon_block, gen_light_client_update_with_params, MockSyncCommittee,
     MockSyncCommitteeManager,
 };
 use ethereum_light_client_verifier::context::{Fraction, LightClientContext};
 use light_client::types::{Height, Time};
+use optimism_ibc_proto::ibc::lightclients::optimism::v1::L1Header as RawL1Header;
 
 /// Sync committee size from the minimal preset.
 pub const SYNC_COMMITTEE_SIZE: usize = PRESET.SYNC_COMMITTEE_SIZE;

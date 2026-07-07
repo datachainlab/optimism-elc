@@ -1,9 +1,9 @@
 //! End-to-end tests for the optimism light client.
 //!
-//! These drive the full `update_client` / misbehaviour flow against
-//! prover-generated fixtures in `../testdata/*.bin`. They are `#[ignore]`d
-//! because they require regenerated testdata; run with
-//! `cargo test -- --ignored` after regeneration.
+//! These drive the full `update_client` / misbehaviour flow against the
+//! prover-generated fixtures committed under `../testdata/`, so they run as
+//! part of the normal `cargo test` suite. Regenerate the fixtures when the
+//! header / client-state format changes.
 
 use std::collections::BTreeMap;
 use std::str::FromStr;
