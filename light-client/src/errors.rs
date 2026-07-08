@@ -93,8 +93,8 @@ pub enum Error {
     CurrentTimeBeforeTrustedState(Time, Time),
     #[error("HeaderFromFuture: current={0} drift={1:?} header_ts={2}")]
     HeaderFromFuture(Time, core::time::Duration, Time),
-    #[error("L1VerifyConsensusUpdateError: err={0:?}")]
-    L1VerifyConsensusUpdateError(L1VerifyError),
+    #[error("L1VerifyUpdatesError: err={0:?}")]
+    L1VerifyUpdatesError(L1VerifyError),
     #[error("L1ConsensusError: err={0:?}")]
     L1ConsensusError(L1ConsensusError),
     #[error("L1HeaderTrustedToDeterministicVerifyError: index={0}, prev_updated_as_next={1:?} prev={2:?}, err={3:?}")]

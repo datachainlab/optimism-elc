@@ -216,7 +216,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L1Verifier<SYNC_COMMITTEE_SIZE> {
                 consensus_update,
                 execution_update,
             )
-            .map_err(Error::L1VerifyConsensusUpdateError)?;
+            .map_err(Error::L1VerifyUpdatesError)?;
 
         // Ensure valid l1 block hash (only required for pre-Gloas)
         validate_execution_update::<SYNC_COMMITTEE_SIZE, _, _>(
@@ -468,7 +468,7 @@ pub(crate) mod tests {
             .verify(get_time(), &l1_config, &cons_state)
             .unwrap_err();
         match err {
-            Error::L1VerifyConsensusUpdateError(_) => {}
+            Error::L1VerifyUpdatesError(_) => {}
             _ => panic!("Unexpected error: {:?}", err),
         }
     }
@@ -486,7 +486,7 @@ pub(crate) mod tests {
             .verify(get_time(), &l1_config, &cons_state)
             .unwrap_err();
         match err {
-            Error::L1VerifyConsensusUpdateError(_) => {}
+            Error::L1VerifyUpdatesError(_) => {}
             _ => panic!("Unexpected error: {:?}", err),
         }
     }

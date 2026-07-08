@@ -183,11 +183,9 @@ impl FaultDisputeGameProof {
         claimed_output_root: B256,
     ) -> Result<Option<Vec<u8>>, Error> {
         let state_root: H256 = self.state_root.0.into();
-        let execution_verifier = ExecutionVerifier;
-
         // Ensure valid account proof
         verify_account_storage(
-            &execution_verifier,
+            &ExecutionVerifier,
             state_root,
             &fault_dispute_game_config.dispute_game_factory_address,
             &self.dispute_game_factory_account,
@@ -203,8 +201,7 @@ impl FaultDisputeGameProof {
             game_uuid.as_slice(),
             fault_dispute_game_config.dispute_game_factory_target_storage_slot as u64,
         );
-        let execution_verifier = ExecutionVerifier;
-        execution_verifier
+        ExecutionVerifier
             .verify(
                 self.dispute_game_factory_account.account_storage_root,
                 game_id_key.as_slice(),
@@ -239,16 +236,15 @@ impl FaultDisputeGameProof {
 
         // Ensure game is resolved with DEFENDER_WIN status
         let (_, _, fault_dispute_game_address) = unpack_game_id(left_pad(game_id));
-        let execution_verifier = ExecutionVerifier;
         verify_account_storage(
-            &execution_verifier,
+            &ExecutionVerifier,
             state_root,
             &Address(fault_dispute_game_address),
             &self.fault_dispute_game_account,
         )?;
         let status_key =
             u64_to_bytes32(fault_dispute_game_config.fault_dispute_game_status_slot as u64);
-        let packing_slot_value = execution_verifier
+        let packing_slot_value = ExecutionVerifier
             .verify(
                 self.fault_dispute_game_account.account_storage_root,
                 status_key.as_slice(),
@@ -340,9 +336,8 @@ impl HeaderWithMessagePasserAccount {
         hash: B256,
     ) -> Result<B256, Error> {
         // Ensure the account storage root matches the expected state root
-        let execution_verifier = ExecutionVerifier;
         verify_account_storage(
-            &execution_verifier,
+            &ExecutionVerifier,
             state_root.0.into(),
             &Address(Predeploys::L2_TO_L1_MESSAGE_PASSER.0 .0),
             account,
