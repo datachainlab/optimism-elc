@@ -18,6 +18,7 @@ use ethereum_light_client_types::consensus::{
     convert_consensus_update_to_proto, convert_execution_update_to_proto, ConsensusUpdateInfo,
     ExecutionUpdateInfo, TrustedSyncCommittee,
 };
+use ethereum_light_client_types::height::Height as LcTypesHeight;
 use ethereum_light_client_verifier::consensus::test_utils::{
     gen_finalized_beacon_block, gen_light_client_update_with_params, MockSyncCommittee,
     MockSyncCommitteeManager,
@@ -170,7 +171,7 @@ impl L1Fixture {
 
         L1Header {
             trusted_sync_committee: TrustedSyncCommittee {
-                height: ethereum_light_client_types::height::Height::new(0, 1),
+                height: LcTypesHeight::new(0, 1),
                 sync_committee: self.committee(1).to_committee(),
                 is_next: false,
             },
@@ -228,7 +229,7 @@ impl L1Fixture {
 
         L1Header {
             trusted_sync_committee: TrustedSyncCommittee {
-                height: ethereum_light_client_types::height::Height::new(0, 1),
+                height: LcTypesHeight::new(0, 1),
                 sync_committee: self.committee(2).to_committee(),
                 is_next: true,
             },

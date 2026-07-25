@@ -4,6 +4,7 @@ use crate::errors::Error;
 use crate::header::Header;
 use crate::message::ClientMessage;
 use crate::misbehaviour::Misbehaviour;
+use crate::misc::to_lc_types_height;
 use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
@@ -121,7 +122,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> LightClient
             &consensus_state,
             path.clone(),
             value,
-            crate::misc::to_lc_types_height(proof_height),
+            to_lc_types_height(proof_height),
             proof,
             &execution_verifier,
         )
@@ -161,7 +162,7 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> LightClient
             &client_state,
             &consensus_state,
             path.clone(),
-            crate::misc::to_lc_types_height(proof_height),
+            to_lc_types_height(proof_height),
             proof,
             &execution_verifier,
         )

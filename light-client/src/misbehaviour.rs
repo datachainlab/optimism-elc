@@ -1,6 +1,7 @@
 use crate::commitment::decode_rlp_proof;
 use crate::errors::Error;
 use crate::l1::{L1Config, L1ConsensusState, L1Header, Misbehaviour as L1Misbehaviour};
+use crate::misc::to_lcp_height;
 use alloc::vec::Vec;
 use alloy_consensus::Header;
 use alloy_primitives::private::alloy_rlp::Decodable;
@@ -646,7 +647,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> Misbehaviour<SYNC_COMMITTEE_SIZE> {
         match self {
             Misbehaviour::L2(misbehaviour) => misbehaviour.trusted_height,
             Misbehaviour::L1(misbehaviour) => {
-                crate::misc::to_lcp_height(misbehaviour.trusted_sync_committee.height)
+                to_lcp_height(misbehaviour.trusted_sync_committee.height)
             }
         }
     }
@@ -723,6 +724,7 @@ mod test {
     use alloy_primitives::{hex, B256};
     use ethereum_consensus::types::Address;
     use ethereum_light_client_types::consensus::AccountUpdateInfo;
+    use ethereum_light_client_types::errors::Error as EthLightClientTypesError;
     use optimism_ibc_proto::ibc::core::client::v1::Height;
     use optimism_ibc_proto::ibc::lightclients::ethereum::v1::{
         AccountUpdate as RawAccountUpdate, BeaconBlockHeader, ConsensusUpdate, ExecutionUpdate,
@@ -840,9 +842,9 @@ mod test {
             .verify_resolved_status(&FaultDisputeGameConfig::default(), claim.0, claim.1)
             .unwrap_err();
         match err {
-            Error::EthLightClientTypesError(
-                ethereum_light_client_types::errors::Error::MptVerification { .. },
-            ) => {}
+            Error::EthLightClientTypesError(EthLightClientTypesError::MptVerification {
+                ..
+            }) => {}
             _ => panic!("Unexpected error, got: {:?}", err),
         }
     }
@@ -884,9 +886,9 @@ mod test {
             .verify_resolved_status(&FaultDisputeGameConfig::default(), claim.0, claim.1)
             .unwrap_err();
         match err {
-            Error::EthLightClientTypesError(
-                ethereum_light_client_types::errors::Error::MptVerification { .. },
-            ) => {}
+            Error::EthLightClientTypesError(EthLightClientTypesError::MptVerification {
+                ..
+            }) => {}
             _ => panic!("Unexpected error, got: {:?}", err),
         }
     }

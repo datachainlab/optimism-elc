@@ -387,6 +387,7 @@ pub(crate) mod tests {
     use crate::l1::{apply_updates, L1Config, L1ConsensusState, L1Header};
     use ethereum_consensus::bls::PublicKey;
     use ethereum_consensus::types::H256;
+    use ethereum_light_client_types::errors::Error as EthLightClientTypesError;
     use optimism_ibc_proto::ibc::lightclients::optimism::v1::L1Header as RawL1Header;
 
     std::thread_local! {
@@ -428,9 +429,7 @@ pub(crate) mod tests {
             .unwrap_err();
         match err {
             Error::EthLightClientTypesError(
-                ethereum_light_client_types::errors::Error::InvalidCurrentSyncCommitteeKeys {
-                    ..
-                },
+                EthLightClientTypesError::InvalidCurrentSyncCommitteeKeys { .. },
             ) => {}
             _ => panic!("Unexpected error: {:?}", err),
         }
@@ -450,7 +449,7 @@ pub(crate) mod tests {
             .unwrap_err();
         match err {
             Error::EthLightClientTypesError(
-                ethereum_light_client_types::errors::Error::InvalidNextSyncCommitteeKeys { .. },
+                EthLightClientTypesError::InvalidNextSyncCommitteeKeys { .. },
             ) => {}
             _ => panic!("Unexpected error: {:?}", err),
         }
@@ -505,7 +504,7 @@ pub(crate) mod tests {
             .unwrap_err();
         match err {
             Error::EthLightClientTypesError(
-                ethereum_light_client_types::errors::Error::InvalidBlockHashMerkleBranch { .. },
+                EthLightClientTypesError::InvalidBlockHashMerkleBranch { .. },
             ) => {}
             _ => panic!("Unexpected error: {:?}", err),
         }
@@ -527,9 +526,7 @@ pub(crate) mod tests {
         .unwrap_err();
         match err {
             Error::EthLightClientTypesError(
-                ethereum_light_client_types::errors::Error::StoreNotSupportedFinalizedPeriod {
-                    ..
-                },
+                EthLightClientTypesError::StoreNotSupportedFinalizedPeriod { .. },
             ) => {}
             _ => panic!("Unexpected error: {:?}", err),
         }
@@ -552,9 +549,7 @@ pub(crate) mod tests {
         .unwrap_err();
         match err {
             Error::EthLightClientTypesError(
-                ethereum_light_client_types::errors::Error::NoNextSyncCommitteeInConsensusUpdate {
-                    ..
-                },
+                EthLightClientTypesError::NoNextSyncCommitteeInConsensusUpdate { .. },
             ) => {}
             _ => panic!("Unexpected error: {:?}", err),
         }
