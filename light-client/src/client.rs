@@ -119,7 +119,6 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> LightClient
         let value = eth_verify_membership(
             &client_state,
             &consensus_state,
-            client_id.as_str(),
             path.clone(),
             value,
             crate::misc::to_lc_types_height(proof_height),
@@ -161,7 +160,6 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> LightClient
         eth_verify_non_membership(
             &client_state,
             &consensus_state,
-            client_id.as_str(),
             path.clone(),
             crate::misc::to_lc_types_height(proof_height),
             proof,

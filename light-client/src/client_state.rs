@@ -50,10 +50,6 @@ pub struct ClientState {
 }
 
 impl EthClientStateTrait for ClientState {
-    fn is_frozen(&self) -> bool {
-        self.frozen
-    }
-
     fn latest_height(&self) -> ethereum_light_client_types::height::Height {
         crate::misc::to_lc_types_height(self.latest_height)
     }
