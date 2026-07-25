@@ -3,10 +3,7 @@ use crate::errors::Error;
 use crate::header::Header;
 use crate::l1::{L1Config, L1ConsensusState};
 use crate::misbehaviour::{FaultDisputeGameConfig, Misbehaviour, Verifier};
-use crate::misc::{
-    new_timestamp, validate_header_timestamp_not_future,
-    validate_state_timestamp_within_trusting_period,
-};
+use crate::misc::new_timestamp;
 use alloc::borrow::ToOwned;
 use alloc::vec::Vec;
 use alloy_primitives::B256;
@@ -15,6 +12,9 @@ use ethereum_consensus::fork::{ForkParameter, ForkParameters, ForkSpec};
 use ethereum_consensus::types::{Address, H256, U64};
 use ethereum_light_client_types::client_state::ClientState as EthClientStateTrait;
 use ethereum_light_client_types::commitment::verify_account_storage;
+use ethereum_light_client_types::time::{
+    validate_header_timestamp_not_future, validate_state_timestamp_within_trusting_period,
+};
 use ethereum_light_client_verifier::context::Fraction;
 use ethereum_light_client_verifier::execution::ExecutionVerifier;
 use light_client::types::{Any, ClientId, Height, Time};
@@ -53,8 +53,8 @@ impl EthClientStateTrait for ClientState {
         self.frozen
     }
 
-    fn latest_height(&self) -> Height {
-        self.latest_height
+    fn latest_height(&self) -> ethereum_light_client_types::height::Height {
+        crate::misc::to_lc_types_height(self.latest_height)
     }
 
     fn ibc_commitments_slot(&self) -> H256 {
@@ -105,15 +105,17 @@ impl ClientState {
         // check if the current timestamp is within the trusting period
         // check not L2 but L1 because the L2 is derived from L1 consensus
         validate_state_timestamp_within_trusting_period(
-            now,
+            now.as_unix_timestamp_nanos(),
             self.l1_config.trusting_period,
-            trusted_consensus_state.l1_timestamp,
+            trusted_consensus_state
+                .l1_timestamp
+                .as_unix_timestamp_nanos(),
         )?;
         // check if the header timestamp does not indicate a future time
         validate_header_timestamp_not_future(
-            now,
+            now.as_unix_timestamp_nanos(),
             self.l1_config.max_clock_drift,
-            l1_consensus.timestamp,
+            l1_consensus.timestamp.as_unix_timestamp_nanos(),
         )?;
 
         let mut new_client_state = self.clone();
@@ -162,9 +164,11 @@ impl ClientState {
         };
 
         validate_state_timestamp_within_trusting_period(
-            now,
+            now.as_unix_timestamp_nanos(),
             self.l1_config.trusting_period,
-            trusted_consensus_state.l1_timestamp,
+            trusted_consensus_state
+                .l1_timestamp
+                .as_unix_timestamp_nanos(),
         )?;
 
         match &misbehaviour {

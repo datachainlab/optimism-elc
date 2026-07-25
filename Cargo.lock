@@ -1551,7 +1551,7 @@ dependencies = [
 [[package]]
 name = "ethereum-light-client-proto"
 version = "0.1.0"
-source = "git+https://github.com/datachainlab/ethereum-light-client-types?rev=144c3d02fed07f910b56dfa4b4738ac84ed89d72#144c3d02fed07f910b56dfa4b4738ac84ed89d72"
+source = "git+https://github.com/datachainlab/ethereum-light-client-types?rev=v0.2.0#f14b790a5f4933659037d1b32bf79fc54f5b926d"
 dependencies = [
  "ibc-proto",
  "prost",
@@ -1560,13 +1560,12 @@ dependencies = [
 [[package]]
 name = "ethereum-light-client-types"
 version = "0.1.0"
-source = "git+https://github.com/datachainlab/ethereum-light-client-types?rev=144c3d02fed07f910b56dfa4b4738ac84ed89d72#144c3d02fed07f910b56dfa4b4738ac84ed89d72"
+source = "git+https://github.com/datachainlab/ethereum-light-client-types?rev=v0.2.0#f14b790a5f4933659037d1b32bf79fc54f5b926d"
 dependencies = [
  "ethereum-consensus",
  "ethereum-light-client-proto",
  "ethereum-light-client-verifier",
  "hex",
- "light-client",
  "rlp",
  "serde",
  "ssz-rs",

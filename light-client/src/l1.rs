@@ -1,4 +1,5 @@
 use crate::errors::Error;
+use crate::misc::new_timestamp;
 use core::str::FromStr;
 use core::time::Duration;
 use ethereum_consensus::beacon::{Epoch, Root, Slot};
@@ -12,7 +13,7 @@ use ethereum_light_client_types::consensus::{
     convert_proto_to_consensus_update, convert_proto_to_execution_update, ConsensusUpdateInfo,
     ExecutionUpdateInfo, TrustedSyncCommittee,
 };
-use ethereum_light_client_types::time::{new_timestamp, validate_header_timestamp};
+use ethereum_light_client_types::time::validate_header_timestamp;
 use ethereum_light_client_types::update::{
     compute_sync_committees, TrustedConsensusState, TrustedSyncCommitteeInfo,
 };
@@ -129,7 +130,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L1Header<SYNC_COMMITTEE_SIZE> {
         validate_header_timestamp(
             ctx,
             self.consensus_update.finalized_beacon_header().slot,
-            self.timestamp,
+            self.timestamp.as_unix_timestamp_nanos(),
         )?;
         Ok(())
     }

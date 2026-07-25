@@ -10,7 +10,7 @@ use ethereum_consensus::errors::Error as L1ConsensusError;
 use ethereum_consensus::types::Address;
 use ethereum_light_client_types::errors::Error as EthLightClientTypesError;
 use ethereum_light_client_verifier::errors::Error as L1VerifyError;
-use light_client::types::{ClientId, Height, Time, TimeError, TypeError};
+use light_client::types::{ClientId, Height, TimeError, TypeError};
 use optimism_derivation::derivation::Derivation;
 
 #[derive(thiserror::Error, Debug)]
@@ -22,6 +22,8 @@ pub enum Error {
     // data conversion error
     #[error("TimeError: err={0:?}")]
     TimeError(TimeError),
+    #[error("TimestampOverflow: timestamp={0}")]
+    TimestampOverflow(u64),
     #[error("ProtoDecodeError: err={0:?}")]
     ProtoDecodeError(prost::DecodeError),
     #[error("ProtoEncodeError: err={0:?}")]
@@ -87,12 +89,6 @@ pub enum Error {
     UnexpectedAgreedL2HeadOutput(TryFromSliceError),
     #[error("UnexpectedL2OutputRoot: err={0:?}")]
     UnexpectedL2OutputRoot(TryFromSliceError),
-    #[error("OutOfTrustingPeriod: current={0} deadline={1}")]
-    OutOfTrustingPeriod(Time, Time),
-    #[error("CurrentTimeBeforeTrustedState: current={0} trusted={1}")]
-    CurrentTimeBeforeTrustedState(Time, Time),
-    #[error("HeaderFromFuture: current={0} drift={1:?} header_ts={2}")]
-    HeaderFromFuture(Time, core::time::Duration, Time),
     #[error("L1VerifyUpdatesError: err={0:?}")]
     L1VerifyUpdatesError(L1VerifyError),
     #[error("L1ConsensusError: err={0:?}")]

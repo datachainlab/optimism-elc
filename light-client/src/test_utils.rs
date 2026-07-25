@@ -23,7 +23,7 @@ use ethereum_light_client_verifier::consensus::test_utils::{
     MockSyncCommitteeManager,
 };
 use ethereum_light_client_verifier::context::{Fraction, LightClientContext};
-use light_client::types::{Height, Time};
+use light_client::types::Time;
 use optimism_ibc_proto::ibc::lightclients::optimism::v1::L1Header as RawL1Header;
 
 /// Sync committee size from the minimal preset.
@@ -170,7 +170,7 @@ impl L1Fixture {
 
         L1Header {
             trusted_sync_committee: TrustedSyncCommittee {
-                height: Height::new(0, 1),
+                height: ethereum_light_client_types::height::Height::new(0, 1),
                 sync_committee: self.committee(1).to_committee(),
                 is_next: false,
             },
@@ -228,7 +228,7 @@ impl L1Fixture {
 
         L1Header {
             trusted_sync_committee: TrustedSyncCommittee {
-                height: Height::new(0, 1),
+                height: ethereum_light_client_types::height::Height::new(0, 1),
                 sync_committee: self.committee(2).to_committee(),
                 is_next: true,
             },

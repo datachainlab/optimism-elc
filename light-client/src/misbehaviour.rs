@@ -645,7 +645,9 @@ impl<const SYNC_COMMITTEE_SIZE: usize> Misbehaviour<SYNC_COMMITTEE_SIZE> {
     pub fn trusted_height(&self) -> Height {
         match self {
             Misbehaviour::L2(misbehaviour) => misbehaviour.trusted_height,
-            Misbehaviour::L1(misbehaviour) => misbehaviour.trusted_sync_committee.height,
+            Misbehaviour::L1(misbehaviour) => {
+                crate::misc::to_lcp_height(misbehaviour.trusted_sync_committee.height)
+            }
         }
     }
 
