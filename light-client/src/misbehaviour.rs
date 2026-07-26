@@ -1,4 +1,3 @@
-use crate::commitment::decode_rlp_proof;
 use crate::errors::Error;
 use crate::l1::{L1Config, L1ConsensusState, L1Header, Misbehaviour as L1Misbehaviour};
 use crate::misc::to_lcp_height;
@@ -8,6 +7,7 @@ use alloy_primitives::private::alloy_rlp::Decodable;
 use alloy_primitives::{keccak256, B256};
 use core::str::FromStr;
 use ethereum_consensus::types::{Address, H256};
+use ethereum_light_client_types::commitment::decode_eip1184_rlp_proof;
 use ethereum_light_client_types::commitment::verify_account_storage;
 use ethereum_light_client_types::consensus::AccountUpdateInfo;
 use ethereum_light_client_verifier::execution::ExecutionVerifier;
@@ -149,7 +149,7 @@ impl TryFrom<RawFaultDisputeGameProof> for FaultDisputeGameProof {
                 .ok_or(Error::proto_missing("dispute_game_factory_account"))?,
         )?;
         let dispute_game_factory_game_id_proof =
-            decode_rlp_proof(value.dispute_game_factory_game_id_proof)?;
+            decode_eip1184_rlp_proof(value.dispute_game_factory_game_id_proof)?;
 
         let fault_dispute_game_account = AccountUpdateInfo::try_from(
             value
@@ -157,7 +157,7 @@ impl TryFrom<RawFaultDisputeGameProof> for FaultDisputeGameProof {
                 .ok_or(Error::proto_missing("fault_dispute_game_account"))?,
         )?;
         let fault_dispute_game_game_status_proof =
-            decode_rlp_proof(value.fault_dispute_game_game_status_proof)?;
+            decode_eip1184_rlp_proof(value.fault_dispute_game_game_status_proof)?;
 
         Ok(Self {
             state_root,

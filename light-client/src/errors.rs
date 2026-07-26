@@ -21,7 +21,7 @@ pub enum Error {
 
     // data conversion error
     #[error("TimeError: err={0:?}")]
-    TimeError(TimeError),
+    Time(TimeError),
     #[error("TimestampOverflow: timestamp={0}")]
     TimestampOverflow(u64),
     #[error("ProtoDecodeError: err={0:?}")]
@@ -99,8 +99,6 @@ pub enum Error {
     DerivationError(Derivation, usize, optimism_derivation::errors::Error),
     #[error("ProtoMissingFieldError: field={0}")]
     ProtoMissingFieldError(String),
-    #[error("InvalidProofFormatError: description={0}")]
-    InvalidProofFormatError(String),
     #[error("ZeroL1ExecutionBlockNumberError")]
     ZeroL1ExecutionBlockNumberError,
     // Misbehaviour

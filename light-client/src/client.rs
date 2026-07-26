@@ -5,19 +5,18 @@ use crate::header::Header;
 use crate::message::ClientMessage;
 use crate::misbehaviour::Misbehaviour;
 use crate::misc::to_lc_types_height;
+use crate::state::gen_state_id;
 use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 use core::time::Duration;
-use ethereum_light_client_types::client_state::ClientState as _;
 use ethereum_light_client_types::membership::{
     verify_membership as eth_verify_membership, verify_non_membership as eth_verify_non_membership,
 };
 use ethereum_light_client_verifier::execution::ExecutionVerifier;
 use light_client::commitments::{
-    gen_state_id_from_any, CommitmentPrefix, EmittedState, MisbehaviourProxyMessage, PrevState,
-    StateID, TrustingPeriodContext, UpdateStateProxyMessage, ValidationContext,
-    VerifyMembershipProxyMessage,
+    CommitmentPrefix, EmittedState, MisbehaviourProxyMessage, PrevState, TrustingPeriodContext,
+    UpdateStateProxyMessage, ValidationContext, VerifyMembershipProxyMessage,
 };
 use light_client::types::{Any, ClientId, Height, Time};
 use light_client::{
@@ -301,17 +300,6 @@ impl<const L1_SYNC_COMMITTEE_SIZE: usize> OptimismLightClient<L1_SYNC_COMMITTEE_
         }
         Ok(prev_states)
     }
-}
-
-fn gen_state_id(
-    client_state: ClientState,
-    consensus_state: ConsensusState,
-) -> Result<StateID, Error> {
-    let client_state = Any::try_from(client_state.canonicalize())?;
-    let consensus_state = Any::try_from(consensus_state)?;
-    gen_state_id_from_any(&client_state, &consensus_state)
-        .map_err(LightClientError::commitment)
-        .map_err(Error::LCPError)
 }
 
 #[cfg(test)]

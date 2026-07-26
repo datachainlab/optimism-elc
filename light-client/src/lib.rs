@@ -12,13 +12,13 @@ pub mod client;
 pub mod client_state;
 pub mod consensus_state;
 
-mod commitment;
 pub mod errors;
 pub mod header;
 mod l1;
 mod message;
 mod misbehaviour;
 mod misc;
+pub mod state;
 
 #[cfg(test)]
 mod test_utils;
