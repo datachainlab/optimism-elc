@@ -1,13 +1,15 @@
-use crate::account::AccountUpdateInfo;
-use crate::commitment::decode_rlp_proof;
 use crate::errors::Error;
-use crate::l1::{L1Config, L1Consensus, L1Header, Misbehaviour as L1Misbehaviour};
+use crate::l1::{L1Config, L1ConsensusState, L1Header, Misbehaviour as L1Misbehaviour};
+use crate::misc::to_lcp_height;
 use alloc::vec::Vec;
 use alloy_consensus::Header;
 use alloy_primitives::private::alloy_rlp::Decodable;
 use alloy_primitives::{keccak256, B256};
 use core::str::FromStr;
 use ethereum_consensus::types::{Address, H256};
+use ethereum_light_client_types::commitment::decode_eip1184_rlp_proof;
+use ethereum_light_client_types::commitment::verify_account_storage;
+use ethereum_light_client_types::consensus::AccountUpdateInfo;
 use ethereum_light_client_verifier::execution::ExecutionVerifier;
 use kona_protocol::{OutputRoot, Predeploys};
 use light_client::types::{Any, ClientId, Height};
@@ -147,7 +149,7 @@ impl TryFrom<RawFaultDisputeGameProof> for FaultDisputeGameProof {
                 .ok_or(Error::proto_missing("dispute_game_factory_account"))?,
         )?;
         let dispute_game_factory_game_id_proof =
-            decode_rlp_proof(value.dispute_game_factory_game_id_proof)?;
+            decode_eip1184_rlp_proof(value.dispute_game_factory_game_id_proof)?;
 
         let fault_dispute_game_account = AccountUpdateInfo::try_from(
             value
@@ -155,7 +157,7 @@ impl TryFrom<RawFaultDisputeGameProof> for FaultDisputeGameProof {
                 .ok_or(Error::proto_missing("fault_dispute_game_account"))?,
         )?;
         let fault_dispute_game_game_status_proof =
-            decode_rlp_proof(value.fault_dispute_game_game_status_proof)?;
+            decode_eip1184_rlp_proof(value.fault_dispute_game_game_status_proof)?;
 
         Ok(Self {
             state_root,
@@ -182,11 +184,12 @@ impl FaultDisputeGameProof {
         claimed_output_root: B256,
     ) -> Result<Option<Vec<u8>>, Error> {
         let state_root: H256 = self.state_root.0.into();
-
         // Ensure valid account proof
-        self.dispute_game_factory_account.verify_account_storage(
-            &fault_dispute_game_config.dispute_game_factory_address,
+        verify_account_storage(
+            &ExecutionVerifier,
             state_root,
+            &fault_dispute_game_config.dispute_game_factory_address,
+            &self.dispute_game_factory_account,
         )?;
 
         // Extract game id from DisputeGameFactoryProxy by output_root.
@@ -199,8 +202,7 @@ impl FaultDisputeGameProof {
             game_uuid.as_slice(),
             fault_dispute_game_config.dispute_game_factory_target_storage_slot as u64,
         );
-        let execution_verifier = ExecutionVerifier;
-        execution_verifier
+        ExecutionVerifier
             .verify(
                 self.dispute_game_factory_account.account_storage_root,
                 game_id_key.as_slice(),
@@ -235,12 +237,15 @@ impl FaultDisputeGameProof {
 
         // Ensure game is resolved with DEFENDER_WIN status
         let (_, _, fault_dispute_game_address) = unpack_game_id(left_pad(game_id));
-        self.fault_dispute_game_account
-            .verify_account_storage(&Address(fault_dispute_game_address), state_root)?;
+        verify_account_storage(
+            &ExecutionVerifier,
+            state_root,
+            &Address(fault_dispute_game_address),
+            &self.fault_dispute_game_account,
+        )?;
         let status_key =
             u64_to_bytes32(fault_dispute_game_config.fault_dispute_game_status_slot as u64);
-        let execution_verifier = ExecutionVerifier;
-        let packing_slot_value = execution_verifier
+        let packing_slot_value = ExecutionVerifier
             .verify(
                 self.fault_dispute_game_account.account_storage_root,
                 status_key.as_slice(),
@@ -332,9 +337,11 @@ impl HeaderWithMessagePasserAccount {
         hash: B256,
     ) -> Result<B256, Error> {
         // Ensure the account storage root matches the expected state root
-        account.verify_account_storage(
-            &Address(Predeploys::L2_TO_L1_MESSAGE_PASSER.0 .0),
+        verify_account_storage(
+            &ExecutionVerifier,
             state_root.0.into(),
+            &Address(Predeploys::L2_TO_L1_MESSAGE_PASSER.0 .0),
+            account,
         )?;
 
         // Compute the output root from the account storage root and header hash
@@ -395,7 +402,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L2FutureMisbehaviour<SYNC_COMMITTEE_SIZE>
         now: u64,
         l1_config: &L1Config,
         fault_dispute_game_config: &FaultDisputeGameConfig,
-        l1_cons_state: &L1Consensus,
+        l1_cons_state: &L1ConsensusState,
         consensus_l2_number: u64,
         consensus_l1_origin: u64,
     ) -> Result<(), Error> {
@@ -452,7 +459,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L2PastMisbehaviour<SYNC_COMMITTEE_SIZE> {
         now: u64,
         l1_config: &L1Config,
         fault_dispute_game_config: &FaultDisputeGameConfig,
-        l1_cons_state: &L1Consensus,
+        l1_cons_state: &L1ConsensusState,
         consensus_output_root: B256,
     ) -> Result<(), Error> {
         self.resolved
@@ -639,7 +646,9 @@ impl<const SYNC_COMMITTEE_SIZE: usize> Misbehaviour<SYNC_COMMITTEE_SIZE> {
     pub fn trusted_height(&self) -> Height {
         match self {
             Misbehaviour::L2(misbehaviour) => misbehaviour.trusted_height,
-            Misbehaviour::L1(misbehaviour) => misbehaviour.trusted_height,
+            Misbehaviour::L1(misbehaviour) => {
+                to_lcp_height(misbehaviour.trusted_sync_committee.height)
+            }
         }
     }
 
@@ -702,7 +711,6 @@ fn decode_headers(value: Vec<Vec<u8>>) -> Result<Vec<Header>, Error> {
 
 #[cfg(test)]
 mod test {
-    use crate::account::AccountUpdateInfo;
     use crate::errors::Error;
     use crate::misbehaviour::{
         FaultDisputeGameConfig, FaultDisputeGameProof, HeaderWithMessagePasserAccount,
@@ -715,16 +723,16 @@ mod test {
     use alloy_primitives::private::alloy_rlp::Decodable;
     use alloy_primitives::{hex, B256};
     use ethereum_consensus::types::Address;
+    use ethereum_light_client_types::consensus::AccountUpdateInfo;
+    use ethereum_light_client_types::errors::Error as EthLightClientTypesError;
     use optimism_ibc_proto::ibc::core::client::v1::Height;
     use optimism_ibc_proto::ibc::lightclients::ethereum::v1::{
-        BeaconBlockHeader, ConsensusUpdate, ExecutionUpdate, SyncAggregate, SyncCommittee,
-        TrustedSyncCommittee,
+        AccountUpdate as RawAccountUpdate, BeaconBlockHeader, ConsensusUpdate, ExecutionUpdate,
+        SyncAggregate, SyncCommittee, TrustedSyncCommittee,
     };
     use optimism_ibc_proto::ibc::lightclients::optimism::v1::FaultDisputeGameProof as RawFaultDisputeGameProof;
+    use optimism_ibc_proto::ibc::lightclients::optimism::v1::L1Header;
     use optimism_ibc_proto::ibc::lightclients::optimism::v1::Misbehaviour as RawL2Misbehaviour;
-    use optimism_ibc_proto::ibc::lightclients::optimism::v1::{
-        AccountUpdate as RawAccountUpdate, L1Header,
-    };
     use rlp::EMPTY_LIST_RLP;
 
     impl Default for FaultDisputeGameConfig {
@@ -834,7 +842,9 @@ mod test {
             .verify_resolved_status(&FaultDisputeGameConfig::default(), claim.0, claim.1)
             .unwrap_err();
         match err {
-            Error::MPTVerificationError(_, _, _, _) => {}
+            Error::EthLightClientTypesError(EthLightClientTypesError::MptVerification {
+                ..
+            }) => {}
             _ => panic!("Unexpected error, got: {:?}", err),
         }
     }
@@ -876,7 +886,9 @@ mod test {
             .verify_resolved_status(&FaultDisputeGameConfig::default(), claim.0, claim.1)
             .unwrap_err();
         match err {
-            Error::MPTVerificationError(_, _, _, _) => {}
+            Error::EthLightClientTypesError(EthLightClientTypesError::MptVerification {
+                ..
+            }) => {}
             _ => panic!("Unexpected error, got: {:?}", err),
         }
     }
@@ -1022,6 +1034,10 @@ mod test {
             }),
             latest_l1_header: Some(L1Header {
                 trusted_sync_committee: Some(TrustedSyncCommittee {
+                    trusted_height: Some(Height {
+                        revision_number: 0,
+                        revision_height: 0,
+                    }),
                     sync_committee: Some(SyncCommittee {
                         pubkeys: vec![vec![0u8; 48]],
                         aggregate_pubkey: [0u8; 48].into(),

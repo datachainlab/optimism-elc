@@ -197,7 +197,7 @@ Among the Security Assumptions described above, the OP ELC can detect occurrence
 
 If a Sync Committee acts in violation of the Sync Committee Protocol, the OP ELC will be unable to correctly verify the provided L1 head. Such misbehaviour is defined and the detection procedure is described in the following document. The OP ELC can detect it using the same method:
 
-[https://github.com/datachainlab/ethereum-ibc-rs/blob/v0.1.0/README.md#misbehaviour-detection](https://github.com/datachainlab/ethereum-ibc-rs/blob/v0.1.0/README.md#misbehaviour-detection)
+[https://github.com/datachainlab/ethereum-light-client-rs/blob/v0.1.0/README.md#misbehaviour-detection](https://github.com/datachainlab/ethereum-light-client-rs/blob/v0.1.0/README.md#misbehaviour-detection)
 
 ### Misbehaviour Detection for L2 Assumptions
 
