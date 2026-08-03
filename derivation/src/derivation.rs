@@ -8,13 +8,13 @@ use alloy_primitives::{Sealed, B256};
 use core::clone::Clone;
 use core::fmt::Debug;
 use kona_client::fpvm_evm::FpvmOpEvmFactory;
-use kona_client::single::fetch_safe_head_hash;
 use kona_derive::EthereumDataSource;
 use kona_driver::Driver;
 use kona_executor::TrieDBProvider;
 use kona_genesis::{L1ChainConfig, RollupConfig};
 use kona_preimage::{PreimageKey, PreimageOracleClient};
 use kona_proof::boot::{L1_CONFIG_KEY, L2_ROLLUP_CONFIG_KEY};
+use kona_proof::sync::fetch_safe_head_hash;
 use kona_proof::sync::new_oracle_pipeline_cursor;
 use kona_proof::{
     executor::KonaExecutor,
@@ -116,6 +116,7 @@ impl Derivation {
             l2_provider.clone(),
             l2_provider,
             evm_factory,
+            alloy_op_evm::block::OpAlloyReceiptBuilder::default(),
             None,
         );
         let mut driver = Driver::new(cursor, executor, pipeline);

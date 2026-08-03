@@ -3,18 +3,20 @@ use crate::errors::Error;
 use crate::header::Header;
 use crate::l1::{L1Config, L1ConsensusState};
 use crate::misbehaviour::{FaultDisputeGameConfig, Misbehaviour, Verifier};
-use crate::misc::{
-    new_timestamp, validate_header_timestamp_not_future,
-    validate_state_timestamp_within_trusting_period,
-};
+use crate::misc::{new_timestamp, to_lc_types_height};
 use alloc::borrow::ToOwned;
 use alloc::vec::Vec;
 use alloy_primitives::B256;
 use ethereum_consensus::beacon::Version;
-use ethereum_consensus::fork::{ForkParameter, ForkParameters, ForkSpec};
+use ethereum_consensus::fork::ForkSpec;
 use ethereum_consensus::types::{Address, H256, U64};
 use ethereum_light_client_types::client_state::ClientState as EthClientStateTrait;
 use ethereum_light_client_types::commitment::verify_account_storage;
+use ethereum_light_client_types::consensus::convert_proto_to_fork_parameters;
+use ethereum_light_client_types::height::Height as LcTypesHeight;
+use ethereum_light_client_types::time::{
+    validate_header_timestamp_not_future, validate_state_timestamp_within_trusting_period,
+};
 use ethereum_light_client_verifier::context::Fraction;
 use ethereum_light_client_verifier::execution::ExecutionVerifier;
 use light_client::types::{Any, ClientId, Height, Time};
@@ -49,12 +51,8 @@ pub struct ClientState {
 }
 
 impl EthClientStateTrait for ClientState {
-    fn is_frozen(&self) -> bool {
-        self.frozen
-    }
-
-    fn latest_height(&self) -> Height {
-        self.latest_height
+    fn latest_height(&self) -> LcTypesHeight {
+        to_lc_types_height(self.latest_height)
     }
 
     fn ibc_commitments_slot(&self) -> H256 {
@@ -105,15 +103,17 @@ impl ClientState {
         // check if the current timestamp is within the trusting period
         // check not L2 but L1 because the L2 is derived from L1 consensus
         validate_state_timestamp_within_trusting_period(
-            now,
+            now.as_unix_timestamp_nanos(),
             self.l1_config.trusting_period,
-            trusted_consensus_state.l1_timestamp,
+            trusted_consensus_state
+                .l1_timestamp
+                .as_unix_timestamp_nanos(),
         )?;
         // check if the header timestamp does not indicate a future time
         validate_header_timestamp_not_future(
-            now,
+            now.as_unix_timestamp_nanos(),
             self.l1_config.max_clock_drift,
-            l1_consensus.timestamp,
+            l1_consensus.timestamp.as_unix_timestamp_nanos(),
         )?;
 
         let mut new_client_state = self.clone();
@@ -162,9 +162,11 @@ impl ClientState {
         };
 
         validate_state_timestamp_within_trusting_period(
-            now,
+            now.as_unix_timestamp_nanos(),
             self.l1_config.trusting_period,
-            trusted_consensus_state.l1_timestamp,
+            trusted_consensus_state
+                .l1_timestamp
+                .as_unix_timestamp_nanos(),
         )?;
 
         match &misbehaviour {
@@ -251,40 +253,8 @@ impl TryFrom<RawL1Config> for L1Config {
     type Error = Error;
 
     fn try_from(value: RawL1Config) -> Result<Self, Self::Error> {
-        fn bytes_to_version(bz: Vec<u8>) -> Version {
-            assert_eq!(bz.len(), 4);
-            let mut version = Version::default();
-            version.0.copy_from_slice(&bz);
-            version
-        }
-        fn convert_fork_spec(spec: Option<ProtoForkSpec>) -> Result<ForkSpec, Error> {
-            let spec = spec.ok_or(Error::MissingForkSpec)?;
-            Ok(ForkSpec {
-                finalized_root_gindex: spec.finalized_root_gindex,
-                current_sync_committee_gindex: spec.current_sync_committee_gindex,
-                next_sync_committee_gindex: spec.next_sync_committee_gindex,
-                execution_payload_gindex: spec.execution_payload_gindex,
-                execution_payload_state_root_gindex: spec.execution_payload_state_root_gindex,
-                execution_payload_block_number_gindex: spec.execution_payload_block_number_gindex,
-                execution_block_hash_gindex: spec.execution_block_hash_gindex,
-            })
-        }
         let raw_fork_parameters = value.fork_parameters.ok_or(Error::MissingForkParameters)?;
-        let fork_parameters: ForkParameters = ForkParameters::new(
-            bytes_to_version(raw_fork_parameters.genesis_fork_version),
-            raw_fork_parameters
-                .forks
-                .into_iter()
-                .map(|f| -> Result<_, Error> {
-                    Ok(ForkParameter::new(
-                        bytes_to_version(f.version),
-                        f.epoch.into(),
-                        convert_fork_spec(f.spec)?,
-                    ))
-                })
-                .collect::<Result<Vec<_>, _>>()?,
-        )
-        .map_err(Error::L1ConsensusError)?;
+        let fork_parameters = convert_proto_to_fork_parameters(raw_fork_parameters)?;
         let trust_level = value.trust_level.ok_or(Error::MissingTrustLevel)?;
 
         let trusting_period = value

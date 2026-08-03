@@ -1,6 +1,8 @@
 #![no_std]
 #![allow(clippy::result_large_err)]
 extern crate alloc;
+#[cfg(test)]
+extern crate std;
 
 use alloc::string::ToString;
 
@@ -10,13 +12,16 @@ pub mod client;
 pub mod client_state;
 pub mod consensus_state;
 
-mod commitment;
 pub mod errors;
 pub mod header;
 mod l1;
 mod message;
 mod misbehaviour;
 mod misc;
+pub mod state;
+
+#[cfg(test)]
+mod test_utils;
 
 pub fn register_implementations<const SYNC_COMMITTEE_SIZE: usize>(
     registry: &mut dyn light_client::LightClientRegistry,
