@@ -215,6 +215,7 @@ impl From<L1Config> for RawL1Config {
                     execution_payload_state_root_gindex: spec.execution_payload_state_root_gindex,
                     execution_payload_block_number_gindex: spec
                         .execution_payload_block_number_gindex,
+                    execution_block_hash_gindex: spec.execution_block_hash_gindex,
                 }),
             }
         }

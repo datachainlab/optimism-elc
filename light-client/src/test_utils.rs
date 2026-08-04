@@ -7,6 +7,7 @@
 //! are stable across proto/schema changes.
 
 use crate::l1::{L1Config, L1ConsensusState, L1Header};
+use alloc::vec::Vec;
 use core::time::Duration;
 use ethereum_consensus::compute::compute_timestamp_at_slot;
 use ethereum_consensus::config;
@@ -181,6 +182,7 @@ impl L1Fixture {
                 state_root_branch: execution_update.state_root_branch,
                 block_number: execution_update.block_number,
                 block_number_branch: execution_update.block_number_branch,
+                rlp: Vec::new(),
                 block_hash,
                 block_hash_branch,
             },
@@ -239,6 +241,7 @@ impl L1Fixture {
                 state_root_branch: execution_update.state_root_branch,
                 block_number: execution_update.block_number,
                 block_number_branch: execution_update.block_number_branch,
+                rlp: Vec::new(),
                 block_hash,
                 block_hash_branch,
             },

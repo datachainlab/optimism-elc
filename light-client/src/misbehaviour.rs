@@ -1079,6 +1079,7 @@ mod test {
                     state_root_branch: vec![],
                     block_number: 0,
                     block_number_branch: vec![],
+                    rlp: vec![],
                     block_hash: [0u8; 32].into(),
                     block_hash_branch: vec![],
                 }),
