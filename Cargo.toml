@@ -31,8 +31,8 @@ kona-registry = { git="https://github.com/ethereum-optimism/optimism", rev= "kon
 # Ethereum-IBC
 ethereum-consensus = { git = "https://github.com/yoshidan/ethereum-light-client-rs", rev = "cb4f62bb86a143556068c0be89bf62ac5f54c75a", default-features = false }
 ethereum-light-client-verifier = { git = "https://github.com/yoshidan/ethereum-light-client-rs", rev = "cb4f62bb86a143556068c0be89bf62ac5f54c75a", default-features = false }
-ethereum-light-client-types = { git = "https://github.com/datachainlab/ethereum-light-client-types", rev = "0d358f0c82fdfcc0c5f18ec6f81f49e5d9cddeff", default-features = false }
-ethereum-light-client-proto = { git = "https://github.com/datachainlab/ethereum-light-client-types", rev = "0d358f0c82fdfcc0c5f18ec6f81f49e5d9cddeff", default-features = false }
+ethereum-light-client-types = { git = "https://github.com/datachainlab/ethereum-light-client-types", rev = "v0.3.0-rc1", default-features = false }
+ethereum-light-client-proto = { git = "https://github.com/datachainlab/ethereum-light-client-types", rev = "v0.3.0-rc1", default-features = false }
 
 # Alloy
 alloy-consensus = { version = "2.0.5", default-features = false }
