@@ -117,49 +117,50 @@ fn run_update_client(now: i64, raw_cs: Vec<u8>, raw_cons_state: Vec<u8>) {
 
 #[test]
 fn test_submit_misbehaviour_success() {
-    let client = OptimismLightClient::<SYNC_COMMITTEE_SIZE>;
-    let (now, cs, cons_state, client_message) = get_misbehaviour_data();
-    let mut cons_states = BTreeMap::new();
-    cons_states.insert(cs.latest_height, cons_state.clone());
-
-    let ctx = MockClientReader {
-        client_state: Some(cs),
-        consensus_state: cons_states,
-        time: Some(Time::from_unix_timestamp(now, 0).unwrap()),
-    };
-
-    let client_id = ClientId::from_str("optimism-01").unwrap();
-    let result = client
-        .update_client(&ctx, client_id, client_message)
-        .unwrap();
-    match result {
-        UpdateClientResult::Misbehaviour(data) => {
-            let frozen = ClientState::try_from(data.new_any_client_state)
-                .unwrap()
-                .frozen;
-            assert!(frozen, "Client should be frozen after misbehaviour");
-        }
-        _ => panic!("Expected success result"),
-    }
+    let result = submit_misbehaviour(
+        "../testdata/submit_misbehaviour.json",
+        "../testdata/submit_misbehaviour.bin",
+    )
+    .unwrap();
+    assert_frozen(result);
 }
 
 #[test]
 fn test_submit_misbehaviour_future_success() {
-    let client = OptimismLightClient::<SYNC_COMMITTEE_SIZE>;
-    let (now, cs, cons_state, client_message) = get_misbehaviour_future_data();
-    let mut cons_states = BTreeMap::new();
-    cons_states.insert(cs.latest_height, cons_state.clone());
+    let result = submit_misbehaviour(
+        "../testdata/submit_misbehaviour_future.json",
+        "../testdata/submit_misbehaviour_future.bin",
+    )
+    .unwrap();
+    assert_frozen(result);
+}
 
-    let ctx = MockClientReader {
-        client_state: Some(cs),
-        consensus_state: cons_states,
-        time: Some(Time::from_unix_timestamp(now, 0).unwrap()),
-    };
+/// The honest L2 history does not chain back to the trusted consensus state, so the client
+/// must reject it instead of freezing.
+#[test]
+fn test_submit_misbehaviour_error_not_misbehaviour() {
+    let err = submit_misbehaviour(
+        "../testdata/submit_misbehaviour.json",
+        "../testdata/submit_misbehaviour_not_misbehaviour.bin",
+    )
+    .unwrap_err();
+    assert_error_contains(&err, "UnexpectedTrustedOutputRoot");
+}
 
-    let client_id = ClientId::from_str("optimism-01").unwrap();
-    let result = client
-        .update_client(&ctx, client_id, client_message)
-        .unwrap();
+/// Same client message as the future misbehaviour case, but the trusted consensus state
+/// already covers the timestamp of the resolved super root, so the game claims nothing the
+/// client does not know yet.
+#[test]
+fn test_submit_misbehaviour_future_error_not_misbehaviour() {
+    let err = submit_misbehaviour(
+        "../testdata/submit_misbehaviour_not_misbehaviour_future.json",
+        "../testdata/submit_misbehaviour_future.bin",
+    )
+    .unwrap_err();
+    assert_error_contains(&err, "UnexpectedMisbehaviourTimestamp");
+}
+
+fn assert_frozen(result: UpdateClientResult) {
     match result {
         UpdateClientResult::Misbehaviour(data) => {
             let frozen = ClientState::try_from(data.new_any_client_state)
@@ -167,13 +168,23 @@ fn test_submit_misbehaviour_future_success() {
                 .frozen;
             assert!(frozen, "Client should be frozen after misbehaviour");
         }
-        _ => panic!("Expected success result"),
+        _ => panic!("Expected misbehaviour result"),
     }
 }
 
-fn get_misbehaviour_data() -> (i64, ClientState, ConsensusState, Any) {
-    // The test parameters are created by optimism-ibc-relay-prover#tools/misbehaviour/l2/past
-    let (now, raw_cs, raw_cons_state) = read_state_json("../testdata/submit_misbehaviour.json");
+fn assert_error_contains(err: &light_client::Error, expected: &str) {
+    let err = format!("{:?}", err);
+    assert!(err.contains(expected), "expected {expected} in {err}");
+}
+
+/// Loads a misbehaviour case: the initial state from `state_json` and the client message
+/// from `client_message_bin`. Both are created by
+/// optimism-ibc-relay-prover#tools/misbehaviour/l2/{past,future}.
+fn get_misbehaviour_case(
+    state_json: &str,
+    client_message_bin: &str,
+) -> (i64, ClientState, ConsensusState, Any) {
+    let (now, raw_cs, raw_cons_state) = read_state_json(state_json);
 
     let raw_cs = RawClientState::decode(raw_cs.as_slice()).unwrap();
     let cs = to_misbehaviour_client_state(raw_cs);
@@ -181,40 +192,43 @@ fn get_misbehaviour_data() -> (i64, ClientState, ConsensusState, Any) {
     let raw_cons_state = RawConsensusState::decode(raw_cons_state.as_slice()).unwrap();
     let cons_state = ConsensusState::try_from(raw_cons_state).unwrap();
 
-    let client_message =
-        std::fs::read("../testdata/submit_misbehaviour.bin").expect("file not found");
+    let client_message = std::fs::read(client_message_bin).expect("file not found");
     let client_message = Any::try_from(client_message).unwrap();
 
     (now, cs, cons_state, client_message)
 }
 
-fn get_misbehaviour_future_data() -> (i64, ClientState, ConsensusState, Any) {
-    // The test parameters are created by optimism-ibc-relay-prover#tools/misbehaviour/l2/future
-    let (now, raw_cs, raw_cons_state) =
-        read_state_json("../testdata/submit_misbehaviour_future.json");
+/// Runs `update_client` for a misbehaviour case and returns its result.
+fn submit_misbehaviour(
+    state_json: &str,
+    client_message_bin: &str,
+) -> Result<UpdateClientResult, light_client::Error> {
+    let client = OptimismLightClient::<SYNC_COMMITTEE_SIZE>;
+    let (now, cs, cons_state, client_message) =
+        get_misbehaviour_case(state_json, client_message_bin);
+    let mut cons_states = BTreeMap::new();
+    cons_states.insert(cs.latest_height, cons_state);
 
-    let raw_cs = RawClientState::decode(raw_cs.as_slice()).unwrap();
-    let cs = to_misbehaviour_client_state(raw_cs);
+    let ctx = MockClientReader {
+        client_state: Some(cs),
+        consensus_state: cons_states,
+        time: Some(Time::from_unix_timestamp(now, 0).unwrap()),
+    };
 
-    let raw_cons_state = RawConsensusState::decode(raw_cons_state.as_slice()).unwrap();
-    let cons_state = ConsensusState::try_from(raw_cons_state).unwrap();
-
-    let client_message =
-        std::fs::read("../testdata/submit_misbehaviour_future.bin").expect("file not found");
-    let client_message = Any::try_from(client_message).unwrap();
-
-    (now, cs, cons_state, client_message)
+    client.update_client(
+        &ctx,
+        ClientId::from_str("optimism-01").unwrap(),
+        client_message,
+    )
 }
 
 /// Builds a client state for the misbehaviour fixtures. `ClientState::try_from`
 /// is used (instead of a struct literal) so the test only relies on the crate's
 /// public API. The IBC fields are unused by these tests, so they are zeroed.
 fn to_misbehaviour_client_state(mut raw_cs: RawClientState) -> ClientState {
-    raw_cs
-        .fault_dispute_game_config
-        .as_mut()
-        .unwrap()
-        .status_defender_win = 0;
+    // `status_defender_win` is left as the prover wrote it (2 = DEFENDER_WINS):
+    // SUPER_PERMISSIONED games resolve as soon as they are created, so the fixtures are
+    // taken from genuinely resolved games.
     raw_cs.frozen = false;
     raw_cs.ibc_store_address = vec![0u8; 20];
     raw_cs.ibc_commitments_slot = vec![0u8; 32];

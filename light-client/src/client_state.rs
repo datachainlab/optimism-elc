@@ -181,7 +181,8 @@ impl ClientState {
                     &self.l1_config,
                     &self.fault_dispute_game_config,
                     &l1_cons_state,
-                    misbehaviour.trusted_height().revision_height(),
+                    // Super Root games are identified by timestamp, not by L2 block number
+                    trusted_consensus_state.timestamp.as_unix_timestamp_secs(),
                     trusted_consensus_state.l1_origin,
                 ),
                 Verifier::Past(v) => v.verify(
@@ -189,6 +190,7 @@ impl ClientState {
                     &self.l1_config,
                     &self.fault_dispute_game_config,
                     &l1_cons_state,
+                    self.chain_id,
                     trusted_consensus_state.output_root,
                 ),
             },
