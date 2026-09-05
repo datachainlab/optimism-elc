@@ -104,8 +104,8 @@ pub enum Error {
     // Misbehaviour
     #[error("NoHeaderFound")]
     NoHeaderFound,
-    #[error("UnexpectedResolvedL2Number: expected={0} actual={1}")]
-    UnexpectedResolvedL2Number(u64, u64),
+    #[error("UnexpectedResolvedL2Timestamp: expected={0} actual={1}")]
+    UnexpectedResolvedL2Timestamp(u64, u64),
     #[error("UnexpectedHeaderRelation: expected_parent_hash={expected_parent_hash:?} actual_parent_hash={actual_parent_hash:?} header_number={header_number} parent_number={parent_number}")]
     UnexpectedHeaderRelation {
         expected_parent_hash: B256,
@@ -115,11 +115,11 @@ pub enum Error {
     },
     #[error("UnexpectedHeaderRLPError err={0:?}")]
     UnexpectedHeaderRLPError(alloy_rlp::Error),
-    #[error("UnexpectedDisputeGameFactoryProxyProof: proof={proof:?} output_root={output_root:?} l2_block_number={l2_block_number} err={err:?}")]
+    #[error("UnexpectedDisputeGameFactoryProxyProof: proof={proof:?} game_type={game_type} root_claim={root_claim:?} err={err:?}")]
     UnexpectedDisputeGameFactoryProxyProof {
         proof: FaultDisputeGameProof,
-        output_root: B256,
-        l2_block_number: u64,
+        game_type: u64,
+        root_claim: B256,
         err: Option<L1VerifyError>,
     },
     #[error("UnexpectedFaultDisputeGameProof: proof={proof:?} address={address:?} err={err:?}")]
@@ -147,8 +147,8 @@ pub enum Error {
     UnexpectedClientIdInMisbehaviour(ClientId, ClientId),
     #[error("UnexpectedMisbehaviourOutput: resolved_output_root={0:?}")]
     UnexpectedMisbehaviourOutput(B256),
-    #[error("UnexpectedMisbehaviourHeight: trusted={0} requested={1}")]
-    UnexpectedMisbehaviourHeight(u64, u64),
+    #[error("UnexpectedMisbehaviourTimestamp: trusted={0} requested={1}")]
+    UnexpectedMisbehaviourTimestamp(u64, u64),
     #[error("UnexpectedPastL1Header: trusted_l1_origin={0} requested={1}")]
     UnexpectedPastL1Header(u64, u64),
     #[error("UnexpectedSealedL1Number: expected={0} actual={1}")]
@@ -165,6 +165,12 @@ pub enum Error {
     UnexpectedCreatedAt(TryFromSliceError),
     #[error("UnexpectedStatusDefenderWin: data={0}")]
     UnexpectedStatusDefenderWin(u32),
+    #[error("UnexpectedSuperRootProofSize: size={0}")]
+    UnexpectedSuperRootProofSize(usize),
+    #[error("UnexpectedSuperRootProofVersion: version={0}")]
+    UnexpectedSuperRootProofVersion(u8),
+    #[error("ChainIdNotFoundInSuperRootProof: chain_id={0}")]
+    ChainIdNotFoundInSuperRootProof(u64),
 
     // Framework
     #[error("LCPError: err={0:?}")]
