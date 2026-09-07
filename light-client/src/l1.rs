@@ -1,5 +1,5 @@
 use crate::errors::Error;
-use crate::misc::new_timestamp;
+use crate::misc::new_timestamp_from_nanos;
 use core::str::FromStr;
 use core::time::Duration;
 use ethereum_consensus::beacon::{Epoch, Root, Slot};
@@ -16,9 +16,7 @@ use ethereum_light_client_types::consensus::{
 use ethereum_light_client_types::update::{
     compute_sync_committees, TrustedConsensusState, TrustedSyncCommitteeInfo,
 };
-use ethereum_light_client_types::validate::{
-    validate_execution_header_timestamp, validate_execution_update,
-};
+use ethereum_light_client_types::validate::validate_execution_update;
 use ethereum_light_client_verifier::consensus::SyncProtocolVerifier;
 use ethereum_light_client_verifier::context::{
     ChainConsensusVerificationContext, Fraction, LightClientContext,
@@ -119,25 +117,14 @@ pub struct L1Header<const SYNC_COMMITTEE_SIZE: usize> {
     pub trusted_sync_committee: TrustedSyncCommittee<SYNC_COMMITTEE_SIZE>,
     pub consensus_update: ConsensusUpdateInfo<SYNC_COMMITTEE_SIZE>,
     pub execution_update: ExecutionUpdateInfo,
-    pub timestamp: Time,
 }
 
 impl<const SYNC_COMMITTEE_SIZE: usize> L1Header<SYNC_COMMITTEE_SIZE> {
-    pub fn validate<C: ChainConsensusVerificationContext>(&self, ctx: &C) -> Result<(), Error> {
+    pub fn validate(&self) -> Result<(), Error> {
         self.trusted_sync_committee.validate()?;
         if self.execution_update.block_number == U64(0) {
             return Err(Error::ZeroL1ExecutionBlockNumberError);
         }
-        // Branches on the fork internally: pre-Gloas compares against the finalized slot's
-        // timestamp, Gloas against the authenticated RLP execution header. Post-Gloas the
-        // execution update describes the bid's parent block, whose timestamp is neither the
-        // finalized slot's nor derivable from it.
-        validate_execution_header_timestamp(
-            ctx,
-            self.consensus_update.finalized_beacon_header().slot,
-            &self.execution_update,
-            self.timestamp.as_unix_timestamp_nanos(),
-        )?;
         Ok(())
     }
 }
@@ -151,7 +138,7 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L1Header<SYNC_COMMITTEE_SIZE> {
     ) -> Result<(bool, L1ConsensusState), Error> {
         let ctx = l1_config.build_context(now);
 
-        self.validate(&ctx)?;
+        self.validate()?;
 
         let trusted_sync_committee = L1TrustedConsensusState::new(
             consensus_state.clone(),
@@ -164,11 +151,16 @@ impl<const SYNC_COMMITTEE_SIZE: usize> L1Header<SYNC_COMMITTEE_SIZE> {
             &self.consensus_update,
             &self.execution_update,
         )?;
+        // Derived only now: post-Gloas this reads the RLP execution header, which the
+        // verification above has just bound to the consensus update.
+        let header_timestamp = self
+            .execution_update
+            .timestamp(&ctx, self.consensus_update.finalized_beacon_header().slot)?;
         apply_updates(
             &ctx,
             consensus_state,
             self.consensus_update.clone(),
-            self.timestamp,
+            new_timestamp_from_nanos(header_timestamp)?,
         )
     }
 }
@@ -193,7 +185,6 @@ impl<const SYNC_COMMITTEE_SIZE: usize> TryFrom<RawL1Header> for L1Header<SYNC_CO
             trusted_sync_committee: trusted_sync_committee.try_into()?,
             consensus_update,
             execution_update,
-            timestamp: new_timestamp(value.timestamp)?,
         })
     }
 }
@@ -527,7 +518,7 @@ pub(crate) mod tests {
             &l1_config.build_context(get_time()),
             &cons_state,
             l1_header.consensus_update.clone(),
-            l1_header.timestamp,
+            get_l1_consensus().timestamp,
         )
         .unwrap_err();
         match err {
@@ -550,7 +541,7 @@ pub(crate) mod tests {
             &ctx,
             &cons_state,
             l1_header.consensus_update.clone(),
-            l1_header.timestamp,
+            get_l1_consensus().timestamp,
         )
         .unwrap_err();
         match err {
