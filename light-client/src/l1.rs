@@ -13,11 +13,12 @@ use ethereum_light_client_types::consensus::{
     convert_proto_to_consensus_update, convert_proto_to_execution_update, ConsensusUpdateInfo,
     ExecutionUpdateInfo, TrustedSyncCommittee,
 };
-use ethereum_light_client_types::time::validate_header_timestamp;
 use ethereum_light_client_types::update::{
     compute_sync_committees, TrustedConsensusState, TrustedSyncCommitteeInfo,
 };
-use ethereum_light_client_types::validate::validate_execution_update;
+use ethereum_light_client_types::validate::{
+    validate_execution_header_timestamp, validate_execution_update,
+};
 use ethereum_light_client_verifier::consensus::SyncProtocolVerifier;
 use ethereum_light_client_verifier::context::{
     ChainConsensusVerificationContext, Fraction, LightClientContext,
@@ -122,14 +123,19 @@ pub struct L1Header<const SYNC_COMMITTEE_SIZE: usize> {
 }
 
 impl<const SYNC_COMMITTEE_SIZE: usize> L1Header<SYNC_COMMITTEE_SIZE> {
-    pub fn validate<C: ChainContext>(&self, ctx: &C) -> Result<(), Error> {
+    pub fn validate<C: ChainConsensusVerificationContext>(&self, ctx: &C) -> Result<(), Error> {
         self.trusted_sync_committee.validate()?;
         if self.execution_update.block_number == U64(0) {
             return Err(Error::ZeroL1ExecutionBlockNumberError);
         }
-        validate_header_timestamp(
+        // Branches on the fork internally: pre-Gloas compares against the finalized slot's
+        // timestamp, Gloas against the authenticated RLP execution header. Post-Gloas the
+        // execution update describes the bid's parent block, whose timestamp is neither the
+        // finalized slot's nor derivable from it.
+        validate_execution_header_timestamp(
             ctx,
             self.consensus_update.finalized_beacon_header().slot,
+            &self.execution_update,
             self.timestamp.as_unix_timestamp_nanos(),
         )?;
         Ok(())
