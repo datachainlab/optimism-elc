@@ -102,20 +102,27 @@ message Misbehaviour {
   string client_id = 1;
   ibc.core.client.v1.Height trusted_height = 2;
 
-  uint64 resolved_l2_number = 3;
-  bytes resolved_output_root = 4;
-  FaultDisputeGameProof fault_dispute_game_proof = 5;
-  L1Header latest_l1_header = 6;
+  // The resolved game's extraData, which is the encoded SuperRootProof its rootClaim
+  // commits to:
+  //   version(1) || timestamp(8) || (chainId(32) || outputRoot(32))*n
+  // The l2SequenceNumber is its timestamp and this chain's output root is the entry
+  // matching ClientState.chain_id. SuperFaultDisputeGame.initialize enforces
+  // keccak256(extraData) == rootClaim, and the game UUID is derived from both, so a
+  // storage proof against DisputeGameFactory pins this preimage to the game.
+  bytes super_root_proof = 3;
+
+  FaultDisputeGameProof fault_dispute_game_proof = 4;
+  L1Header latest_l1_header = 5;
 
   // Only for past game
-  ibc.lightclients.ethereum.v1.AccountUpdate first_l2_to_l1_message_passer_account = 7;
-  ibc.lightclients.ethereum.v1.AccountUpdate last_l2_to_l1_message_passer_account = 8;
-  repeated bytes l2_header_history = 9;
+  ibc.lightclients.ethereum.v1.AccountUpdate first_l2_to_l1_message_passer_account = 6;
+  ibc.lightclients.ethereum.v1.AccountUpdate last_l2_to_l1_message_passer_account = 7;
+  repeated bytes l2_header_history = 8;
 
   // Only for future game
-  // L1 block which the resolved FaultDisputeGameFactory.create(gameType, output, l2_num) is called at
-  FaultDisputeGameProof submitted_l1_proof = 10;
-  repeated bytes l1_header_history = 11;
+  // L1 block which the resolved FaultDisputeGameFactory.create(gameType, rootClaim, extraData) is called at
+  FaultDisputeGameProof submitted_l1_proof = 9;
+  repeated bytes l1_header_history = 10;
 }
 
 message FinalizedHeaderMisbehaviour {

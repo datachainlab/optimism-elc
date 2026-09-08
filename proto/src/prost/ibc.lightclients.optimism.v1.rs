@@ -164,30 +164,35 @@ pub struct Misbehaviour {
     pub trusted_height: ::core::option::Option<
         ::ibc_proto::ibc::core::client::v1::Height,
     >,
-    #[prost(uint64, tag = "3")]
-    pub resolved_l2_number: u64,
-    #[prost(bytes = "vec", tag = "4")]
-    pub resolved_output_root: ::prost::alloc::vec::Vec<u8>,
-    #[prost(message, optional, tag = "5")]
+    /// The resolved game's extraData, which is the encoded SuperRootProof its rootClaim
+    /// commits to:
+    ///    version(1) || timestamp(8) || (chainId(32) || outputRoot(32))*n
+    /// The l2SequenceNumber is its timestamp and this chain's output root is the entry
+    /// matching ClientState.chain_id. SuperFaultDisputeGame.initialize enforces
+    /// keccak256(extraData) == rootClaim, and the game UUID is derived from both, so a
+    /// storage proof against DisputeGameFactory pins this preimage to the game.
+    #[prost(bytes = "vec", tag = "3")]
+    pub super_root_proof: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "4")]
     pub fault_dispute_game_proof: ::core::option::Option<FaultDisputeGameProof>,
-    #[prost(message, optional, tag = "6")]
+    #[prost(message, optional, tag = "5")]
     pub latest_l1_header: ::core::option::Option<L1Header>,
     /// Only for past game
-    #[prost(message, optional, tag = "7")]
+    #[prost(message, optional, tag = "6")]
     pub first_l2_to_l1_message_passer_account: ::core::option::Option<
         ::ethereum_light_client_proto::ibc::lightclients::ethereum::v1::AccountUpdate,
     >,
-    #[prost(message, optional, tag = "8")]
+    #[prost(message, optional, tag = "7")]
     pub last_l2_to_l1_message_passer_account: ::core::option::Option<
         ::ethereum_light_client_proto::ibc::lightclients::ethereum::v1::AccountUpdate,
     >,
-    #[prost(bytes = "vec", repeated, tag = "9")]
+    #[prost(bytes = "vec", repeated, tag = "8")]
     pub l2_header_history: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
     /// Only for future game
-    /// L1 block which the resolved FaultDisputeGameFactory.create(gameType, output, l2_num) is called at
-    #[prost(message, optional, tag = "10")]
+    /// L1 block which the resolved FaultDisputeGameFactory.create(gameType, rootClaim, extraData) is called at
+    #[prost(message, optional, tag = "9")]
     pub submitted_l1_proof: ::core::option::Option<FaultDisputeGameProof>,
-    #[prost(bytes = "vec", repeated, tag = "11")]
+    #[prost(bytes = "vec", repeated, tag = "10")]
     pub l1_header_history: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
