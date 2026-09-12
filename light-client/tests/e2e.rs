@@ -199,6 +199,7 @@ fn get_misbehaviour_case(
 }
 
 /// Runs `update_client` for a misbehaviour case and returns its result.
+#[allow(clippy::result_large_err)]
 fn submit_misbehaviour(
     state_json: &str,
     client_message_bin: &str,
