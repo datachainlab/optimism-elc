@@ -81,8 +81,6 @@ pub struct L1Header {
     pub execution_update: ::core::option::Option<
         ::ethereum_light_client_proto::ibc::lightclients::ethereum::v1::ExecutionUpdate,
     >,
-    #[prost(uint64, tag = "4")]
-    pub timestamp: u64,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
