@@ -11,6 +11,11 @@ pub fn new_timestamp(second: u64) -> Result<Time, Error> {
     Time::from_unix_timestamp(second, 0).map_err(Error::Time)
 }
 
+/// Builds a `Time` from a unix timestamp in nanoseconds.
+pub fn new_timestamp_from_nanos(nanos: u128) -> Result<Time, Error> {
+    Time::from_unix_timestamp_nanos(nanos).map_err(Error::Time)
+}
+
 /// Converts an `ethereum-light-client-types` height into an LCP height.
 pub fn to_lcp_height(height: LcTypesHeight) -> Height {
     Height::new(height.revision_number(), height.revision_height())
