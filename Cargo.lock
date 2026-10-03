@@ -1651,7 +1651,7 @@ dependencies = [
 [[package]]
 name = "ethereum-consensus"
 version = "0.1.0"
-source = "git+https://github.com/yoshidan/ethereum-light-client-rs?rev=cb4f62bb86a143556068c0be89bf62ac5f54c75a#cb4f62bb86a143556068c0be89bf62ac5f54c75a"
+source = "git+https://github.com/datachainlab/ethereum-light-client-rs?rev=v0.3.0#0fbf1f4f12e36c17b5f4b7ae0067a76e9a26d985"
 dependencies = [
  "displaydoc",
  "hex",
@@ -1667,7 +1667,7 @@ dependencies = [
 [[package]]
 name = "ethereum-light-client-proto"
 version = "0.1.0"
-source = "git+https://github.com/datachainlab/ethereum-light-client-types?rev=v0.3.0-rc8#440b4e3574048d1deef1f0b6699f85e2ff8e7206"
+source = "git+https://github.com/datachainlab/ethereum-light-client-types?rev=v0.3.0-rc9#bb125d794e93fd14295e5152600843bd4f75252a"
 dependencies = [
  "ibc-proto",
  "prost",
@@ -1676,7 +1676,7 @@ dependencies = [
 [[package]]
 name = "ethereum-light-client-types"
 version = "0.2.1"
-source = "git+https://github.com/datachainlab/ethereum-light-client-types?rev=v0.3.0-rc8#440b4e3574048d1deef1f0b6699f85e2ff8e7206"
+source = "git+https://github.com/datachainlab/ethereum-light-client-types?rev=v0.3.0-rc9#bb125d794e93fd14295e5152600843bd4f75252a"
 dependencies = [
  "ethereum-consensus",
  "ethereum-light-client-proto",
@@ -1692,7 +1692,7 @@ dependencies = [
 [[package]]
 name = "ethereum-light-client-verifier"
 version = "0.1.0"
-source = "git+https://github.com/yoshidan/ethereum-light-client-rs?rev=cb4f62bb86a143556068c0be89bf62ac5f54c75a#cb4f62bb86a143556068c0be89bf62ac5f54c75a"
+source = "git+https://github.com/datachainlab/ethereum-light-client-rs?rev=v0.3.0#0fbf1f4f12e36c17b5f4b7ae0067a76e9a26d985"
 dependencies = [
  "displaydoc",
  "ethereum-consensus",
