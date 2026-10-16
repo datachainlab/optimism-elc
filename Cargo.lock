@@ -1115,7 +1115,7 @@ dependencies = [
 [[package]]
 name = "commitments"
 version = "0.1.0"
-source = "git+https://github.com/datachainlab/lcp?rev=v0.2.17#a6006913123c973d4b1e8b57020df103551f122e"
+source = "git+https://github.com/datachainlab/lcp?rev=1b4ee0fadce1ee1c2d37bf269623cd960124fe7f#1b4ee0fadce1ee1c2d37bf269623cd960124fe7f"
 dependencies = [
  "alloy-sol-types 0.8.25",
  "crypto",
@@ -1229,14 +1229,14 @@ checksum = "460fbee9c2c2f33933d720630a6a0bac33ba7053db5344fac858d4b8952d77d5"
 [[package]]
 name = "crypto"
 version = "0.1.0"
-source = "git+https://github.com/datachainlab/lcp?rev=v0.2.17#a6006913123c973d4b1e8b57020df103551f122e"
+source = "git+https://github.com/datachainlab/lcp?rev=1b4ee0fadce1ee1c2d37bf269623cd960124fe7f#1b4ee0fadce1ee1c2d37bf269623cd960124fe7f"
 dependencies = [
  "flex-error",
  "hex",
  "libsecp256k1",
  "serde",
  "serde-big-array",
- "sgx_types",
+ "sgx-types",
  "tiny-keccak",
  "zeroize",
 ]
@@ -2587,7 +2587,7 @@ dependencies = [
 [[package]]
 name = "lcp-proto"
 version = "0.1.0"
-source = "git+https://github.com/datachainlab/lcp?rev=v0.2.17#a6006913123c973d4b1e8b57020df103551f122e"
+source = "git+https://github.com/datachainlab/lcp?rev=1b4ee0fadce1ee1c2d37bf269623cd960124fe7f#1b4ee0fadce1ee1c2d37bf269623cd960124fe7f"
 dependencies = [
  "ibc-proto",
  "prost",
@@ -2597,7 +2597,7 @@ dependencies = [
 [[package]]
 name = "lcp-types"
 version = "0.1.0"
-source = "git+https://github.com/datachainlab/lcp?rev=v0.2.17#a6006913123c973d4b1e8b57020df103551f122e"
+source = "git+https://github.com/datachainlab/lcp?rev=1b4ee0fadce1ee1c2d37bf269623cd960124fe7f#1b4ee0fadce1ee1c2d37bf269623cd960124fe7f"
 dependencies = [
  "flex-error",
  "hex",
@@ -2607,7 +2607,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with 2.3.3",
- "sgx_types",
+ "sgx-types",
  "time",
 ]
 
@@ -2670,7 +2670,7 @@ dependencies = [
 [[package]]
 name = "light-client"
 version = "0.1.0"
-source = "git+https://github.com/datachainlab/lcp?rev=v0.2.17#a6006913123c973d4b1e8b57020df103551f122e"
+source = "git+https://github.com/datachainlab/lcp?rev=1b4ee0fadce1ee1c2d37bf269623cd960124fe7f#1b4ee0fadce1ee1c2d37bf269623cd960124fe7f"
 dependencies = [
  "bincode 2.0.1",
  "commitments",
@@ -4157,9 +4157,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "sgx_types"
-version = "1.1.6"
-source = "git+https://github.com/apache/incubator-teaclave-sgx-sdk?rev=v1.1.6#c3d82372dff81e5bafb07f71bc8ad532d06b504e"
+name = "sgx-build-env"
+version = "1.2.0"
+source = "git+https://github.com/datachainlab/sgx-sdk-rs?rev=1f3134a469346ecae98cd4f67a7c11f28648ff41#1f3134a469346ecae98cd4f67a7c11f28648ff41"
+
+[[package]]
+name = "sgx-types"
+version = "1.2.0"
+source = "git+https://github.com/datachainlab/sgx-sdk-rs?rev=1f3134a469346ecae98cd4f67a7c11f28648ff41#1f3134a469346ecae98cd4f67a7c11f28648ff41"
+dependencies = [
+ "sgx-build-env",
+]
 
 [[package]]
 name = "sha2"
@@ -4433,7 +4441,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 [[package]]
 name = "store"
 version = "0.1.0"
-source = "git+https://github.com/datachainlab/lcp?rev=v0.2.17#a6006913123c973d4b1e8b57020df103551f122e"
+source = "git+https://github.com/datachainlab/lcp?rev=1b4ee0fadce1ee1c2d37bf269623cd960124fe7f#1b4ee0fadce1ee1c2d37bf269623cd960124fe7f"
 dependencies = [
  "flex-error",
  "log",
