@@ -52,7 +52,6 @@ message L1Header {
   ibc.lightclients.ethereum.v1.TrustedSyncCommittee trusted_sync_committee = 1;
   ibc.lightclients.ethereum.v1.ConsensusUpdate consensus_update = 2;
   ibc.lightclients.ethereum.v1.ExecutionUpdate execution_update = 3;
-  uint64 timestamp = 4;
 }
 
 message Derivation {

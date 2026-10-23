@@ -7,8 +7,8 @@
 //! are stable across proto/schema changes.
 
 use crate::l1::{L1Config, L1ConsensusState, L1Header};
+use alloc::vec::Vec;
 use core::time::Duration;
-use ethereum_consensus::compute::compute_timestamp_at_slot;
 use ethereum_consensus::config;
 use ethereum_consensus::context::ChainContext;
 use ethereum_consensus::fork::deneb::prover::gen_execution_payload_field_proof;
@@ -166,8 +166,6 @@ impl L1Fixture {
                 .unwrap();
 
         let consensus_update = to_consensus_update_info(consensus_update);
-        let finalized_slot = consensus_update.finalized_header.0.slot;
-        let timestamp = new_time(compute_timestamp_at_slot(&self.ctx, finalized_slot).0);
 
         L1Header {
             trusted_sync_committee: TrustedSyncCommittee {
@@ -181,10 +179,10 @@ impl L1Fixture {
                 state_root_branch: execution_update.state_root_branch,
                 block_number: execution_update.block_number,
                 block_number_branch: execution_update.block_number_branch,
+                rlp: Vec::new(),
                 block_hash,
                 block_hash_branch,
             },
-            timestamp,
         }
     }
 
@@ -224,8 +222,6 @@ impl L1Fixture {
                 .unwrap();
 
         let consensus_update = to_consensus_update_info(consensus_update);
-        let finalized_slot = consensus_update.finalized_header.0.slot;
-        let timestamp = new_time(compute_timestamp_at_slot(&self.ctx, finalized_slot).0);
 
         L1Header {
             trusted_sync_committee: TrustedSyncCommittee {
@@ -239,10 +235,10 @@ impl L1Fixture {
                 state_root_branch: execution_update.state_root_branch,
                 block_number: execution_update.block_number,
                 block_number_branch: execution_update.block_number_branch,
+                rlp: Vec::new(),
                 block_hash,
                 block_hash_branch,
             },
-            timestamp,
         }
     }
 
@@ -253,7 +249,6 @@ impl L1Fixture {
             trusted_sync_committee: Some(h.trusted_sync_committee.into()),
             consensus_update: Some(convert_consensus_update_to_proto(h.consensus_update).unwrap()),
             execution_update: Some(convert_execution_update_to_proto(h.execution_update)),
-            timestamp: h.timestamp.as_unix_timestamp_secs(),
         }
     }
 
