@@ -15,7 +15,9 @@ optimism-derivation = { version = "0.1.1", path = "../derivation", default-featu
 optimism-ibc-proto = { version = "0.1.0", path = "../proto", default-features = false }
 
 # LCP
-light-client = { git = "https://github.com/datachainlab/lcp", rev = "fcb76ada2aad3eaffdbcd2b482b574eac9950191", default-features = false, features = ["ibc"] }
+# TEMPORARY: datachainlab/lcp#150 (cargo sgx build); the commit is only on the
+# fork until it merges.
+light-client = { git = "https://github.com/yoshidan/lcp", rev = "4c911e010261bb2f6f10c75b82e2c43412421a5e", default-features = false, features = ["ibc"] }
 
 # Ethereum-IBC
 ethereum-consensus = { workspace = true }
@@ -31,8 +33,8 @@ alloy-primitives = { workspace = true }
 
 [dev-dependencies]
 time = { version = "0.3", default-features = false, features = ["macros", "parsing"] }
-light-client = { git = "https://github.com/datachainlab/lcp", rev = "fcb76ada2aad3eaffdbcd2b482b574eac9950191", default-features = false, features = ["ibc", "std"] }
-store = { git = "https://github.com/datachainlab/lcp", rev = "fcb76ada2aad3eaffdbcd2b482b574eac9950191", default-features = false }
+light-client = { git = "https://github.com/yoshidan/lcp", rev = "4c911e010261bb2f6f10c75b82e2c43412421a5e", default-features = false, features = ["ibc", "std"] }
+store = { git = "https://github.com/yoshidan/lcp", rev = "4c911e010261bb2f6f10c75b82e2c43412421a5e", default-features = false }
 hex-literal = "0.4"
 hex = "0.4"
 serde_json = "1.0.128"
