@@ -251,7 +251,7 @@ dependencies = [
 [[package]]
 name = "alloy-op-evm"
 version = "0.32.0"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=1286a886f0853e07503b46c2d6233b6a2f623286#1286a886f0853e07503b46c2d6233b6a2f623286"
+source = "git+https://github.com/datachainlab/optimism?rev=65fde000bbc42da1975325f708dcdeedeb032c1f#65fde000bbc42da1975325f708dcdeedeb032c1f"
 dependencies = [
  "alloy-consensus",
  "alloy-eips",
@@ -268,7 +268,7 @@ dependencies = [
 [[package]]
 name = "alloy-op-hardforks"
 version = "0.5.0"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=1286a886f0853e07503b46c2d6233b6a2f623286#1286a886f0853e07503b46c2d6233b6a2f623286"
+source = "git+https://github.com/datachainlab/optimism?rev=65fde000bbc42da1975325f708dcdeedeb032c1f#65fde000bbc42da1975325f708dcdeedeb032c1f"
 dependencies = [
  "alloy-chains",
  "alloy-hardforks",
@@ -1040,15 +1040,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "buddy_system_allocator"
-version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b672b945a3e4f4f40bfd4cd5ee07df9e796a42254ce7cd6d2599ad969244c44a"
-dependencies = [
- "spin 0.10.0",
-]
-
-[[package]]
 name = "byte-slice-cast"
 version = "1.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1115,7 +1106,7 @@ dependencies = [
 [[package]]
 name = "commitments"
 version = "0.1.0"
-source = "git+https://github.com/datachainlab/lcp?rev=fcb76ada2aad3eaffdbcd2b482b574eac9950191#fcb76ada2aad3eaffdbcd2b482b574eac9950191"
+source = "git+https://github.com/yoshidan/lcp?rev=4c911e010261bb2f6f10c75b82e2c43412421a5e#4c911e010261bb2f6f10c75b82e2c43412421a5e"
 dependencies = [
  "alloy-sol-types 0.8.25",
  "crypto",
@@ -1229,7 +1220,7 @@ checksum = "460fbee9c2c2f33933d720630a6a0bac33ba7053db5344fac858d4b8952d77d5"
 [[package]]
 name = "crypto"
 version = "0.1.0"
-source = "git+https://github.com/datachainlab/lcp?rev=fcb76ada2aad3eaffdbcd2b482b574eac9950191#fcb76ada2aad3eaffdbcd2b482b574eac9950191"
+source = "git+https://github.com/yoshidan/lcp?rev=4c911e010261bb2f6f10c75b82e2c43412421a5e#4c911e010261bb2f6f10c75b82e2c43412421a5e"
 dependencies = [
  "flex-error",
  "hex",
@@ -2223,7 +2214,7 @@ dependencies = [
 [[package]]
 name = "kona-client"
 version = "1.0.2"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=1286a886f0853e07503b46c2d6233b6a2f623286#1286a886f0853e07503b46c2d6233b6a2f623286"
+source = "git+https://github.com/datachainlab/optimism?rev=65fde000bbc42da1975325f708dcdeedeb032c1f#65fde000bbc42da1975325f708dcdeedeb032c1f"
 dependencies = [
  "alloy-consensus",
  "alloy-eips",
@@ -2245,8 +2236,6 @@ dependencies = [
  "kona-proof-interop",
  "kona-protocol",
  "kona-registry",
- "kona-std-fpvm",
- "kona-std-fpvm-proc",
  "lru",
  "op-alloy-consensus",
  "op-alloy-rpc-types-engine",
@@ -2262,7 +2251,7 @@ dependencies = [
 [[package]]
 name = "kona-derive"
 version = "0.4.5"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=1286a886f0853e07503b46c2d6233b6a2f623286#1286a886f0853e07503b46c2d6233b6a2f623286"
+source = "git+https://github.com/datachainlab/optimism?rev=65fde000bbc42da1975325f708dcdeedeb032c1f#65fde000bbc42da1975325f708dcdeedeb032c1f"
 dependencies = [
  "alloy-consensus",
  "alloy-eips",
@@ -2284,7 +2273,7 @@ dependencies = [
 [[package]]
 name = "kona-driver"
 version = "0.4.0"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=1286a886f0853e07503b46c2d6233b6a2f623286#1286a886f0853e07503b46c2d6233b6a2f623286"
+source = "git+https://github.com/datachainlab/optimism?rev=65fde000bbc42da1975325f708dcdeedeb032c1f#65fde000bbc42da1975325f708dcdeedeb032c1f"
 dependencies = [
  "alloy-consensus",
  "alloy-evm",
@@ -2304,7 +2293,7 @@ dependencies = [
 [[package]]
 name = "kona-executor"
 version = "0.4.0"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=1286a886f0853e07503b46c2d6233b6a2f623286#1286a886f0853e07503b46c2d6233b6a2f623286"
+source = "git+https://github.com/datachainlab/optimism?rev=65fde000bbc42da1975325f708dcdeedeb032c1f#65fde000bbc42da1975325f708dcdeedeb032c1f"
 dependencies = [
  "alloy-consensus",
  "alloy-eips",
@@ -2328,7 +2317,7 @@ dependencies = [
 [[package]]
 name = "kona-genesis"
 version = "0.4.5"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=1286a886f0853e07503b46c2d6233b6a2f623286#1286a886f0853e07503b46c2d6233b6a2f623286"
+source = "git+https://github.com/datachainlab/optimism?rev=65fde000bbc42da1975325f708dcdeedeb032c1f#65fde000bbc42da1975325f708dcdeedeb032c1f"
 dependencies = [
  "alloy-chains",
  "alloy-consensus",
@@ -2346,7 +2335,7 @@ dependencies = [
 [[package]]
 name = "kona-hardforks"
 version = "0.4.5"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=1286a886f0853e07503b46c2d6233b6a2f623286#1286a886f0853e07503b46c2d6233b6a2f623286"
+source = "git+https://github.com/datachainlab/optimism?rev=65fde000bbc42da1975325f708dcdeedeb032c1f#65fde000bbc42da1975325f708dcdeedeb032c1f"
 dependencies = [
  "alloy-eips",
  "alloy-primitives 1.7.3",
@@ -2361,7 +2350,7 @@ dependencies = [
 [[package]]
 name = "kona-interop"
 version = "0.4.5"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=1286a886f0853e07503b46c2d6233b6a2f623286#1286a886f0853e07503b46c2d6233b6a2f623286"
+source = "git+https://github.com/datachainlab/optimism?rev=65fde000bbc42da1975325f708dcdeedeb032c1f#65fde000bbc42da1975325f708dcdeedeb032c1f"
 dependencies = [
  "alloy-consensus",
  "alloy-eips",
@@ -2382,12 +2371,12 @@ dependencies = [
 [[package]]
 name = "kona-macros"
 version = "0.1.2"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=1286a886f0853e07503b46c2d6233b6a2f623286#1286a886f0853e07503b46c2d6233b6a2f623286"
+source = "git+https://github.com/datachainlab/optimism?rev=65fde000bbc42da1975325f708dcdeedeb032c1f#65fde000bbc42da1975325f708dcdeedeb032c1f"
 
 [[package]]
 name = "kona-mpt"
 version = "0.3.0"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=1286a886f0853e07503b46c2d6233b6a2f623286#1286a886f0853e07503b46c2d6233b6a2f623286"
+source = "git+https://github.com/datachainlab/optimism?rev=65fde000bbc42da1975325f708dcdeedeb032c1f#65fde000bbc42da1975325f708dcdeedeb032c1f"
 dependencies = [
  "alloy-primitives 1.7.3",
  "alloy-rlp",
@@ -2399,7 +2388,7 @@ dependencies = [
 [[package]]
 name = "kona-preimage"
 version = "0.3.0"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=1286a886f0853e07503b46c2d6233b6a2f623286#1286a886f0853e07503b46c2d6233b6a2f623286"
+source = "git+https://github.com/datachainlab/optimism?rev=65fde000bbc42da1975325f708dcdeedeb032c1f#65fde000bbc42da1975325f708dcdeedeb032c1f"
 dependencies = [
  "alloy-primitives 1.7.3",
  "async-trait",
@@ -2410,7 +2399,7 @@ dependencies = [
 [[package]]
 name = "kona-proof"
 version = "0.3.0"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=1286a886f0853e07503b46c2d6233b6a2f623286#1286a886f0853e07503b46c2d6233b6a2f623286"
+source = "git+https://github.com/datachainlab/optimism?rev=65fde000bbc42da1975325f708dcdeedeb032c1f#65fde000bbc42da1975325f708dcdeedeb032c1f"
 dependencies = [
  "alloy-consensus",
  "alloy-eips",
@@ -2446,7 +2435,7 @@ dependencies = [
 [[package]]
 name = "kona-proof-interop"
 version = "0.2.0"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=1286a886f0853e07503b46c2d6233b6a2f623286#1286a886f0853e07503b46c2d6233b6a2f623286"
+source = "git+https://github.com/datachainlab/optimism?rev=65fde000bbc42da1975325f708dcdeedeb032c1f#65fde000bbc42da1975325f708dcdeedeb032c1f"
 dependencies = [
  "alloy-consensus",
  "alloy-eips",
@@ -2478,7 +2467,7 @@ dependencies = [
 [[package]]
 name = "kona-protocol"
 version = "0.4.5"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=1286a886f0853e07503b46c2d6233b6a2f623286#1286a886f0853e07503b46c2d6233b6a2f623286"
+source = "git+https://github.com/datachainlab/optimism?rev=65fde000bbc42da1975325f708dcdeedeb032c1f#65fde000bbc42da1975325f708dcdeedeb032c1f"
 dependencies = [
  "alloc-no-stdlib",
  "alloy-consensus",
@@ -2507,7 +2496,7 @@ dependencies = [
 [[package]]
 name = "kona-registry"
 version = "0.4.5"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=1286a886f0853e07503b46c2d6233b6a2f623286#1286a886f0853e07503b46c2d6233b6a2f623286"
+source = "git+https://github.com/datachainlab/optimism?rev=65fde000bbc42da1975325f708dcdeedeb032c1f#65fde000bbc42da1975325f708dcdeedeb032c1f"
 dependencies = [
  "alloy-chains",
  "alloy-eips",
@@ -2520,30 +2509,6 @@ dependencies = [
  "serde",
  "serde_json",
  "toml 0.9.12+spec-1.1.0",
-]
-
-[[package]]
-name = "kona-std-fpvm"
-version = "0.2.0"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=1286a886f0853e07503b46c2d6233b6a2f623286#1286a886f0853e07503b46c2d6233b6a2f623286"
-dependencies = [
- "async-trait",
- "buddy_system_allocator",
- "cfg-if",
- "kona-preimage",
- "thiserror 2.0.18",
-]
-
-[[package]]
-name = "kona-std-fpvm-proc"
-version = "0.2.0"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=1286a886f0853e07503b46c2d6233b6a2f623286#1286a886f0853e07503b46c2d6233b6a2f623286"
-dependencies = [
- "cfg-if",
- "kona-std-fpvm",
- "proc-macro2",
- "quote",
- "syn 2.0.104",
 ]
 
 [[package]]
@@ -2587,7 +2552,7 @@ dependencies = [
 [[package]]
 name = "lcp-proto"
 version = "0.1.0"
-source = "git+https://github.com/datachainlab/lcp?rev=fcb76ada2aad3eaffdbcd2b482b574eac9950191#fcb76ada2aad3eaffdbcd2b482b574eac9950191"
+source = "git+https://github.com/yoshidan/lcp?rev=4c911e010261bb2f6f10c75b82e2c43412421a5e#4c911e010261bb2f6f10c75b82e2c43412421a5e"
 dependencies = [
  "ibc-proto",
  "prost",
@@ -2597,7 +2562,7 @@ dependencies = [
 [[package]]
 name = "lcp-types"
 version = "0.1.0"
-source = "git+https://github.com/datachainlab/lcp?rev=fcb76ada2aad3eaffdbcd2b482b574eac9950191#fcb76ada2aad3eaffdbcd2b482b574eac9950191"
+source = "git+https://github.com/yoshidan/lcp?rev=4c911e010261bb2f6f10c75b82e2c43412421a5e#4c911e010261bb2f6f10c75b82e2c43412421a5e"
 dependencies = [
  "flex-error",
  "hex",
@@ -2670,7 +2635,7 @@ dependencies = [
 [[package]]
 name = "light-client"
 version = "0.1.0"
-source = "git+https://github.com/datachainlab/lcp?rev=fcb76ada2aad3eaffdbcd2b482b574eac9950191#fcb76ada2aad3eaffdbcd2b482b574eac9950191"
+source = "git+https://github.com/yoshidan/lcp?rev=4c911e010261bb2f6f10c75b82e2c43412421a5e#4c911e010261bb2f6f10c75b82e2c43412421a5e"
 dependencies = [
  "bincode 2.0.1",
  "commitments",
@@ -2942,7 +2907,7 @@ dependencies = [
 [[package]]
 name = "op-alloy"
 version = "2.0.0"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=1286a886f0853e07503b46c2d6233b6a2f623286#1286a886f0853e07503b46c2d6233b6a2f623286"
+source = "git+https://github.com/datachainlab/optimism?rev=65fde000bbc42da1975325f708dcdeedeb032c1f#65fde000bbc42da1975325f708dcdeedeb032c1f"
 dependencies = [
  "op-alloy-consensus",
 ]
@@ -2950,7 +2915,7 @@ dependencies = [
 [[package]]
 name = "op-alloy-consensus"
 version = "2.0.0"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=1286a886f0853e07503b46c2d6233b6a2f623286#1286a886f0853e07503b46c2d6233b6a2f623286"
+source = "git+https://github.com/datachainlab/optimism?rev=65fde000bbc42da1975325f708dcdeedeb032c1f#65fde000bbc42da1975325f708dcdeedeb032c1f"
 dependencies = [
  "alloy-consensus",
  "alloy-eips",
@@ -2968,7 +2933,7 @@ dependencies = [
 [[package]]
 name = "op-alloy-rpc-types"
 version = "2.0.0"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=1286a886f0853e07503b46c2d6233b6a2f623286#1286a886f0853e07503b46c2d6233b6a2f623286"
+source = "git+https://github.com/datachainlab/optimism?rev=65fde000bbc42da1975325f708dcdeedeb032c1f#65fde000bbc42da1975325f708dcdeedeb032c1f"
 dependencies = [
  "alloy-consensus",
  "alloy-eips",
@@ -2986,7 +2951,7 @@ dependencies = [
 [[package]]
 name = "op-alloy-rpc-types-engine"
 version = "2.0.0"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=1286a886f0853e07503b46c2d6233b6a2f623286#1286a886f0853e07503b46c2d6233b6a2f623286"
+source = "git+https://github.com/datachainlab/optimism?rev=65fde000bbc42da1975325f708dcdeedeb032c1f#65fde000bbc42da1975325f708dcdeedeb032c1f"
 dependencies = [
  "alloy-consensus",
  "alloy-eips",
@@ -3003,7 +2968,7 @@ dependencies = [
 [[package]]
 name = "op-revm"
 version = "20.0.0"
-source = "git+https://github.com/ethereum-optimism/optimism?rev=1286a886f0853e07503b46c2d6233b6a2f623286#1286a886f0853e07503b46c2d6233b6a2f623286"
+source = "git+https://github.com/datachainlab/optimism?rev=65fde000bbc42da1975325f708dcdeedeb032c1f#65fde000bbc42da1975325f708dcdeedeb032c1f"
 dependencies = [
  "alloy-eips",
  "auto_impl",
@@ -4441,7 +4406,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 [[package]]
 name = "store"
 version = "0.1.0"
-source = "git+https://github.com/datachainlab/lcp?rev=fcb76ada2aad3eaffdbcd2b482b574eac9950191#fcb76ada2aad3eaffdbcd2b482b574eac9950191"
+source = "git+https://github.com/yoshidan/lcp?rev=4c911e010261bb2f6f10c75b82e2c43412421a5e#4c911e010261bb2f6f10c75b82e2c43412421a5e"
 dependencies = [
  "flex-error",
  "log",
