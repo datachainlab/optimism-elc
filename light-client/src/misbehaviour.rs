@@ -96,7 +96,10 @@ impl SuperRootProof {
     /// The output root this super root commits to for `chain_id`, equivalent to
     /// `SuperFaultDisputeGame.rootClaimByChainId`.
     pub fn output_root(&self, chain_id: u64) -> Result<B256, Error> {
-        for entry in self.raw[Self::HEADER_SIZE..].chunks_exact(Self::ENTRY_SIZE) {
+        for entry in self.raw[Self::HEADER_SIZE..]
+            .as_chunks::<{ Self::ENTRY_SIZE }>()
+            .0
+        {
             // chain ids are encoded as uint256: anything that overflows u64 is not ours
             let (upper, lower) = entry[..32].split_at(24);
             if upper.iter().any(|byte| *byte != 0) {
